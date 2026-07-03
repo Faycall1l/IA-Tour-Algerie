@@ -17,6 +17,9 @@ bcrypt==4.1.2
 # Vector DB
 qdrant-client==1.8.0
 
+# Embeddings (CPU-only, runs locally for data sovereignty)
+sentence-transformers==3.0.1
+
 # Cache
 redis==5.0.1
 

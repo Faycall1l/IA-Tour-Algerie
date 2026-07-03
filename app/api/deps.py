@@ -8,6 +8,7 @@ from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User
 from app.services.storage import StorageService
+from app.services.vector_search import VectorSearchService
 
 
 async def get_current_user(
@@ -39,3 +40,7 @@ async def get_current_admin(
 
 async def get_storage(request: Request) -> StorageService:
     return request.app.state.storage
+
+
+async def get_vector_search(request: Request) -> VectorSearchService:
+    return request.app.state.vector_search

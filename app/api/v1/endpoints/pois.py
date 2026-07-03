@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user, get_db, get_storage
+from app.api.deps import get_current_admin, get_current_user, get_db, get_storage, get_vector_search
 from app.core.exceptions import NotFoundException
 from app.models.poi import POI
 from app.models.review import Review
@@ -13,6 +13,7 @@ from app.models.user import User
 from app.models.wilaya import Wilaya
 from app.schemas.poi import POICreate, POIFeed, POIRead
 from app.services.storage import StorageService
+from app.services.vector_search import VectorSearchService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/pois", tags=["Points of Interest"])
@@ -49,6 +50,7 @@ async def create_poi(
     body: POICreate,
     _current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    vector_search: VectorSearchService = Depends(get_vector_search),
 ):
     wilaya = await db.get(Wilaya, body.wilaya_id)
     if not wilaya:
@@ -58,6 +60,8 @@ async def create_poi(
     db.add(poi)
     await db.commit()
     await db.refresh(poi)
+
+    vector_search.index_poi(poi)
 
     return POIRead.model_validate(poi)
 
@@ -130,6 +134,38 @@ async def list_pois(
     )
 
 
+@router.get("/search", response_model=POIFeed)
+async def search_pois(
+    q: str = Query(..., min_length=1, max_length=200),
+    limit: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    vector_search: VectorSearchService = Depends(get_vector_search),
+):
+    ids = vector_search.search(q, limit=limit)
+    pois: list[POI] = []
+    if ids:
+        seen = set()
+        for pid in ids:
+            if pid in seen:
+                continue
+            seen.add(pid)
+            poi = await db.get(POI, pid)
+            if poi:
+                pois.append(poi)
+
+    items = await _attach_ratings(db, pois)
+    total = len(items)
+    return POIFeed(
+        items=items,
+        total=total,
+        page=1,
+        page_size=total or 1,
+        total_pages=1,
+        has_prev=False,
+        has_next=False,
+    )
+
+
 @router.get("/{poi_id}", response_model=POIRead)
 async def get_poi(poi_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     poi = await db.get(POI, poi_id)
@@ -145,9 +181,11 @@ async def delete_poi(
     poi_id: uuid.UUID,
     _current_user: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
+    vector_search: VectorSearchService = Depends(get_vector_search),
 ):
     poi = await db.get(POI, poi_id)
     if not poi:
         raise NotFoundException(message="Point of interest not found")
     await db.delete(poi)
     await db.commit()
+    vector_search.delete_poi(poi_id)
