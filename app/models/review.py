@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import Boolean, Float, ForeignKey, Text
+from sqlalchemy import Boolean, CheckConstraint, Float, ForeignKey, Index, Text, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -10,6 +10,15 @@ from app.db.mixins import TimestampMixin, UUIDPkMixin
 
 class Review(UUIDPkMixin, TimestampMixin, Base):
     __tablename__ = "reviews"
+
+    __table_args__ = (
+        UniqueConstraint("user_id", "poi_id", name="uq_review_user_poi"),
+        Index("ix_reviews_poi_score", "poi_id", "overall_score"),
+        CheckConstraint(
+            "overall_score >= 1 AND overall_score <= 5",
+            name="ck_review_score",
+        ),
+    )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False

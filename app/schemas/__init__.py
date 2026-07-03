@@ -9,6 +9,7 @@ from app.schemas.price_report import (
     PriceReportFeed,
     PriceReportRead,
 )
+from app.schemas.review import POIRating, ReviewCreate, ReviewFeed, ReviewRead
 from app.schemas.user import TokenResponse, UserCreate, UserRead
 from app.schemas.wilaya import WilayaRead
 
@@ -32,4 +33,8 @@ __all__ = [
     "POICreate",
     "POIRead",
     "POIFeed",
+    "ReviewCreate",
+    "ReviewRead",
+    "ReviewFeed",
+    "POIRating",
 ]
