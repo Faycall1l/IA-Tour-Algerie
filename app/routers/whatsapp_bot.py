@@ -1,16 +1,16 @@
 from fastapi import APIRouter, Form, Response
 from qdrant_client import QdrantClient
-import whisper
-from pydub import AudioSegment
 import io
 import os
 
 router = APIRouter(prefix="/api/v1/whatsapp", tags=["Conversational Core"])
 
+whisper_model = None
 try:
+    import whisper
     whisper_model = whisper.load_model("base")
 except Exception:
-    whisper_model = None
+    pass
 
 qdrant_client = QdrantClient(host="localhost", port=6333)
 

@@ -4,7 +4,7 @@ import openpyxl
 import io
 import re
 from app.database import get_db
-from app.models.sql_models import AtharTravelerProfile
+from app.models.traveler_profile import AtharTravelerProfile
 
 router = APIRouter(prefix="/api/v1/visa", tags=["Visa Automation"])
 

@@ -1,13 +1,20 @@
 from fastapi import APIRouter, UploadFile, File, HTTPException
-import cv2
-import numpy as np
 import os
 
 router = APIRouter(prefix="/api/v1/studio", tags=["Artisan Studio"])
 
+cv2 = None
+try:
+    import cv2 as cv
+    cv2 = cv
+except Exception:
+    pass
+
 
 @router.post("/refine-video")
 async def refine_artisan_video(file: UploadFile = File(...)):
+    if cv2 is None:
+        raise HTTPException(status_code=501, detail="OpenCV is not installed on this server")
     temp_input_path = f"temp_{file.filename}"
     temp_output_path = f"refined_{file.filename}"
 

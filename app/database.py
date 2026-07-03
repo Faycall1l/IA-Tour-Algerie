@@ -1,12 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from qdrant_client import QdrantClient
-from app.config import DATABASE_URL, QDRANT_HOST, QDRANT_PORT
+from app.core.config import settings
 
-engine = create_engine(DATABASE_URL)
+sync_database_url = settings.database.url.replace("+asyncpg", "")
+engine = create_engine(sync_database_url)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-qdrant_client = QdrantClient(host=QDRANT_HOST, port=QDRANT_PORT)
 
 
 def get_db():
