@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db, get_storage
+from app.api.deps import get_current_admin, get_current_user, get_db, get_storage
 from app.core.exceptions import NotFoundException
 from app.models.poi import POI
 from app.models.review import Review
@@ -138,3 +138,16 @@ async def get_poi(poi_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
     items = await _attach_ratings(db, [poi])
     return items[0]
+
+
+@router.delete("/{poi_id}", status_code=204)
+async def delete_poi(
+    poi_id: uuid.UUID,
+    _current_user: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    poi = await db.get(POI, poi_id)
+    if not poi:
+        raise NotFoundException(message="Point of interest not found")
+    await db.delete(poi)
+    await db.commit()

@@ -7,7 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
-from app.core.exceptions import ConflictException, NotFoundException
+from app.core.exceptions import ConflictException, ForbiddenException, NotFoundException
 from app.models.poi import POI
 from app.models.review import Review
 from app.models.user import User
@@ -127,3 +127,18 @@ async def get_poi_ratings(poi_id: uuid.UUID, db: AsyncSession = Depends(get_db))
         total_reviews=len(all_scores),
         distribution=dict(sorted(distribution.items())),
     )
+
+
+@router.delete("/{review_id}", status_code=204)
+async def delete_review(
+    review_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    review = await db.get(Review, review_id)
+    if not review:
+        raise NotFoundException(message="Review not found")
+    if review.user_id != current_user.id and current_user.role != "admin":
+        raise ForbiddenException(message="You can only delete your own reviews")
+    await db.delete(review)
+    await db.commit()

@@ -6,7 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, get_storage
-from app.core.exceptions import NotFoundException
+from app.core.exceptions import ForbiddenException, NotFoundException
 from app.models.live_post import LivePost
 from app.models.user import User
 from app.schemas.live_post import LivePostFeed, LivePostRead
@@ -119,3 +119,18 @@ async def get_post(post_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
         user_name=display_name or phone,
         user_avatar=avatar_url,
     )
+
+
+@router.delete("/posts/{post_id}", status_code=204)
+async def delete_post(
+    post_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    post = await db.get(LivePost, post_id)
+    if not post:
+        raise NotFoundException(message="Post not found")
+    if post.user_id != current_user.id and current_user.role != "admin":
+        raise ForbiddenException(message="You can only delete your own posts")
+    await db.delete(post)
+    await db.commit()
