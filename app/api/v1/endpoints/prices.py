@@ -142,7 +142,9 @@ async def get_estimate(
 
     return PriceEstimateResponse(
         origin_wilaya_id=origin_wilaya_id,
+        origin_name=origin_name,
         dest_wilaya_id=dest_wilaya_id,
+        dest_name=dest_name,
         transport_mode=transport_mode,
         range=range_,
         advice=advice,

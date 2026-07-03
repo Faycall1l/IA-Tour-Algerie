@@ -15,6 +15,18 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/live", tags=["Algeria Live"])
 
 
+def _build_filters(
+    wilaya_id: int | None,
+    user_id: uuid.UUID | None,
+) -> list:
+    conds = []
+    if wilaya_id is not None:
+        conds.append(LivePost.wilaya_id == wilaya_id)
+    if user_id is not None:
+        conds.append(LivePost.user_id == user_id)
+    return conds
+
+
 @router.post("/posts", response_model=LivePostRead, status_code=201)
 async def create_post(
     caption: str | None = Form(None, max_length=500),
@@ -33,41 +45,65 @@ async def create_post(
     await db.commit()
     await db.refresh(post)
 
-    return LivePostRead.model_validate(post)
+    return LivePostRead(
+        **LivePostRead.model_validate(post).model_dump(),
+        user_name=current_user.display_name or current_user.phone,
+        user_avatar=current_user.avatar_url,
+    )
 
 
 @router.get("/posts", response_model=LivePostFeed)
 async def get_feed(
     wilaya_id: int | None = Query(None),
+    user_id: uuid.UUID | None = Query(None),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(LivePost).order_by(LivePost.created_at.desc())
+    filters = _build_filters(wilaya_id, user_id)
 
-    if wilaya_id:
-        query = query.where(LivePost.wilaya_id == wilaya_id)
+    count_query = select(func.count()).select_from(select(LivePost).where(*filters).subquery())
+    total = (await db.execute(count_query)).scalar() or 0
 
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
-    total = total_result.scalar() or 0
-
-    offset = (page - 1) * page_size
-    query = query.offset(offset).limit(page_size)
-    result = await db.execute(query)
-    posts = result.scalars().all()
-
-    return LivePostFeed(
-        items=[LivePostRead.model_validate(p) for p in posts],
-        total=total,
-        page=page,
-        page_size=page_size,
+    query = (
+        select(LivePost, User.display_name, User.phone, User.avatar_url)
+        .join(User, LivePost.user_id == User.id)
+        .where(*filters)
+        .order_by(LivePost.created_at.desc())
+        .offset((page - 1) * page_size)
+        .limit(page_size)
     )
+    result = await db.execute(query)
+    rows = result.all()
+
+    items = []
+    for post, display_name, phone, avatar_url in rows:
+        items.append(
+            LivePostRead(
+                **LivePostRead.model_validate(post).model_dump(),
+                user_name=display_name or phone,
+                user_avatar=avatar_url,
+            )
+        )
+
+    return LivePostFeed(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/posts/{post_id}", response_model=LivePostRead)
 async def get_post(post_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    post = await db.get(LivePost, post_id)
-    if not post:
+    query = (
+        select(LivePost, User.display_name, User.phone, User.avatar_url)
+        .join(User, LivePost.user_id == User.id)
+        .where(LivePost.id == post_id)
+    )
+    result = await db.execute(query)
+    row = result.one_or_none()
+    if not row:
         raise NotFoundException(message="Post not found")
-    return LivePostRead.model_validate(post)
+
+    post, display_name, phone, avatar_url = row
+    return LivePostRead(
+        **LivePostRead.model_validate(post).model_dump(),
+        user_name=display_name or phone,
+        user_avatar=avatar_url,
+    )

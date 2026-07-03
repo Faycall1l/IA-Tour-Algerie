@@ -35,7 +35,9 @@ class PriceRange(BaseModel):
 
 class PriceEstimateResponse(BaseModel):
     origin_wilaya_id: int
+    origin_name: str
     dest_wilaya_id: int
+    dest_name: str
     transport_mode: str
     range: PriceRange | None
     advice: str | None

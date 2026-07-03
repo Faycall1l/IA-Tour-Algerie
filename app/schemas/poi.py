@@ -31,6 +31,8 @@ class POIRead(BaseModel):
     photo_url: str | None
     created_at: datetime
     updated_at: datetime | None
+    average_score: float | None = None
+    total_reviews: int = 0
 
 
 class POIFeed(BaseModel):

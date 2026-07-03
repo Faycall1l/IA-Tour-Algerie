@@ -46,7 +46,10 @@ async def create_review(
     await db.commit()
     await db.refresh(review)
 
-    return ReviewRead.model_validate(review)
+    return ReviewRead(
+        **ReviewRead.model_validate(review).model_dump(),
+        user_name=current_user.display_name or current_user.phone,
+    )
 
 
 @router.get("", response_model=ReviewFeed)
@@ -60,21 +63,32 @@ async def list_reviews(
     if not poi:
         raise NotFoundException(message="Point of interest not found")
 
-    query = select(Review).where(Review.poi_id == poi_id).order_by(Review.created_at.desc())
+    review_query = (
+        select(Review, User.display_name, User.phone)
+        .join(User, Review.user_id == User.id)
+        .where(Review.poi_id == poi_id)
+        .order_by(Review.created_at.desc())
+    )
 
-    count_query = select(func.count()).select_from(query.subquery())
+    count_query = select(func.count()).select_from(
+        select(Review).where(Review.poi_id == poi_id).subquery()
+    )
     total = (await db.execute(count_query)).scalar() or 0
 
     offset = (page - 1) * page_size
-    result = await db.execute(query.offset(offset).limit(page_size))
-    reviews = result.scalars().all()
+    result = await db.execute(review_query.offset(offset).limit(page_size))
+    rows = result.all()
 
-    return ReviewFeed(
-        items=[ReviewRead.model_validate(r) for r in reviews],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    items = []
+    for review, display_name, phone in rows:
+        items.append(
+            ReviewRead(
+                **ReviewRead.model_validate(review).model_dump(),
+                user_name=display_name or phone,
+            )
+        )
+
+    return ReviewFeed(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/ratings/{poi_id}", response_model=POIRating)

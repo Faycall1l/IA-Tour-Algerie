@@ -8,12 +8,39 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db
 from app.core.exceptions import NotFoundException
 from app.models.poi import POI
+from app.models.review import Review
 from app.models.user import User
 from app.models.wilaya import Wilaya
 from app.schemas.poi import POICreate, POIFeed, POIRead
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/pois", tags=["Points of Interest"])
+
+
+async def _attach_ratings(db: AsyncSession, pois: list[POI]) -> list[POIRead]:
+    if not pois:
+        return []
+
+    poi_ids = [p.id for p in pois]
+    ratings_query = (
+        select(
+            Review.poi_id,
+            func.avg(Review.overall_score).label("avg"),
+            func.count(Review.id).label("cnt"),
+        )
+        .where(Review.poi_id.in_(poi_ids))
+        .group_by(Review.poi_id)
+    )
+    ratings_map: dict[uuid.UUID, tuple[float, int]] = {}
+    for row in await db.execute(ratings_query):
+        ratings_map[row.poi_id] = (round(float(row.avg), 1), row.cnt)
+
+    items = []
+    for p in pois:
+        avg, cnt = ratings_map.get(p.id, (None, 0))
+        base = POIRead.model_validate(p)
+        items.append(POIRead(**base.model_dump(), average_score=avg, total_reviews=cnt))
+    return items
 
 
 @router.post("", response_model=POIRead, status_code=201)
@@ -39,11 +66,19 @@ async def list_pois(
     wilaya_id: int | None = Query(None),
     category: str | None = Query(None),
     search: str | None = Query(None),
+    sort: str | None = Query(None, pattern="^(name|created_at|rating)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(POI).order_by(POI.name)
+    query = select(POI)
+
+    if sort == "created_at":
+        query = query.order_by(POI.created_at.desc())
+    elif sort == "name":
+        query = query.order_by(POI.name)
+    else:
+        query = query.order_by(POI.name)
 
     if wilaya_id:
         query = query.where(POI.wilaya_id == wilaya_id)
@@ -58,14 +93,11 @@ async def list_pois(
     offset = (page - 1) * page_size
     query = query.offset(offset).limit(page_size)
     result = await db.execute(query)
-    pois = result.scalars().all()
+    pois = list(result.scalars().all())
 
-    return POIFeed(
-        items=[POIRead.model_validate(p) for p in pois],
-        total=total,
-        page=page,
-        page_size=page_size,
-    )
+    items = await _attach_ratings(db, pois)
+
+    return POIFeed(items=items, total=total, page=page, page_size=page_size)
 
 
 @router.get("/{poi_id}", response_model=POIRead)
@@ -73,4 +105,6 @@ async def get_poi(poi_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     poi = await db.get(POI, poi_id)
     if not poi:
         raise NotFoundException(message="Point of interest not found")
-    return POIRead.model_validate(poi)
+
+    items = await _attach_ratings(db, [poi])
+    return items[0]

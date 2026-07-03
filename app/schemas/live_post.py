@@ -15,6 +15,8 @@ class LivePostRead(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
+    user_name: str
+    user_avatar: str | None
     photo_url: str
     caption: str | None
     wilaya_id: int | None

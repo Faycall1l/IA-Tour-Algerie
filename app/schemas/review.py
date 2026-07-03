@@ -15,6 +15,7 @@ class ReviewRead(BaseModel):
 
     id: uuid.UUID
     user_id: uuid.UUID
+    user_name: str
     poi_id: uuid.UUID
     overall_score: float
     text: str | None
