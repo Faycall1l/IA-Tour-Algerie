@@ -1,8 +1,8 @@
-from sqlalchemy import String, Text, Integer, Float, ForeignKey
+from sqlalchemy import Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.db.mixins import UUIDPkMixin, TimestampMixin
+from app.db.mixins import TimestampMixin, UUIDPkMixin
 
 
 class POI(UUIDPkMixin, TimestampMixin, Base):

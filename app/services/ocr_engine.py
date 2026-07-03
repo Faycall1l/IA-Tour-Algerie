@@ -1,6 +1,3 @@
-import re
-
-
 class OCREngine:
     def __init__(self, model_type: str = "tesseract"):
         self.model_type = model_type
@@ -10,9 +7,7 @@ class OCREngine:
 
     def parse_mrz(self, ocr_text: str) -> dict:
         mrz_lines = [
-            line.strip().upper()
-            for line in ocr_text.split("\n")
-            if len(line.strip()) >= 44
+            line.strip().upper() for line in ocr_text.split("\n") if len(line.strip()) >= 44
         ]
         if len(mrz_lines) < 2:
             return {}

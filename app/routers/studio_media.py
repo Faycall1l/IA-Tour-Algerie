@@ -1,11 +1,13 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
 import os
+
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 router = APIRouter(prefix="/api/v1/studio", tags=["Artisan Studio"])
 
 cv2 = None
 try:
     import cv2 as cv
+
     cv2 = cv
 except Exception:
     pass
@@ -23,9 +25,7 @@ async def refine_artisan_video(file: UploadFile = File(...)):
 
     cap = cv2.VideoCapture(temp_input_path)
     if not cap.isOpened():
-        raise HTTPException(
-            status_code=400, detail="Cannot process video file format."
-        )
+        raise HTTPException(status_code=400, detail="Cannot process video file format.")
 
     n_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -65,9 +65,7 @@ async def refine_artisan_video(file: UploadFile = File(...)):
             if len(valid_prev) > 4:
                 matrix, _ = cv2.estimateAffinePartial2D(valid_prev, valid_curr)
                 if matrix is not None:
-                    stabilized_frame = cv2.warpAffine(
-                        frame, matrix, (width, height)
-                    )
+                    stabilized_frame = cv2.warpAffine(frame, matrix, (width, height))
                     out.write(stabilized_frame)
                 else:
                     out.write(frame)

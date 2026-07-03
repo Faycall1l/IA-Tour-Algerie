@@ -1,5 +1,4 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from typing import Optional
 
 
 class DatabaseSettings(BaseSettings):
@@ -40,9 +39,9 @@ class AuthSettings(BaseSettings):
 
 
 class TwilioSettings(BaseSettings):
-    account_sid: Optional[str] = None
-    auth_token: Optional[str] = None
-    verify_service_sid: Optional[str] = None
+    account_sid: str | None = None
+    auth_token: str | None = None
+    verify_service_sid: str | None = None
 
 
 class Settings(BaseSettings):

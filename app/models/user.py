@@ -1,11 +1,8 @@
-import uuid
-
-from sqlalchemy import String, Boolean, DateTime
+from sqlalchemy import Boolean, String
 from sqlalchemy.orm import Mapped, mapped_column
-from sqlalchemy.sql import func
 
 from app.db.base import Base
-from app.db.mixins import UUIDPkMixin, TimestampMixin
+from app.db.mixins import TimestampMixin, UUIDPkMixin
 
 
 class User(UUIDPkMixin, TimestampMixin, Base):

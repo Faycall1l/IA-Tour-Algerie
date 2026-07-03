@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict, Field
 import uuid
 from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class LivePostCreate(BaseModel):

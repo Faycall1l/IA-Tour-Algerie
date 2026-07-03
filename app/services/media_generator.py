@@ -1,15 +1,13 @@
-import cv2
-import numpy as np
 import os
+
+import cv2
 
 
 class MediaGenerator:
     def __init__(self):
         self.tts_engine = None
 
-    def stabilize_video(
-        self, input_path: str, output_path: str = None
-    ) -> dict:
+    def stabilize_video(self, input_path: str, output_path: str = None) -> dict:
         if output_path is None:
             base, ext = os.path.splitext(input_path)
             output_path = f"{base}_stabilized{ext}"
@@ -53,13 +51,9 @@ class MediaGenerator:
                 valid_curr = features_curr[status == 1]
 
                 if len(valid_prev) > 4:
-                    matrix, _ = cv2.estimateAffinePartial2D(
-                        valid_prev, valid_curr
-                    )
+                    matrix, _ = cv2.estimateAffinePartial2D(valid_prev, valid_curr)
                     if matrix is not None:
-                        stabilized = cv2.warpAffine(
-                            frame, matrix, (width, height)
-                        )
+                        stabilized = cv2.warpAffine(frame, matrix, (width, height))
                         out.write(stabilized)
                     else:
                         out.write(frame)

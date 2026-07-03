@@ -1,11 +1,11 @@
 import uuid
 
-from sqlalchemy import String, Boolean, ForeignKey
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.db.mixins import UUIDPkMixin, TimestampMixin
+from app.db.mixins import TimestampMixin, UUIDPkMixin
 
 
 class RefreshToken(UUIDPkMixin, TimestampMixin, Base):

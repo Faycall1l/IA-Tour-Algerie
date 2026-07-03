@@ -1,5 +1,14 @@
+import warnings
+
+warnings.warn(
+    "app/database.py is deprecated. Use app/db/session.py (async) instead.",
+    DeprecationWarning,
+    stacklevel=2,
+)
+
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker
+
 from app.core.config import settings
 
 sync_database_url = settings.database.url.replace("+asyncpg", "")

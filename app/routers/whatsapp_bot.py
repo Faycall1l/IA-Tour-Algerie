@@ -1,18 +1,26 @@
+import logging
+
 from fastapi import APIRouter, Form, Response
-from qdrant_client import QdrantClient
-import io
-import os
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/whatsapp", tags=["Conversational Core"])
 
 whisper_model = None
 try:
     import whisper
+
     whisper_model = whisper.load_model("base")
 except Exception:
     pass
 
-qdrant_client = QdrantClient(host="localhost", port=6333)
+try:
+    from qdrant_client import QdrantClient
+
+    qdrant_client = QdrantClient(host="localhost", port=6333)
+except Exception as exc:
+    logger.warning("qdrant_client unavailable: %s", exc)
+    qdrant_client = None
 
 PRICE_MOCK_DB = {
     "taxi": {

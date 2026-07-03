@@ -1,0 +1,60 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install ruff
+      - run: ruff check app/
+      - run: ruff format --check app/
+
+  types:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install mypy
+      - run: mypy app/
+
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: athar
+          POSTGRES_PASSWORD: athar_pass
+          POSTGRES_DB: athar_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready -U athar
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: pip install -r requirements.txt pytest httpx pytest-asyncio
+      - run: pytest --cov=app --cov-report=term-missing -v
+        env:
+          DATABASE__URL: postgresql+asyncpg://athar:athar_pass@localhost:5432/athar_test
+          AUTH__JWT_SECRET: test-secret
+          DEBUG: "false"

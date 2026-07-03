@@ -1,10 +1,11 @@
 import logging
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
+from app.core.exceptions import NotFoundException
 from app.models.wilaya import Wilaya
 from app.schemas.wilaya import WilayaRead
 
@@ -33,6 +34,5 @@ async def list_wilayas(
 async def get_wilaya(wilaya_id: int, db: AsyncSession = Depends(get_db)):
     wilaya = await db.get(Wilaya, wilaya_id)
     if not wilaya:
-        from app.core.exceptions import NotFoundException
         raise NotFoundException(message="Wilaya not found")
     return WilayaRead.model_validate(wilaya)

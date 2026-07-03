@@ -1,15 +1,15 @@
-import uuid
 import logging
+import uuid
 
-from fastapi import APIRouter, Depends, Query, Form
+from fastapi import APIRouter, Depends, Form, Query
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
 
-from app.api.deps import get_db, get_current_user
+from app.api.deps import get_current_user, get_db
 from app.core.exceptions import NotFoundException
 from app.models.live_post import LivePost
 from app.models.user import User
-from app.schemas.live_post import LivePostRead, LivePostFeed
+from app.schemas.live_post import LivePostFeed, LivePostRead
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/live", tags=["Algeria Live"])

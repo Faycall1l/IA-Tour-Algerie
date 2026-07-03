@@ -1,4 +1,3 @@
-import os
 import gettext
 from pathlib import Path
 
@@ -23,17 +22,9 @@ def load_translations():
 
 
 def gettext_best(lang: str, message: str) -> str:
-    if lang in _translations:
-        return _translations[lang].gettext(message)
-    if lang in SUPPORTED_LOCALES:
-        try:
-            t = gettext.translation(
-                "messages", localedir=str(LOCALES_DIR), languages=[lang]
-            )
-            _translations[lang] = t
-            return t.gettext(message)
-        except FileNotFoundError:
-            pass
+    t = _translations.get(lang)
+    if t is not None:
+        return t.gettext(message)
     return message
 
 

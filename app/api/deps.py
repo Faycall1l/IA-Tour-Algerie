@@ -3,9 +3,9 @@ import uuid
 from fastapi import Depends, Header
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.db.session import get_db
-from app.core.exceptions import UnauthorizedException, ForbiddenException
+from app.core.exceptions import ForbiddenException, UnauthorizedException
 from app.core.security import decode_token
+from app.db.session import get_db
 from app.models.user import User
 
 

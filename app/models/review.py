@@ -1,11 +1,11 @@
 import uuid
 
-from sqlalchemy import String, Text, Float, ForeignKey, Boolean
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import Boolean, Float, ForeignKey, Text
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.db.mixins import UUIDPkMixin, TimestampMixin
+from app.db.mixins import TimestampMixin, UUIDPkMixin
 
 
 class Review(UUIDPkMixin, TimestampMixin, Base):

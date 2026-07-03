@@ -1,11 +1,11 @@
 import uuid
 
-from sqlalchemy import String, LargeBinary, ForeignKey, JSON
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import JSON, ForeignKey, LargeBinary, String
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
-from app.db.mixins import UUIDPkMixin, TimestampMixin
+from app.db.mixins import TimestampMixin, UUIDPkMixin
 
 
 class AtharTravelerProfile(UUIDPkMixin, TimestampMixin, Base):
@@ -14,9 +14,7 @@ class AtharTravelerProfile(UUIDPkMixin, TimestampMixin, Base):
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=False
     )
-    passport_hash: Mapped[str] = mapped_column(
-        String(64), unique=True, nullable=False
-    )
+    passport_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
     encrypted_identity: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
     assigned_agency_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("local_agencies.id"), nullable=True

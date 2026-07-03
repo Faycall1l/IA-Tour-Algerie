@@ -1,0 +1,40 @@
+[project]
+name = "athar-os"
+version = "0.2.0"
+description = "ATHAR OS (أثر) — Sovereign Algerian AI Tourism Platform"
+requires-python = ">=3.12"
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+src = ["app"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP", "B", "SIM", "ARG"]
+ignore = ["B008", "B904", "SIM117", "N818"]
+
+[tool.ruff.lint.per-file-ignores]
+"app/database.py" = ["E402"]
+"app/routers/*" = ["E402", "F811", "N803", "ARG001"]
+"app/models/*" = ["F811"]
+"app/services/*" = ["ARG002", "F401"]
+"tests/*" = ["S101"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+strict = false
+warn_unused_configs = true
+disallow_untyped_defs = false
+exclude = [
+    "app/routers/",
+    "alembic/",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+pythonpath = ["."]
+
+[tool.coverage.run]
+source = ["app"]

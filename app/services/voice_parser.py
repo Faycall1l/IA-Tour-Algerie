@@ -1,6 +1,6 @@
 import re
+
 import whisper
-import numpy as np
 
 
 class VoiceParser:
@@ -14,7 +14,6 @@ class VoiceParser:
     def transcribe(self, audio_bytes: bytes) -> str:
         if self.model is None:
             return ""
-        import io
         import tempfile
 
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:

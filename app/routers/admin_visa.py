@@ -1,20 +1,13 @@
-from fastapi import APIRouter, UploadFile, File, Depends, HTTPException
-from sqlalchemy.orm import Session
-import openpyxl
 import io
-import re
-from app.database import get_db
-from app.models.traveler_profile import AtharTravelerProfile
+
+import openpyxl
+from fastapi import APIRouter, File, HTTPException, UploadFile
 
 router = APIRouter(prefix="/api/v1/visa", tags=["Visa Automation"])
 
 
 def extract_mrz_data(ocr_text: str) -> dict:
-    mrz_lines = [
-        line.strip().upper()
-        for line in ocr_text.split("\n")
-        if len(line.strip()) >= 44
-    ]
+    mrz_lines = [line.strip().upper() for line in ocr_text.split("\n") if len(line.strip()) >= 44]
     if len(mrz_lines) < 2:
         return {}
 
@@ -43,13 +36,11 @@ def extract_mrz_data(ocr_text: str) -> dict:
             "first_name": given_names,
         }
     except Exception:
-        raise HTTPException(
-            status_code=422, detail="MRZ section of the passport is unreadable."
-        )
+        raise HTTPException(status_code=422, detail="MRZ section of the passport is unreadable.")
 
 
 @router.post("/process-passport")
-async def process_passport(file: UploadFile = File(...)):
+async def process_passport(_file: UploadFile = File(...)):
     mock_ocr_result = (
         "P<DZAALGERIA<<AHMED<<<<<<<<<<<<<<<<<<<<<<<<<<\n"
         "0412345674DZA8505204M2811306<<<<<<<<<<<<<<02"
@@ -57,9 +48,7 @@ async def process_passport(file: UploadFile = File(...)):
 
     parsed_data = extract_mrz_data(mock_ocr_result)
     if not parsed_data:
-        raise HTTPException(
-            status_code=400, detail="Failed to parse Passport MRZ data."
-        )
+        raise HTTPException(status_code=400, detail="Failed to parse Passport MRZ data.")
 
     template_path = "templates/official_visa_template.xlsx"
     try:

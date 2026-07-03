@@ -1,6 +1,6 @@
-import uuid
 import hashlib
 import logging
+import uuid
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,8 +12,8 @@ from app.core.security import (
     decode_token,
 )
 from app.db.session import get_db
-from app.models.user import User
 from app.models.refresh_token import RefreshToken
+from app.models.user import User
 from app.schemas.auth import OTPRequest, OTPVerify, TokenRefresh
 from app.schemas.user import TokenResponse, UserRead
 
@@ -75,9 +75,8 @@ async def refresh_token(body: TokenRefresh, db: AsyncSession = Depends(get_db)):
     token_hash = hashlib.sha256(body.refresh_token.encode()).hexdigest()
 
     from sqlalchemy import select
-    result = await db.execute(
-        select(RefreshToken).where(RefreshToken.token_hash == token_hash)
-    )
+
+    result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     stored = result.scalar_one_or_none()
     if not stored or stored.is_revoked:
         raise UnauthorizedException(message="Token has been revoked")
@@ -108,6 +107,7 @@ async def refresh_token(body: TokenRefresh, db: AsyncSession = Depends(get_db)):
 
 async def _get_or_create_user(db: AsyncSession, phone: str) -> User:
     from sqlalchemy import select
+
     result = await db.execute(select(User).where(User.phone == phone))
     user = result.scalar_one_or_none()
     if not user:

@@ -1,6 +1,7 @@
-from pydantic import BaseModel, ConfigDict
 import uuid
 from datetime import datetime
+
+from pydantic import BaseModel, ConfigDict
 
 
 class UserRead(BaseModel):

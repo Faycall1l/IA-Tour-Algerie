@@ -1,14 +1,20 @@
-import structlog
 import logging
-import uuid
+from collections.abc import Callable
+from typing import Any
 
+import structlog
 from structlog.processors import JSONRenderer, TimeStamper, format_exc_info
+
+Processor = Callable[
+    [Any, str, structlog.types.EventDict],
+    structlog.types.EventDict | str | bytes | bytearray | tuple[Any, ...],
+]
 
 
 def setup_logging(debug: bool = False) -> None:
     timestamper = TimeStamper(fmt="iso")
 
-    processors = [
+    processors: list[Processor] = [
         structlog.contextvars.merge_contextvars,
         structlog.stdlib.add_logger_name,
         structlog.stdlib.add_log_level,
@@ -22,11 +28,8 @@ def setup_logging(debug: bool = False) -> None:
 
     if debug:
         processors.append(structlog.dev.ConsoleRenderer())
-        renderer = structlog.dev.ConsoleRenderer()
     else:
-        renderer = JSONRenderer()
-
-    processors.append(renderer)
+        processors.append(JSONRenderer())
 
     structlog.configure(
         processors=processors,

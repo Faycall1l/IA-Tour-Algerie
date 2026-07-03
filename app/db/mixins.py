@@ -1,9 +1,9 @@
-from datetime import datetime, timezone
 import uuid
+from datetime import UTC, datetime
 
-from sqlalchemy import func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import DateTime, func
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column
 
 
 class UUIDPkMixin:
@@ -16,10 +16,12 @@ class UUIDPkMixin:
 
 class TimestampMixin:
     created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
         server_default=func.now(),
-        default=lambda: datetime.now(timezone.utc),
+        default=lambda: datetime.now(UTC),
     )
     updated_at: Mapped[datetime | None] = mapped_column(
-        onupdate=lambda: datetime.now(timezone.utc),
+        DateTime(timezone=True),
+        onupdate=lambda: datetime.now(UTC),
         nullable=True,
     )
