@@ -103,11 +103,15 @@ async def list_reports(
     result = await db.execute(query)
     reports = result.scalars().all()
 
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     return PriceReportFeed(
         items=[PriceReportRead.model_validate(r) for r in reports],
         total=total,
         page=page,
         page_size=page_size,
+        total_pages=total_pages,
+        has_prev=page > 1,
+        has_next=page < total_pages,
     )
 
 

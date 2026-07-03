@@ -28,6 +28,9 @@ class ReviewFeed(BaseModel):
     total: int
     page: int
     page_size: int
+    total_pages: int
+    has_prev: bool
+    has_next: bool
 
 
 class POIRating(BaseModel):

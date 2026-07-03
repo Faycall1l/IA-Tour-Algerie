@@ -88,7 +88,16 @@ async def list_reviews(
             )
         )
 
-    return ReviewFeed(items=items, total=total, page=page, page_size=page_size)
+    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
+    return ReviewFeed(
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_prev=page > 1,
+        has_next=page < total_pages,
+    )
 
 
 @router.get("/ratings/{poi_id}", response_model=POIRating)
