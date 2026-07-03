@@ -1,12 +1,13 @@
 import uuid
 
-from fastapi import Depends, Header
+from fastapi import Depends, Header, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import ForbiddenException, UnauthorizedException
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User
+from app.services.storage import StorageService
 
 
 async def get_current_user(
@@ -34,3 +35,7 @@ async def get_current_admin(
     if current_user.role != "admin":
         raise ForbiddenException(message="Admin access required")
     return current_user
+
+
+async def get_storage(request: Request) -> StorageService:
+    return request.app.state.storage

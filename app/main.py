@@ -10,6 +10,7 @@ from app.api.v1.router import router as v1_router
 from app.core.config import settings
 from app.core.i18n import LocaleMiddleware, load_translations
 from app.core.logging import setup_logging
+from app.services.storage import StorageService
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +42,7 @@ def _load_legacy_routers():
 async def lifespan(app: FastAPI):
     setup_logging(debug=settings.debug)
     load_translations()
+    app.state.storage = StorageService()
     _load_legacy_routers()
     for r in _legacy_routers:
         app.include_router(r)

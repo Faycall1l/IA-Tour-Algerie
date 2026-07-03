@@ -1,15 +1,16 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, Form, Query
+from fastapi import APIRouter, Depends, File, Form, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db, get_storage
 from app.core.exceptions import NotFoundException
 from app.models.live_post import LivePost
 from app.models.user import User
 from app.schemas.live_post import LivePostFeed, LivePostRead
+from app.services.storage import StorageService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/live", tags=["Algeria Live"])
@@ -29,12 +30,14 @@ def _build_filters(
 
 @router.post("/posts", response_model=LivePostRead, status_code=201)
 async def create_post(
+    photo: UploadFile = File(...),
     caption: str | None = Form(None, max_length=500),
     wilaya_id: int | None = Form(None),
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    storage: StorageService = Depends(get_storage),
 ):
-    photo_url = "https://placehold.co/600x400?text=Algeria+Live"
+    photo_url = await storage.upload(photo, folder="live")
     post = LivePost(
         user_id=current_user.id,
         photo_url=photo_url,
