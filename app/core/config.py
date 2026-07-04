@@ -48,6 +48,7 @@ class TwilioSettings(BaseSettings):
     auth_token: str | None = None
     verify_service_sid: str | None = None
     from_phone: str | None = None
+    whatsapp_from: str | None = None
 
 
 class Settings(BaseSettings):

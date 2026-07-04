@@ -55,7 +55,7 @@ async def verify_otp(
     db: AsyncSession = Depends(get_db),
     twilio: TwilioService = Depends(get_twilio),
 ):
-    if twilio.is_available:
+    if twilio.sms_available:
         verified = await twilio.verify_otp(body.phone, body.code)
         if not verified:
             raise BadRequestException(message="Invalid or expired OTP")

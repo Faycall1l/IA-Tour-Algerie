@@ -6,13 +6,14 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_db, get_twilio
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.booking import BOOKING_STATUSES, Booking
 from app.models.experience import Experience
 from app.models.notification import Notification
 from app.models.user import User
 from app.schemas.booking import BookingCreate, BookingDetail, BookingRead, BookingStatusUpdate
+from app.services.twilio import TwilioService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/bookings", tags=["Bookings"])
@@ -43,6 +44,7 @@ async def create_booking(
     body: BookingCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    twilio: TwilioService = Depends(get_twilio),
 ):
     experience = await db.get(Experience, body.experience_id)
     if not experience:
@@ -77,6 +79,15 @@ async def create_booking(
     await db.refresh(booking)
 
     provider = await db.get(User, experience.provider_id)
+    if provider and twilio.whatsapp_available:
+        wa_msg = (
+            f"🔔 *New Booking Request*\n"
+            f"{current_user.display_name or current_user.phone} wants to join "
+            f"'{experience.title}' ({body.participants} pax).\n"
+            f"Reply in app to confirm or cancel."
+        )
+        await twilio.send_whatsapp(provider.phone, wa_msg)
+
     return BookingDetail(
         booking=BookingRead.model_validate(booking),
         traveler_name=current_user.display_name or current_user.phone,
@@ -159,6 +170,7 @@ async def update_booking_status(
     body: BookingStatusUpdate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
+    twilio: TwilioService = Depends(get_twilio),
 ):
     booking = await db.get(Booking, booking_id)
     if not booking:
@@ -221,6 +233,21 @@ async def update_booking_status(
 
     traveler = await db.get(User, booking.traveler_id)
     provider = await db.get(User, exp.provider_id)
+
+    if traveler and twilio.whatsapp_available:
+        status_emoji = {"confirmed": "✅", "completed": "🎉", "cancelled": "❌"}.get(new_status, "📋")  # noqa: E501
+        wa_msg = (
+            f"{status_emoji} *Booking {new_status}*\n"
+            f"'{exp.title}' has been **{new_status}**.\n"
+        )
+        if new_status == "confirmed":
+            wa_msg += (
+                f"📅 {booking.requested_date or 'TBD'}\n"
+                f"📍 {exp.meeting_point or 'Check app for details'}"
+            )
+        elif new_status == "cancelled":
+            wa_msg += "If you have questions, please contact the provider in the app."
+        await twilio.send_whatsapp(traveler.phone, wa_msg)
     return BookingDetail(
         booking=BookingRead.model_validate(booking),
         traveler_name=traveler.display_name or traveler.phone if traveler else None,
