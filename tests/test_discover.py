@@ -1,20 +1,18 @@
 import uuid
 
 import pytest
-from httpx import AsyncClient
-
 from app.models.experience import Experience
 from app.models.poi import POI
 from app.models.stay import Stay
 from app.models.user import User
 from app.models.wilaya import Wilaya
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.asyncio
 
 
 class TestDiscoverEndpoints:
-
     async def _seed_wilaya(self, db: AsyncSession) -> Wilaya:
         existing = await db.get(Wilaya, 1)
         if existing:
@@ -40,7 +38,11 @@ class TestDiscoverEndpoints:
         assert data["experiences"] == []
         assert data["stays"] == []
 
-    async def test_discover_with_pois_experiences_stays(self, client: AsyncClient, db: AsyncSession):
+    async def test_discover_with_pois_experiences_stays(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+    ):
         await self._seed_wilaya(db)
 
         provider = User(id=uuid.uuid4(), phone="+213555888001", role="agency")
@@ -100,12 +102,20 @@ class TestDiscoverEndpoints:
         await db.commit()
 
         active = Stay(
-            provider_id=provider.id, name="Active Stay", property_type="hotel",
-            wilaya_id=1, price_per_night_dzd=5000, is_active=True,
+            provider_id=provider.id,
+            name="Active Stay",
+            property_type="hotel",
+            wilaya_id=1,
+            price_per_night_dzd=5000,
+            is_active=True,
         )
         inactive = Stay(
-            provider_id=provider.id, name="Inactive Stay", property_type="hotel",
-            wilaya_id=1, price_per_night_dzd=3000, is_active=False,
+            provider_id=provider.id,
+            name="Inactive Stay",
+            property_type="hotel",
+            wilaya_id=1,
+            price_per_night_dzd=3000,
+            is_active=False,
         )
         db.add_all([active, inactive])
         await db.commit()
@@ -122,12 +132,20 @@ class TestDiscoverEndpoints:
         await db.commit()
 
         active = Experience(
-            provider_id=provider.id, title="Active Tour", category="tour",
-            wilaya_id=1, price_dzd=1000, status="active",
+            provider_id=provider.id,
+            title="Active Tour",
+            category="tour",
+            wilaya_id=1,
+            price_dzd=1000,
+            status="active",
         )
         draft = Experience(
-            provider_id=provider.id, title="Draft Tour", category="tour",
-            wilaya_id=1, price_dzd=500, status="draft",
+            provider_id=provider.id,
+            title="Draft Tour",
+            category="tour",
+            wilaya_id=1,
+            price_dzd=500,
+            status="draft",
         )
         db.add_all([active, draft])
         await db.commit()
@@ -148,8 +166,11 @@ class TestDiscoverEndpoints:
         await db.flush()
 
         exp = Experience(
-            provider_id=provider.id, title="Mosque Visit with Guide",
-            category="tour", wilaya_id=1, price_dzd=2000,
+            provider_id=provider.id,
+            title="Mosque Visit with Guide",
+            category="tour",
+            wilaya_id=1,
+            price_dzd=2000,
             description="Visit the beautiful Djamaa El Djazair mosque",
             status="active",
         )

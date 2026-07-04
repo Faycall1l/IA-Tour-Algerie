@@ -1,17 +1,15 @@
 import uuid
 
 import pytest
-from httpx import AsyncClient
-
 from app.models.user import User
 from app.models.wilaya import Wilaya
+from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.asyncio
 
 
 class TestStayEndpoints:
-
     async def _seed_wilaya(self, db: AsyncSession) -> Wilaya:
         existing = await db.get(Wilaya, 1)
         if existing:
@@ -33,10 +31,20 @@ class TestStayEndpoints:
         resp = await client.post("/api/v1/stays", json={"name": "Test"})
         assert resp.status_code == 401
 
-    async def test_create_stay_requires_hotel_role(self, client: AsyncClient, db: AsyncSession, auth_headers: dict[str, str]):
+    async def test_create_stay_requires_hotel_role(
+        self,
+        client: AsyncClient,
+        db: AsyncSession,
+        auth_headers: dict[str, str],
+    ):
         resp = await client.post(
             "/api/v1/stays",
-            json={"name": "Test Stay", "property_type": "hotel", "wilaya_id": 1, "price_per_night_dzd": 5000},
+            json={
+                "name": "Test Stay",
+                "property_type": "hotel",
+                "wilaya_id": 1,
+                "price_per_night_dzd": 5000,
+            },
             headers=auth_headers,
         )
         assert resp.status_code == 403
@@ -45,6 +53,7 @@ class TestStayEndpoints:
         await self._seed_wilaya(db)
         user = await self._make_hotel_user(db)
         from app.core.security import create_access_token
+
         token = create_access_token(str(user.id), "hotel")
         headers = {"Authorization": f"Bearer {token}"}
 
@@ -86,17 +95,28 @@ class TestStayEndpoints:
         await self._seed_wilaya(db)
         user = await self._make_hotel_user(db)
         from app.core.security import create_access_token
+
         token = create_access_token(str(user.id), "hotel")
         headers = {"Authorization": f"Bearer {token}"}
 
         await client.post(
             "/api/v1/stays",
-            json={"name": "Hotel A", "property_type": "hotel", "wilaya_id": 1, "price_per_night_dzd": 5000},
+            json={
+                "name": "Hotel A",
+                "property_type": "hotel",
+                "wilaya_id": 1,
+                "price_per_night_dzd": 5000,
+            },
             headers=headers,
         )
         await client.post(
             "/api/v1/stays",
-            json={"name": "Riad B", "property_type": "riad", "wilaya_id": 1, "price_per_night_dzd": 12000},
+            json={
+                "name": "Riad B",
+                "property_type": "riad",
+                "wilaya_id": 1,
+                "price_per_night_dzd": 12000,
+            },
             headers=headers,
         )
 
@@ -121,12 +141,18 @@ class TestStayEndpoints:
         await self._seed_wilaya(db)
         user = await self._make_hotel_user(db)
         from app.core.security import create_access_token
+
         token = create_access_token(str(user.id), "hotel")
         headers = {"Authorization": f"Bearer {token}"}
 
         create = await client.post(
             "/api/v1/stays",
-            json={"name": "Old Name", "property_type": "hotel", "wilaya_id": 1, "price_per_night_dzd": 5000},
+            json={
+                "name": "Old Name",
+                "property_type": "hotel",
+                "wilaya_id": 1,
+                "price_per_night_dzd": 5000,
+            },
             headers=headers,
         )
         stay_id = create.json()["id"]
@@ -144,12 +170,18 @@ class TestStayEndpoints:
         await self._seed_wilaya(db)
         user = await self._make_hotel_user(db)
         from app.core.security import create_access_token
+
         token = create_access_token(str(user.id), "hotel")
         headers = {"Authorization": f"Bearer {token}"}
 
         create = await client.post(
             "/api/v1/stays",
-            json={"name": "Mine", "property_type": "hotel", "wilaya_id": 1, "price_per_night_dzd": 5000},
+            json={
+                "name": "Mine",
+                "property_type": "hotel",
+                "wilaya_id": 1,
+                "price_per_night_dzd": 5000,
+            },
             headers=headers,
         )
         stay_id = create.json()["id"]
@@ -171,12 +203,18 @@ class TestStayEndpoints:
         await self._seed_wilaya(db)
         user = await self._make_hotel_user(db)
         from app.core.security import create_access_token
+
         token = create_access_token(str(user.id), "hotel")
         headers = {"Authorization": f"Bearer {token}"}
 
         create = await client.post(
             "/api/v1/stays",
-            json={"name": "Delete me", "property_type": "hotel", "wilaya_id": 1, "price_per_night_dzd": 5000},
+            json={
+                "name": "Delete me",
+                "property_type": "hotel",
+                "wilaya_id": 1,
+                "price_per_night_dzd": 5000,
+            },
             headers=headers,
         )
         stay_id = create.json()["id"]

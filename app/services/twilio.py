@@ -39,9 +39,9 @@ class TwilioService:
         try:
             verification = await loop.run_in_executor(
                 None,
-                lambda: self._client.verify.v2.services(
-                    self._verify_sid
-                ).verifications.create(to=phone, channel="sms"),
+                lambda: self._client.verify.v2.services(self._verify_sid).verifications.create(
+                    to=phone, channel="sms"
+                ),
             )
             logger.info("OTP sent via Twilio to %s (sid=%s)", phone, verification.sid)
             return {"sid": verification.sid, "status": verification.status}

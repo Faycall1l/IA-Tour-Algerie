@@ -158,15 +158,11 @@ async def set_user_role(
     user.role = body.role
 
     if body.role in PROVIDER_TYPES and old_role not in PROVIDER_TYPES:
-        result = await db.execute(
-            select(ProviderProfile).where(ProviderProfile.user_id == user.id)
-        )
+        result = await db.execute(select(ProviderProfile).where(ProviderProfile.user_id == user.id))
         if not result.scalar_one_or_none():
             db.add(ProviderProfile(user_id=user.id, provider_type=body.role))
     elif body.role not in PROVIDER_TYPES and old_role in PROVIDER_TYPES:
-        result = await db.execute(
-            select(ProviderProfile).where(ProviderProfile.user_id == user.id)
-        )
+        result = await db.execute(select(ProviderProfile).where(ProviderProfile.user_id == user.id))
         profile = result.scalar_one_or_none()
         if profile:
             await db.delete(profile)

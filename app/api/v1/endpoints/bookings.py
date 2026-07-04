@@ -235,10 +235,11 @@ async def update_booking_status(
     provider = await db.get(User, exp.provider_id)
 
     if traveler and twilio.whatsapp_available:
-        status_emoji = {"confirmed": "✅", "completed": "🎉", "cancelled": "❌"}.get(new_status, "📋")  # noqa: E501
+        status_emoji = {"confirmed": "✅", "completed": "🎉", "cancelled": "❌"}.get(
+            new_status, "📋"
+        )  # noqa: E501
         wa_msg = (
-            f"{status_emoji} *Booking {new_status}*\n"
-            f"'{exp.title}' has been **{new_status}**.\n"
+            f"{status_emoji} *Booking {new_status}*\n'{exp.title}' has been **{new_status}**.\n"
         )
         if new_status == "confirmed":
             wa_msg += (

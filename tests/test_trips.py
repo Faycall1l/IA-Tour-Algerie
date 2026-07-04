@@ -7,7 +7,6 @@ pytestmark = pytest.mark.asyncio
 
 
 class TestTripEndpoints:
-
     async def test_create_trip(self, client: AsyncClient, auth_headers: dict[str, str], sample_poi):  # noqa: ARG002
         payload = {
             "title": "Weekend in Tizi Ouzou",
@@ -234,17 +233,13 @@ class TestTripEndpoints:
         resp = await client.get("/api/v1/trips")
         assert resp.status_code == 401
 
-    async def test_filter_trips_by_status(
-        self, client: AsyncClient, auth_headers: dict[str, str]
-    ):
+    async def test_filter_trips_by_status(self, client: AsyncClient, auth_headers: dict[str, str]):
         await client.post(
             "/api/v1/trips",
             json={"title": "Active trip", "wilaya_ids": [1]},
             headers=auth_headers,
         )
-        resp = await client.get(
-            "/api/v1/trips?status=active", headers=auth_headers
-        )
+        resp = await client.get("/api/v1/trips?status=active", headers=auth_headers)
         assert resp.status_code == 200
         for item in resp.json()["items"]:
             assert item["status"] == "active"
