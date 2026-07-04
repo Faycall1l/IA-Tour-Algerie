@@ -1,316 +1,365 @@
 # Agentic Traveler Layer
 
-Make the **traveler experience** AI-powered — not the admin panel. The admin dashboard is the human-in-the-loop for edge cases. The agentic layer lives on the customer-facing side, turning ATHAR from a CRUD API into a conversational travel companion.
+Not a chatbot. Not a conversation. A travel platform that happens to be AI-powered behind the scenes — proactive, ambient, invisible.
 
-## Vision
+The agents work in the background. The user sees a polished product: itinerary builder, map, booking flow. The AI never announces itself. It Just Works.
+
+## Core Principle: Invisible, Not Absent
 
 ```
-"Plan a 5-day trip to Algeria. I love Roman ruins and beach days. Budget ~50,000 DZD."
-  ↓
-AI Agent orchestrates: POI search → Experience matching → Price intelligence →
-Itinerary building → Booking suggestions → WhatsApp-ready trip dossier
-  ↓
-Refine conversationally: "Swap Day 3 afternoon for a cooking workshop"
-  ↓
-Agent re-plans, re-prices, re-balances. Instantly.
+❌ "Hi! I'm your AI travel assistant. How can I help you today?"
+   → Chatbot. User must type. Breaks flow.
+
+✅ User opens a wilaya → sidebar shows "Other travelers paired this with..."
+   → AI surfaces contextually. No chat. No prompt.
+
+✅ User adds 3 POIs → system auto-sorts by geography, estimates travel time
+   → AI acts. User sees a smarter itinerary, not a thinking animation.
+
+✅ User books a guided tour → notification: "Your guide speaks French & Arabic"
+   → AI informs. User didn't ask, didn't need to.
 ```
+
+The interface is the product — cards, maps, timelines, buttons. AI works in the data layer, shaping what users see without ever demanding to be seen.
+
+## UX Patterns
+
+### 1. Ambient Trip Brief (No Prompt Required)
+
+When a traveler opens a wilaya page (e.g. `/wilayas/16`), the system auto-generates a trip brief as part of the page:
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 🇩🇿 Tizi Ouzou                             ┌────────────┐│
+│                                                        │ │  Plan Trip │
+│ Top 5 POIs · 3 experiences · Sunny 24°C                │ └────────────┘│
+├─────────────────────────────────────────────────────────┤
+│ ┌─────────────────┐ ┌─────────────────┐ ┌─────────────┐ │
+│ │ ⛰️ Djurdjura    │ │ 🏛️ Roman ruins  │ │ 🍯 Oil      │ │
+│ │ ★ 4.5 · 2km     │ │ ★ 4.2 · 15km    │ │ workshop    │ │
+│ │ 45 min hike     │ │ Guided tour avail│ │ ★ 4.8 · 5km │ │
+│ └─────────────────┘ └─────────────────┘ └─────────────┘ │
+│                                                          │
+│ Transport from Algiers: 1,200–1,800 DZD (bus)           │
+│ Best time: April–June, September–November                │
+│ "Don't miss the Saturday market" — 12 reviews mention it │
+└─────────────────────────────────────────────────────────┘
+```
+
+**AI work**: POI Scout + Price Intel + Review Analyst run when the page loads. User never sees them. Results render directly into page sections.
+
+### 2. Proactive Trip Dashboard
+
+```
+┌─────────────────────────────────────────────────────────┐
+│ 🧳 My Trip — Algeria, 5 days         [📅 Export] [📎 Share] │
+├─────────────────────────────────────────────────────────┤
+│ Day 1 — Algiers                                         │
+│ ┌───┐ ┌───┐ ┌───┐                                      │
+│ │AM │ │PM │ │PM │ ← Drag to reorder                     │
+│ │   │ │   │ │   │  Agent re-optimizes routes            │
+│ │Cas│ │Mu │ │Ma │  automatically                       │
+│ │bah│ │seu│ │rke│                                      │
+│ └───┘ └───┘ └───┘                                      │
+│                                                          │
+│ ⚡ Agent note: Casbah → Museum is 800m walk (10 min)    │
+│ ⚡ Agent note: Market closes at 1 PM on Fridays         │
+│                                                          │
+├─────────────────────────────────────────────────────────┤
+│ Day 2 — Tipaza (50 min from Algiers)                    │
+│ ┌───┐ ┌───┐                                             │
+│ │AM │ │PM │                                             │
+│ │Ro │ │Bea│                                             │
+│ │man│ │ch │                                             │
+│ └───┘ └───┘                                             │
+│                                                          │
+│ 🚌 Transport: 500–800 DZD · last bus back at 6 PM      │
+│ 🎟️ Book guided tour with Youssef ★ 4.9 — 3 spots left │
+└─────────────────────────────────────────────────────────┘
+```
+
+**AI work**: Itinerary Builder + Price Intel + Experience Matcher run when user adds items. Re-runs on drag. Zero user-facing agent UI.
+
+### 3. Smart Defaults (Generative UI)
+
+User fills a booking form → AI pre-fills intelligently:
+
+```
+Book: "Kabyle Cooking Workshop"
+┌────────────────────────────────────┐
+│ 📅 Date     │ [April 15] ← AI picks │
+│             │   best day based on   │
+│             │   existing itinerary  │
+├────────────────────────────────────┤
+│ 👥 People   │ [2] ← AI defaults     │
+│             │   to trip size        │
+├────────────────────────────────────┤
+│ 🚐 Transport│ [Add from hotel]      │
+│             │   800 DZD — suggested │
+│             │   because workshop is │
+│             │   5km from your hotel │
+├────────────────────────────────────┤
+│ 💰 Total    │ 3,500 DZD             │
+│             │ ✓ Fits your daily     │
+│             │   budget of 5,000 DZD │
+└────────────────────────────────────┘
+```
+
+**AI work**: Trip Planner + Price Intel run on form mount. User sees smarter defaults, not a chatbot.
+
+### 4. Contextual Whisper (Notifications, Not Chat)
+
+The agent never writes a message. It surfaces **cards** and **badges** in the existing UI:
+
+| Trigger | Surface | Example |
+|---------|---------|---------|
+| Price drops | Badge on POI card | "↓ 20% this week" |
+| Booking conflict | Tooltip on date picker | "You already have a tour at 2 PM" |
+| Weather change | Banner on trip dashboard | "Rain expected Thursday — indoor activities suggested" |
+| New experience in saved wilaya | Notification bell | "New guided tour in Tipaza" |
+| Optimal route found | Toast on itinerary | "Reordering your day saves 40 min walking" |
+| Provider approved | Card in explore feed | "New guide: Fatima — specializes in Roman sites" |
+
+**Design rule**: Never more than 1 proactive surface per page load. The agent has an interrupt budget — it chooses the single most valuable thing to surface and stays silent otherwise.
+
+### 5. One-Click Actions
+
+Every AI-generated suggestion is actionable with one click:
+
+```
+┌────────────────────────────────────┐
+│ ⚡ Optimize my route                │
+│ Reorder 3 activities to save       │
+│ 40 min walking time                │
+│                                    │
+│ [Apply] [Show me] [Not now]        │
+└────────────────────────────────────┘
+```
+
+No typing. No "Yes, please optimize my route." One click, the agent executes, the UI updates.
+
+### 6. Feedback Loop (Implicit, Not Explicit)
+
+The agent never asks "Was this helpful?" It watches behavior:
+
+| User action | Signal | Agent learns |
+|-------------|--------|-------------|
+| Adds 3 historical POIs | Interest in history | Bias future searches toward historical |
+| Skips all beach POIs | Disinterest in beach | Filter out beach suggestions |
+| Always picks cheapest transport | Budget-conscious | Default to economy mode |
+| Books guided tours repeatedly | Prefers guided | Surface guide-included options first |
+| Views a POI but doesn't add | Interested but not convinced | Offer more details, show similar |
 
 ## Architecture
 
 ```
-┌────────────────────────────────────────────────────────────┐
-│                    Traveler (WhatsApp / Chat UI)            │
-└──────────────────────────┬─────────────────────────────────┘
-                           │
-┌──────────────────────────▼─────────────────────────────────┐
-│              Agent Orchestrator (LangGraph / Haystack)      │
-│                                                             │
-│  ┌──────────┐  ┌──────────────┐  ┌────────────────────┐   │
-│  │ Trip     │  │ Itinerary    │  │ Concierge          │   │
-│  │ Planner  │  │ Builder      │  │ (live trip)        │   │
-│  └────┬─────┘  └──────┬───────┘  └─────────┬──────────┘   │
-│       │               │                     │              │
-│  ┌────▼───────────────▼─────────────────────▼──────────┐   │
-│  │           Specialized Sub-Agents (parallel)          │   │
-│  │                                                      │   │
-│  │  POI       Experience  Price       Review    Local   │   │
-│  │  Scout     Matcher     Intel       Analyst   Expert  │   │
-│  └────┬──────────┬──────────┬──────────┬──────────┬─────┘   │
-│       │          │          │          │          │         │
-└───────┼──────────┼──────────┼──────────┼──────────┼─────────┘
-        │          │          │          │          │
-  ┌─────▼──────────▼──────────▼──────────▼──────────▼───────┐
-  │                    ATHAR API Layer                       │
-  │  /pois  /experiences  /prices/estimate  /reviews  /live  │
-  └──────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────┐
+│                    User-facing UI (PWA / Flutter)             │
+│  Cards · Maps · Timelines · Forms · Notifications · Buttons  │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+┌────────────────────────────▼─────────────────────────────────┐
+│                   ATHAR API Layer (existing)                  │
+│  /pois  /experiences  /prices  /reviews  /bookings  /live     │
+└────────────────────────────┬─────────────────────────────────┘
+                             │
+┌────────────────────────────▼─────────────────────────────────┐
+│              Background Agent Layer (invisible)               │
+│                                                               │
+│  ┌────────────┐  ┌──────────────┐  ┌────────────────────┐   │
+│  │ Trip       │  │ Intent       │  │ Recommendation     │   │
+│  │ Optimizer  │  │ Detector     │  │ Engine             │   │
+│  │ (re-routes,│  │ (reads user  │  │ (collaborative     │   │
+│  │  re-sorts) │  │  behavior)   │  │  + semantic)       │   │
+│  └────────────┘  └──────────────┘  └────────────────────┘   │
+│  ┌────────────┐  ┌──────────────┐  ┌────────────────────┐   │
+│  │ Brief      │  │ Alert        │  │ Trip Dashboard     │   │
+│  │ Generator  │  │ Engine       │  │ (itinerary state)  │   │
+│  └────────────┘  └──────────────┘  └────────────────────┘   │
+└──────────────────────────────────────────────────────────────┘
 ```
+
+The Background Agent Layer:
+- **No endpoints** — not callable by users
+- **No chat** — not a conversational interface
+- **Triggered by** user actions (page load, search, add to trip, book)
+- **Outputs** structured data that the frontend renders as native UI components
 
 ## Agent Modules
 
-### 1. Trip Planner Agent
+### 1. Brief Generator
 
-**Input**: Natural language → structured `TripRequest`:
+**Trigger**: User opens a wilaya page or POI detail.
+**Work**: Runs POI Scout + Price Intel + Review Analyst in parallel.
+**Output**: Structured `WilayaBrief` — top POIs, transport costs, review highlights, tips.
+**Frontend**: Renders as the wilaya hero section. No agent UI.
+
+### 2. Intent Detector
+
+**Trigger**: Any user action (search, click, add, scroll time, skip).
+**Work**: Builds a behavioral profile across the session:
 ```python
-class TripRequest(BaseModel):
-    destination: str           # Wilaya name or "Algeria"
-    duration_days: int
-    travel_style: str          # "history", "beach", "adventure", "culture", "mixed"
-    budget_dzd: float | None
-    with_guide: bool = False
-    interests: list[str]       # "Roman ruins", "hiking", "local food", "workshops"
-    month: str | None          # Time of year for weather-aware planning
+class UserIntent(BaseModel):
+    preferred_categories: list[str]     # ["historical", "natural"]
+    budget_tier: str                     # "economy" | "mid" | "premium"
+    pace: str                            # "packed" | "relaxed"
+    prefers_guides: bool
+    language: str
+    travel_party_size: int | None
 ```
+**Output**: Updated session context, stored in Redis with TTL.
+**Frontend**: Nothing visible. Agent shapes downstream results.
 
-**Flow**:
-1. Parse intent via LLM (Claude/GPT/Mistral — no PII)
-2. Map destination to wilaya IDs
-3. Fan-out to sub-agents in parallel (`asyncio.gather`)
-4. Synthesize into structured `TripPlan`
-5. Return itinerary with POI visits, experiences, transport price estimates
+### 3. Trip Dashboard (Itinerary State Machine)
 
-**Output**:
+**Trigger**: User adds first POI/experience to a trip.
+**Work**: Maintains a persistent `TripState`:
 ```python
-class TripDay(BaseModel):
-    day: int
-    morning: Activity | None
-    afternoon: Activity | None
-    evening: Activity | None
-    estimated_cost_dzd: float
-    wilaya: str
-
-class TripPlan(BaseModel):
-    days: list[TripDay]
-    total_estimated_cost: float
-    tips: list[str]             # Local advice from LLM + review analysis
-    booking_links: dict         # Pre-filled booking URLs
+class TripState(BaseModel):
+    days: list[DayPlan]
+    budget_spent: float
+    budget_remaining: float
+    gaps: list[TimeGap]          # Free time slots → suggest filling
+    alerts: list[Alert]          # Conflicts, weather, price changes
+    optimization_score: float     # How efficient the current route is
 ```
+**Output**: On every change — re-optimizes route, recalculates budget, identifies gaps.
+**Frontend**: Trip dashboard auto-updates. "You have 3 free hours on Day 2" appears as a card.
 
-### 2. POI Scout Agent
+### 4. Recommendation Engine
 
-Given a wilaya and traveler interests:
-1. Query Qdrant for nearest-vector POIs (semantic search, not just keyword)
-2. Filter by category, rating, price range
-3. Enrich with review sentiment summary (LLM aggregates top reviews)
-4. Score each POI for match with traveler preferences
-5. Return top N with rationales
+**Trigger**: Page load, search, or idle after 3s.
+**Work**: Combines:
+- Collaborative: "Travelers who liked this also liked..."
+- Semantic: Qdrant vector similarity
+- Behavioral: Intent Detector profile
+- Contextual: Time of day, weather, season
+**Output**: `RecommendationFeed` — sorted cards with rationale.
+**Frontend**: Renders as "You might also like" grid. Never as a chat bubble.
 
-**Key**: Uses existing `GET /api/v1/pois/search` + review average + LLM synthesis. No new infra needed.
+### 5. Alert Engine
 
-### 3. Experience Matcher Agent
+**Trigger**: Background cron (every 30 min) + event-driven (on booking, on price report).
+**Work**: Checks for:
+- Price drops on saved POIs
+- New experiences in saved wilayas
+- Weather conflicts with outdoor plans
+- Booking conflicts (overlapping times)
+- Provider availability changes
+**Output**: `AlertBatch` — max 1 per hour per user (interrupt budget).
+**Frontend**: Notification badge + optional toast. Never a chat message.
 
-Matches traveler profile to available experiences:
-1. Query Qdrant for experiences matching interest keywords
-2. Filter by wilaya, status=active, price range
-3. Match by language (traveler's languages vs experience language)
-4. Score: price reasonableness, provider rating, date availability
+### 6. Trip Optimizer
 
-### 4. Price Intel Agent
+**Trigger**: User adds, removes, or reorders items on the trip dashboard.
+**Work**: 
+- Re-sort by geography (nearest-first to minimize walking)
+- Check opening hours (no museum visits at 7 PM)
+- Estimate travel time between consecutive POIs
+- Detect gaps → suggest filler
+- Recalculate budget
+**Output**: Updated `TripState` + `OptimizationSuggestion` if improvement found.
+**Frontend**: Auto-applies if improvement > 20%. Otherwise shows a one-click suggestion card.
 
-When an itinerary involves moving between wilayas:
-1. Call `GET /api/v1/prices/estimate` for each route+mode
-2. Flag routes with no data → suggest most common mode
-3. Summarize: "A taxi from Algiers to Tipaza typically costs 1,500–2,500 DZD"
-4. Add "Don't pay more than X" advice from existing endpoint
-
-### 5. Review Analyst Agent
-
-Before suggesting a POI or experience:
-1. Fetch top 10 reviews
-2. LLM summarizes: "Guests love the guided tour but note the site is crowded by 10 AM"
-3. Extract practical tips: "Bring water, no shade, entrance is 200 DZD"
-4. Tie back to traveler interests: "Matches your interest in Roman architecture"
-
-### 6. Local Expert Agent (RAG-enhanced)
-
-Ground answers in ATHAR's own data + curated local knowledge:
-1. Traveler asks: "What should I wear in Constantine in December?"
-2. Agent searches:
-   - Live posts tagged with that wilaya (real traveler photos = real context)
-   - Reviews mentioning weather/dress
-   - POI descriptions with location context
-   - Wilaya metadata (GPS → climate inference)
-3. LLM synthesizes answer with citations back to ATHAR content
-
-### 7. Concierge Agent (In-Trip)
-
-Active during the traveler's trip:
-1. Re-routing: "Getting late at Timgad → suggest moving evening activity"
-2. Re-booking: "Your guide cancelled" → find replacement
-3. Q&A: "Where's the nearest good couscous in Setif?"
-4. SOS: "I lost my wallet" → nearest embassy/hospital (future)
-
-Runs over WhatsApp integration (future). Uses same agent pipeline but with shorter context windows and faster models.
-
-## Implementation Phases
-
-### Phase 1 — Trip Planning Agent (MVP)
-- Single LLM call with tool access (function calling)
-- No multi-agent orchestration yet
-- Tools: `search_pois`, `search_experiences`, `estimate_price`, `get_wilaya_info`
-- Simple day-by-day: morning/afternoon/evening slots
-- Structured JSON output to chat UI
-
-**Effort**: 3-5 days
-**New files**: `app/agents/trip_planner.py`, `app/agents/tools.py`
-
-### Phase 2 — Multi-Agent Orchestration
-- LangGraph or Haystack pipeline
-- Fan-out: POI Scout + Experience Matcher + Price Intel run in parallel
-- Itinerary Builder agent synthesizes results
-- Streaming response (SSE or WebSocket)
-- Conversational refinement: "Swap Day 2 for beach"
-
-**Effort**: 5-7 days
-**New deps**: `langgraph` or `haystack-ai`
-**New files**: `app/agents/orchestrator.py`, `app/agents/poi_scout.py`, `app/agents/experience_matcher.py`, `app/agents/price_intel.py`
-
-### Phase 3 — Review Analyst + Local Expert
-- RAG pipeline over reviews + live posts + POI descriptions
-- ChromaDB or pgvector for local embeddings
-- Review summarization on demand
-
-**Effort**: 3-5 days
-**New deps**: `chromadb` or use pgvector (existing PostgreSQL)
-**New files**: `app/agents/review_analyst.py`, `app/agents/local_expert.py`, `app/services/rag_service.py`
-
-### Phase 4 — Concierge (In-Trip)
-- WhatsApp integration
-- Real-time re-routing
-- GPS-aware context
-
-**Effort**: 5-7 days (depends on WhatsApp integration)
-**New files**: `app/agents/concierge.py`
-
-### Phase 5 — Voice & Immersive
-- Voice interface (Whisper STT → agent → TTS)
-- GPS-aware audio guide (Waivoo pattern): "As you walk through the Roman arches of Timgad..."
-- Offline-capable itinerary in Flutter app
-
-**Effort**: 7-10 days (depends on Flutter)
-**New deps**: Whisper (already have), TTS engine
-
-## Technical Design Principles
-
-### Zero PII to External APIs
-```
-User message → PII scrubber (regex phone/name/email) → LLM API → Response
-```
-Loi 18-07: All personal data stays in ATHAR's PostgreSQL. External LLMs only see trip preferences, never phone numbers, names, or emails.
-
-### Graceful Degradation
-Every agent has a fallback:
-- Qdrant unavailable → SQL ILIKE search (already implemented)
-- LLM API down → Rule-based template responses
-- External API fails → Mock/synthetic data with disclaimer
-
-### Confidence-Based Escalation
-```
-Agent confidence > 0.9 → Auto-execute (book, suggest, answer)
-Agent confidence 0.5-0.9 → Include disclaimers, suggest human review
-Agent confidence < 0.5 → "I'm not sure. Let me connect you with a local expert."
-```
-
-### Structured Outputs
-Every agent returns typed Pydantic models, not free text. The chat UI renders structured data (maps, cards, buttons) from JSON — not markdown.
-
-### Streaming
-Agent reasoning streams via SSE while parallel sub-agents run. Traveler sees:
-```
-┌─────────────────────────────────────┐
-│ 🤔 Thinking...                      │
-│ ✓ POI Scout: 8 matches in Algiers   │
-│ ✓ Experience Matcher: 3 workshops   │
-│ ⏳ Price Intel: checking routes...  │
-│                                     │
-│ ┌─ Your Trip Plan ────────────────┐ │
-│ │ Day 1: Algiers — Casbah + Museum│ │
-│ │ Day 2: Tipaza — Roman ruins     │ │
-│ │ ...                             │ │
-│ └─────────────────────────────────┘ │
-└─────────────────────────────────────┘
-```
-
-### Memory
-Across sessions, the agent remembers:
-- Previous trips planned → refine recommendations
-- Liked categories → bias future searches
-- Budget preferences → default to known range
-- Language preference → always respond in traveler's language
-
-Stored in a `traveler_preferences` JSON field on the User model (no new table).
-
-## Data Flow
+## Data Flow (No Chat)
 
 ```
-1. Traveler types: "Plan 3 days in Oran"
-2. POST /api/v1/agent/plan → AgentOrchestrator
-3. Orchestrator extracts TripRequest via LLM
-4. Parallel fan-out:
-   ├── POI Scout → Qdrant + PostgreSQL → scored POIs
-   ├── Experience Matcher → Qdrant + PostgreSQL → matched experiences
-   ├── Price Intel → PriceReport query → fair prices
-   └── Review Analyst → Review query → sentiment summary
-5. Itinerary Builder agent synthesizes → TripPlan JSON
-6. Response streams back to traveler via SSE
-7. Traveler refines: "Can you add a cooking workshop on Day 2?"
-   → Agent re-plans from existing context (no full re-run)
+User lands on /wilayas/16
+  → BriefGenerator: parallel POI Scout + Price Intel + Review Analyst
+  → IntentDetector: "First visit, no history yet"
+  → RecommendationEngine: "Popular with first-time visitors:..."
+  → Frontend renders:
+       ┌─────────────────────────────────────┐
+       │ Tizi Ouzou — Trip Brief             │
+       │ Top 5 POIs · 3 experiences          │
+       │ ┌───┐───┐───┐                     │
+       │ │   │   │   │ ← Cards, not chat   │
+       │ └───┘───┘───┘                     │
+       │ "Popular with history lovers:"      │
+       │ ┌───┐───┐───┐                     │
+       │ │   │   │   │ ← Recommendations    │
+       │ └───┘───┘───┘                     │
+       └─────────────────────────────────────┘
+
+User clicks "Add to trip" on 3 POIs
+  → Trip Dashboard initializes
+  → TripOptimizer: sorts by geography
+  → IntentDetector: "Interested in history + nature"
+  → AlertEngine: nothing urgent yet
+  → Frontend renders:
+       ┌─────────────────────────────────────┐
+       │ 🧳 My Trip                          │
+       │ Day 1: 3 activities, 2.5 km walk    │
+       │ ⚡ 1 free hour in the afternoon      │
+       │ [Suggest activity] ← one click      │
+       └─────────────────────────────────────┘
+
+User clicks [Suggest activity]
+  → RecommendationEngine: "Nearby POI you haven't added"
+  → One card appears. No chat. No loading spinner.
+  → User clicks [+] → Added. Trip re-optimizes.
 ```
 
-## What Stays In-House vs External
-
-| Capability | Where | Why |
-|-----------|-------|-----|
-| POI/Experience vector search | Qdrant (local) | Data sovereignty, low latency |
-| Price estimate engine | PostgreSQL (local) | Own data, no external dependency |
-| Review aggregation | PostgreSQL + LLM | PII in reviews stays local |
-| Natural language understanding | Claude/GPT/Mistral API | No budget for fine-tuning |
-| Trip plan generation | Claude/GPT/Mistral API | General capability, no training data leaked |
-| Itinerary optimization | LLM + local logic | Route optimization via code, not AI |
-| Image moderation | External API (future) | Specialized, not core |
-
-## New API Endpoints
+## New API Endpoints (Structured, Not Conversational)
 
 ```
-POST /api/v1/agent/plan              # Plan a trip from NL description
-POST /api/v1/agent/plan/{id}/refine  # Refine existing plan conversationally
-GET  /api/v1/agent/plan/{id}         # Retrieve saved plan
-POST /api/v1/agent/ask               # One-shot travel question ("What to wear in Tamanrasset?")
-POST /api/v1/agent/explore/{wilaya_id} # "What's interesting near X?"
+GET  /api/v1/trip/brief?wilaya_id=16
+     → WilayaBrief (top POIs, transport costs, tips, review highlights)
+
+GET  /api/v1/trip/state
+     → TripState (current itinerary, budget, gaps, alerts)
+
+POST /api/v1/trip/items
+     → Add POI/experience → returns updated TripState
+
+DELETE /api/v1/trip/items/{id}
+     → Remove → returns updated TripState with gap detection
+
+POST /api/v1/trip/optimize
+     → Re-sort, fill gaps → returns updated TripState + suggestions
+
+GET  /api/v1/recommendations?context=wilaya_detail&item_id=xxx
+     → RecommendationFeed (cards with rationale)
+
+GET  /api/v1/alerts
+     → AlertBatch (interrupt-budgeted, max 1/hour)
+
+POST /api/v1/alerts/{id}/dismiss
+     → User dismissed → agent learns
 ```
 
-## Integration with Existing System
+No `POST /agent/plan`. No `POST /agent/ask`. No chat endpoints. Every endpoint maps to a visual UI component, not a conversation turn.
 
-The agent layer is an additive module — it doesn't replace existing endpoints. It's a **composer** that calls the existing API internally:
+## Implementation Plan
 
-```python
-class TripPlannerAgent:
-    async def plan(self, request: TripRequest) -> TripPlan:
-        pois = await self.poi_scout.search(
-            wilaya_ids=request.wilaya_ids,
-            interests=request.interests,
-        )
-        experiences = await self.experience_matcher.match(
-            wilaya_ids=request.wilaya_ids,
-            interests=request.interests,
-            budget=request.budget_dzd,
-        )
-        prices = await self.price_intel.estimate_routes(
-            routes=self._build_routes(pois, experiences),
-        )
-        return await self.itinerary_builder.synthesize(
-            pois=pois,
-            experiences=experiences,
-            prices=prices,
-            request=request,
-        )
-```
+| Phase | What | User Sees | Backend Work |
+|-------|------|-----------|--------------|
+| 1 | Trip Dashboard | Drag-drop itinerary, auto-sort, budget calc | `TripState` model, `TripOptimizer` agent, `/trip/*` endpoints |
+| 2 | Brief Generator | Wilaya pages auto-populate with brief | `BriefGenerator` agent, parallel POI/Price/Review queries |
+| 3 | Smart Defaults | Forms pre-fill intelligently | Intent Detector, form-context agents |
+| 4 | Recommendations | "You might also like" on every page | Recommendation Engine + Qdrant + behavior signals |
+| 5 | Alert Engine | Price drops, conflicts, weather | Background cron + Alert Engine + notifications |
 
-Each sub-agent calls existing ATHAR endpoints internally (or directly queries the database for performance). The agent doesn't duplicate business logic — it orchestrates it.
+## Anti-Patterns (Will Not Build)
 
-## Why This Works for Algeria
+| Anti-pattern | Why |
+|-------------|-----|
+| Chat interface | User must type = friction. Not ambient. |
+| "Ask me anything" input | Implies empty state. User doesn't know what to ask. |
+| Streaming "thinking" animation | Signals uncertainty. Agent should be confident or silent. |
+| "Was this helpful?" feedback | Users lie or ignore. Behavior is truth. |
+| Agent自我介绍 | If the user doesn't notice the AI, it's working. |
+| Loading spinners for agent work | Agents run async. UI renders from cache → updates when ready. |
 
-1. **Low connectivity areas**: Agents cache results → fallback gracefully → Flutter app works offline
-2. **WhatsApp native**: Most Algerians use WhatsApp as primary internet tool → agent over WhatsApp = massive reach
-3. **Multi-language**: LLM handles AR/FR/EN/TZ natively → no separate translation layer
-4. **No GPUs needed**: sentence-transformers for embeddings (CPU), LLMs via API → no GPU spend
-5. **Data moat**: ATHAR's POI + price + review data is unique to Algeria → LLM can't replicate it → agents add value on top of proprietary data
+## Relationship to Admin
+
+The admin dashboard is the **control surface** for the agentic layer:
+
+| Agent Action | Admin Escalation |
+|-------------|-----------------|
+| Recommendation had low confidence | Admin reviews the POI/experience data quality |
+| Price intel found conflicting reports | Admin verifies flagged price reports |
+| Intent detector confused | Admin reviews user's provider profile |
+| Alert engine fired false positive | Admin dismisses → agent learns |
+
+The agentic traveler layer never escalates to the user. It escalates silently to the admin, who fixes the root cause (bad data, missing info). The traveler never sees the seam.
