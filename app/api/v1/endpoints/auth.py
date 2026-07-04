@@ -3,6 +3,7 @@ import logging
 import uuid
 
 from fastapi import APIRouter, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.exceptions import BadRequestException, UnauthorizedException
@@ -12,6 +13,7 @@ from app.core.security import (
     decode_token,
 )
 from app.db.session import get_db
+from app.main import limiter
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.auth import OTPRequest, OTPVerify, TokenRefresh
@@ -24,15 +26,17 @@ _otp_store: dict[str, dict] = {}
 
 
 @router.post("/send-otp")
-async def send_otp(body: OTPRequest):
+@limiter.limit("10/minute")
+async def send_otp(body: OTPRequest, request=None):  # noqa: ARG001
     code = "123456"
     _otp_store[body.phone] = {"code": code}
-    logger.info(f"OTP for {body.phone}: {code}")
+    logger.info("OTP sent to %s", body.phone)
     return {"message": "OTP sent successfully", "otp": code}
 
 
 @router.post("/verify-otp", response_model=TokenResponse)
-async def verify_otp(body: OTPVerify, db: AsyncSession = Depends(get_db)):
+@limiter.limit("20/minute")
+async def verify_otp(body: OTPVerify, request=None, db: AsyncSession = Depends(get_db)):  # noqa: ARG001
     stored = _otp_store.get(body.phone)
     if not stored or stored["code"] != body.code:
         raise BadRequestException(message="Invalid or expired OTP")
@@ -62,7 +66,8 @@ async def verify_otp(body: OTPVerify, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh_token(body: TokenRefresh, db: AsyncSession = Depends(get_db)):
+@limiter.limit("20/minute")
+async def refresh_token(body: TokenRefresh, request=None, db: AsyncSession = Depends(get_db)):  # noqa: ARG001
     try:
         payload = decode_token(body.refresh_token)
     except Exception:
@@ -73,8 +78,6 @@ async def refresh_token(body: TokenRefresh, db: AsyncSession = Depends(get_db)):
 
     user_id = payload["sub"]
     token_hash = hashlib.sha256(body.refresh_token.encode()).hexdigest()
-
-    from sqlalchemy import select
 
     result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     stored = result.scalar_one_or_none()
@@ -106,8 +109,6 @@ async def refresh_token(body: TokenRefresh, db: AsyncSession = Depends(get_db)):
 
 
 async def _get_or_create_user(db: AsyncSession, phone: str) -> User:
-    from sqlalchemy import select
-
     result = await db.execute(select(User).where(User.phone == phone))
     user = result.scalar_one_or_none()
     if not user:

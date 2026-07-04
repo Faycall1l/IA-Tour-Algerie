@@ -29,12 +29,15 @@ class VectorSearchService:
         try:
             from qdrant_client import QdrantClient
 
-            self.client = QdrantClient(
-                host=settings.qdrant.host,
-                port=settings.qdrant.port,
-                grpc_port=settings.qdrant.grpc_port,
-                prefer_grpc=settings.qdrant.prefer_grpc,
-            )
+            kwargs = {
+                "host": settings.qdrant.host,
+                "port": settings.qdrant.port,
+                "grpc_port": settings.qdrant.grpc_port,
+                "prefer_grpc": settings.qdrant.prefer_grpc,
+            }
+            if settings.qdrant.api_key:
+                kwargs["api_key"] = settings.qdrant.api_key
+            self.client = QdrantClient(**kwargs)
             self._ensure_collection(POIS_COLLECTION)
             self._ensure_collection(EXPERIENCES_COLLECTION)
             logger.info(

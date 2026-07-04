@@ -1,10 +1,13 @@
+from typing import Any
+
+
 class AppError(Exception):
     status_code: int = 500
     code: str = "internal_error"
     message: str = "An unexpected error occurred"
-    details: list | None = None
+    details: list[Any] | None = None
 
-    def __init__(self, message: str | None = None, details: list | None = None):
+    def __init__(self, message: str | None = None, details: list[Any] | None = None):
         if message:
             self.message = message
         if details:

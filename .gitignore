@@ -22,6 +22,9 @@ Thumbs.db
 # Env
 .env
 
+# Secrets
+secrets/
+
 # Cache
 .mypy_cache/
 .ruff_cache/

@@ -1,11 +1,10 @@
 import logging
 import uuid
+from typing import cast
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from typing import cast
 
 from app.api.deps import get_current_user, get_db
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException

@@ -23,11 +23,18 @@ class EmbeddingService:
             from sentence_transformers import SentenceTransformer
 
             logger.info("Loading embedding model %s ...", MODEL_NAME)
-            self._model = SentenceTransformer(MODEL_NAME)
-            logger.info("Embedding model loaded")
-        except Exception as exc:
-            logger.warning("Embedding model unavailable: %s", exc)
-            self._model = None
+            self._model = SentenceTransformer(MODEL_NAME, backend="onnx")
+            logger.info("Embedding model loaded (ONNX backend)")
+        except Exception:
+            try:
+                from sentence_transformers import SentenceTransformer
+
+                logger.info("ONNX backend unavailable, falling back to default...")
+                self._model = SentenceTransformer(MODEL_NAME)
+                logger.info("Embedding model loaded (default backend)")
+            except Exception as exc:
+                logger.warning("Embedding model unavailable: %s", exc)
+                self._model = None
 
     def encode(self, text: str) -> list[float]:
         self._load()
