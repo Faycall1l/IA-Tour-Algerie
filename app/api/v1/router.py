@@ -1,6 +1,16 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import auth, health, live, pois, prices, reviews, users, wilayas
+from app.api.v1.endpoints import (
+    auth,
+    experiences,
+    health,
+    live,
+    pois,
+    prices,
+    reviews,
+    users,
+    wilayas,
+)
 
 router = APIRouter(prefix="/api/v1")
 router.include_router(health.router)
@@ -11,3 +21,4 @@ router.include_router(prices.router)
 router.include_router(reviews.router)
 router.include_router(users.router)
 router.include_router(wilayas.router)
+router.include_router(experiences.router)

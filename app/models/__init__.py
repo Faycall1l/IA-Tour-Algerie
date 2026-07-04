@@ -1,3 +1,4 @@
+from app.models.experience import Experience
 from app.models.live_post import LivePost
 from app.models.local_agency import LocalAgency
 from app.models.poi import POI
@@ -14,6 +15,7 @@ __all__ = [
     "Wilaya",
     "LocalAgency",
     "AtharTravelerProfile",
+    "Experience",
     "LivePost",
     "POI",
     "PriceReport",

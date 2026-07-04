@@ -72,7 +72,27 @@ async def lifespan(app: FastAPI):
         except Exception as exc:
             logger.warning("Failed to index existing POIs: %s", exc)
 
+    async def _index_existing_experiences():
+        try:
+            from app.db.session import async_session_factory
+            from app.models.experience import Experience
+
+            async with async_session_factory() as session:
+                exps = (await session.execute(select(Experience))).scalars().all()
+            if exps:
+                loop = asyncio.get_running_loop()
+
+                def _idx() -> None:
+                    for e in exps:
+                        app.state.vector_search.index_experience(e)
+
+                await loop.run_in_executor(None, _idx)
+                logger.info("Indexed %d existing experiences in Qdrant", len(exps))
+        except Exception as exc:
+            logger.warning("Failed to index existing experiences: %s", exc)
+
     asyncio.ensure_future(_index_existing_pois())
+    asyncio.ensure_future(_index_existing_experiences())
     for r in _legacy_routers:
         app.include_router(r)
     Instrumentator().instrument(app).expose(app)
