@@ -1,3 +1,13 @@
+from app.schemas.admin import (
+    AdminActionResponse,
+    AdminRoleUpdate,
+    PriceReportAdminFeed,
+    PriceReportAdminRead,
+    ProviderAdminFeed,
+    ProviderProfileAdminRead,
+    UserAdminFeed,
+    UserAdminRead,
+)
 from app.schemas.auth import OTPRequest, OTPVerify, TokenRefresh
 from app.schemas.health import HealthResponse
 from app.schemas.live_post import LivePostCreate, LivePostFeed, LivePostRead
@@ -37,4 +47,12 @@ __all__ = [
     "ReviewRead",
     "ReviewFeed",
     "POIRating",
+    "AdminActionResponse",
+    "AdminRoleUpdate",
+    "PriceReportAdminRead",
+    "PriceReportAdminFeed",
+    "UserAdminRead",
+    "UserAdminFeed",
+    "ProviderProfileAdminRead",
+    "ProviderAdminFeed",
 ]
