@@ -2,18 +2,21 @@
 
 ## Overview
 
-Passwordless OTP auth via phone number. JWT access tokens + refresh token rotation with reuse detection.
+Passwordless OTP auth via phone number. JWT access tokens (EdDSA/Ed25519) + refresh token rotation with reuse detection.
 
 ```
 Phone → /send-otp → SMS/WhatsApp OTP → /verify-otp → {access_token, refresh_token}
                                                       → /refresh → new token pair
 ```
 
+All auth endpoints are rate-limited via slowapi middleware.
+
 ## Endpoints
 
 ### `POST /api/v1/auth/send-otp`
 
-Request:
+Rate limited: **10/minute**.
+
 ```json
 { "phone": "+213555123456" }
 ```
@@ -26,11 +29,12 @@ Response (200):
 **Logic**:
 - Validate phone format (starts with `+213`, 10-13 chars).
 - **Stub**: Always uses `"123456"` as OTP. Production would call Twilio Verify API.
-- Store OTP hash in memory with TTL (deferred — currently validated directly).
+- Rate limited to 10 requests per minute per IP.
 
 ### `POST /api/v1/auth/verify-otp`
 
-Request:
+Rate limited: **20/minute**.
+
 ```json
 { "phone": "+213555123456", "otp": "123456" }
 ```
@@ -41,7 +45,7 @@ Response (200):
   "access_token": "eyJ...",
   "refresh_token": "dGhpcyBpcyBh...",
   "token_type": "bearer",
-  "expires_in": 3600,
+  "expires_in": 900,
   "user": { "id": "...", "phone": "+213555123456", "role": "traveler", "is_onboarded": false }
 }
 ```
@@ -49,13 +53,14 @@ Response (200):
 **Logic**:
 - Verify OTP (stub: check `== "123456"`).
 - `get_or_create_user` — creates `User` if phone not found.
-- Generate access token (1h) + refresh token (30d).
-- Store refresh token hash in DB (`RefreshToken` table) with device info.
+- Generate EdDSA-signed access token (15 min) + refresh token (30 days).
+- Store refresh token SHA-256 hash in DB (`RefreshToken` table) with family UUID.
 - Return user profile — if `is_onboarded` is false, client should redirect to onboarding.
 
 ### `POST /api/v1/auth/refresh`
 
-Request:
+Rate limited: **20/minute**.
+
 ```json
 { "refresh_token": "dGhpcyBpcyBh..." }
 ```
@@ -63,9 +68,9 @@ Request:
 Response (200): Same as verify-otp (new token pair).
 
 **Logic**:
-- Look up refresh token hash in DB.
+- Look up refresh token SHA-256 hash in DB.
 - **Reuse detection**: If token not found (already rotated), invalidate all tokens for that user (stolen token mitigation).
-- Rotate: delete old, insert new.
+- Rotate: revoke old hash, insert new with same family.
 - Return new access + refresh.
 
 ## JWT Format
@@ -73,24 +78,39 @@ Response (200): Same as verify-otp (new token pair).
 ```python
 {
   "sub": user_id (UUID),
-  "phone": "+213555123456",
   "role": "traveler" | "guide" | "agency" | "hotel" | "admin",
-  "exp": timestamp,
+  "type": "access" | "refresh",
+  "iss": "ATHAR OS (أثر)",
+  "aud": "ATHAR OS (أثر)",
   "iat": timestamp,
-  "type": "access" | "refresh"
+  "exp": timestamp,
+  "jti": UUID (unique per token)
 }
 ```
 
-- Signed with `HS256` using `SECRET_KEY` from config.
-- Access token: 1 hour expiry.
-- Refresh token: 30 days expiry (the JWT itself, separate from DB record).
+- **Algorithm**: EdDSA (Ed25519) — asymmetric, per RFC 8725bis (June 2026 BCP).
+- **Key**: Ed25519 private key loaded from `AUTH__JWT_PRIVATE_KEY` env var. Auto-generated at startup if not set (tokens invalidated on restart).
+- **Access token**: 15 minutes.
+- **Refresh token**: 30 days.
+
+### Why EdDSA over HS256
+
+| | HS256 | EdDSA (Ed25519) |
+|---|-------|-----------------|
+| Key type | Symmetric (shared secret) | Asymmetric (key pair) |
+| Verification speed | Fast | **8× faster** |
+| Signature size | 32 bytes | 64 bytes |
+| Key size | Any | 32 bytes |
+| Key distribution | Must share secret | Only public key for verification |
+| Standard | RFC 7518 | RFC 8037 |
+| BCP status | Allowed but not recommended | **Recommended** by RFC 8725bis |
 
 ## Refresh Token Rotation
 
 ```
-Initial: issue Token_A (stored hash)
-Refresh:  Token_A found → delete Token_A, issue Token_B (stored hash)
-Replay:   Token_A used again → not found in DB → delete ALL user tokens (attack detected)
+Initial: issue Token_A (stored hash, family=X)
+Refresh:  Token_A found → revoke Token_A, issue Token_B (family=X)
+Replay:   Token_A used again → not found in DB → revoke ALL family=X tokens
 ```
 
 ## Role-Based Access Control
@@ -104,13 +124,12 @@ Replay:   Token_A used again → not found in DB → delete ALL user tokens (att
 | `admin` | All + delete any content, moderate price reports |
 
 **Enforcement**:
-- `get_current_user` dependency: extracts user from JWT, fetches from DB.
+- `get_current_user` dependency: extracts user from JWT, validates EdDSA signature + all claims (`exp`, `iat`, `iss`, `aud`, `jti`), fetches from DB.
 - `get_current_admin` dependency: wraps `get_current_user`, checks `.role == "admin"`.
 - View-level checks in endpoint logic (e.g., only author can edit their experience).
-- No per-object permissions system yet (deferred).
 
 ## Future
 - Real Twilio Verify API integration.
-- OTP rate limiting via Redis.
+- Redis-backed rate limiting (currently in-memory).
 - Device management (list/revoke sessions).
 - OAuth for Google/Apple (post-MVP).

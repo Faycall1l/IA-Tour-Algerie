@@ -36,9 +36,7 @@ Algeria's Law 18-07 (July 2018) mandates that:
                     │  External    │
                     │  APIs        │
                     │              │
-                    │  OpenAI API  │  (future: AI recommendations)
-                    │  Mistral API │  (future: local content)
-                    │  Twilio API  │  (OTP sending)
+                    │  Twilio API  │  (OTP sending, future)
                     └──────────────┘
 ```
 
@@ -49,22 +47,39 @@ Algeria's Law 18-07 (July 2018) mandates that:
 | Measure | Detail |
 |---------|--------|
 | Passwordless | No passwords to leak or brute-force |
-| JWT with short expiry | Access token: 1 hour |
-| Refresh rotation | Each refresh invalidates previous token |
+| JWT algorithm | **EdDSA (Ed25519)** — asymmetric, per RFC 8725bis (June 2026) |
+| Access token | 15 min expiry — 5× faster verification than RS256 |
+| Refresh rotation | Each refresh invalidates previous token (token family) |
 | Reuse detection | Stolen token play → all user tokens revoked |
+| Rate limiting | 10/min OTP send, 20/min verify+refresh via slowapi |
 | Token storage | SHA-256 hash in DB, never raw |
-| HTTPS required | Production enforced via reverse proxy |
+| Claims validation | `exp`, `iat`, `iss`, `aud`, `jti` all required on decode |
 
 ## API Security
 
 | Measure | Detail |
 |---------|--------|
+| CORS | Explicit origins (`localhost:3000`, `localhost:5173`) — no wildcard |
+| Security headers | X-Content-Type-Options, X-Frame-Options, Permissions-Policy, Referrer-Policy |
+| TrustedHostMiddleware | Prevents host header injection |
+| Rate limiting | slowapi with in-memory backend (Redis planned) |
 | Role-based access | `get_current_admin` guards admin endpoints |
 | Ownership checks | Only author/admin can delete/modify resources |
 | Input validation | Pydantic schemas with strict types, field constraints |
 | SQL injection | Impossible with SQLAlchemy ORM + parameterized queries |
-| Rate limiting | Planned via Redis (not implemented) |
-| CORS | Configurable `allowed_hosts`, wide open in dev |
+
+## Docker Security
+
+| Measure | Detail |
+|---------|--------|
+| Non-root containers | All services run as non-root (postgres UID 999, app UID 1000) |
+| Capability drop | `cap_drop: ALL` on every container |
+| No new privileges | `security_opt: no-new-privileges:true` everywhere |
+| Resource limits | Memory + CPU limits prevent DoS from runaway containers |
+| No exposed internals | PostgreSQL, Redis, Qdrant, MinIO have no external ports |
+| Image pinning | All images pinned to specific versions (no `:latest`) |
+| Secrets via files | DB password mounted at `/run/secrets/db_password` |
+| Network isolation | All services on isolated `backend` bridge network |
 
 ## File Upload Security
 
@@ -83,13 +98,14 @@ Algeria's Law 18-07 (July 2018) mandates that:
 - **Avatar URLs**: Optional. Public MinIO URLs.
 - **No email**: Deliberately omitted. Phone is the identifier.
 - **No location tracking**: Latitude/longitude are for POI coordinates, not user tracking.
-- **Minimal logging**: structlog logs correlation IDs and request paths, not request bodies or PII.
+- **Minimal logging**: structlog logs correlation IDs and request paths, not request bodies or PII. OTP code never logged.
 
 ## Future Security Items
 
-1. **Rate limiting** via Redis to prevent OTP brute-force.
-2. **Honeypot tokens** for refresh reuse detection (currently revokes all, but no alerting).
+1. **Redis-backed rate limiting** — replace slowapi's in-memory backend.
+2. **Honeypot tokens** for refresh reuse detection with alerting.
 3. **ANPDP registration** documentation.
 4. **Data export endpoint** for GDPR-style user data requests.
 5. **Account deletion** cascade (remove user + all associated data).
 6. **Audit log** for admin actions (delete content, verify reports).
+7. **TLS everywhere** — reverse proxy (Caddy/Traefik) for HTTPS termination, MinIO TLS, PostgreSQL SSL.

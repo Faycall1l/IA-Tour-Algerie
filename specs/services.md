@@ -11,9 +11,8 @@ class MinIOSettings(BaseSettings):
     endpoint: str = "localhost:9000"
     access_key: str = "minioadmin"
     secret_key: str = "minioadmin"
-    bucket_name: str = "athar-media"
-    use_ssl: bool = False
-    public_url: str = "http://localhost:9000"
+    bucket: str = "athar-uploads"
+    secure: bool = False          # Set True in production with TLS
 ```
 
 ### Behaviour
@@ -25,10 +24,10 @@ async def upload(file: UploadFile, folder: str = "general") -> str:
 1. Validates file type (`.jpg`, `.jpeg`, `.png`, `.webp` only).
 2. Validates file size (max 10 MB).
 3. Generates UUID filename (e.g., `pois/a1b2c3d4-e5f6-7890-abcd-ef1234567890.jpg`).
-4. Creates `athar-media` bucket if not exists.
+4. Creates bucket if not exists (`athar-uploads`).
 5. Sets bucket policy to **public-read** — no presigned URLs needed.
 6. Uploads with `content-type` for browser display.
-7. Returns public URL: `http://localhost:9000/athar-media/pois/uuid.jpg`.
+7. Returns public URL.
 
 **Graceful fallback**: If MinIO is not running, logs a warning and returns `None`.
 
@@ -38,6 +37,10 @@ Files are world-readable by design:
 - Travel photos and POI images are not sensitive.
 - Avoids presigned URL complexity.
 - Acceptable for MVP; can add auth on read if needed later.
+
+### Docker Security
+
+In docker-compose: MinIO runs with `cap_drop: ALL`, `no-new-privileges`, resource limits, and no external port exposure (only reachable via Docker internal network).
 
 ---
 
@@ -53,14 +56,23 @@ class EmbeddingService:
 ### Behaviour
 
 - **Lazy loading**: Model loads on first `encode()` call, not at startup.
+- **ONNX backend**: Attempts to load model with `backend="onnx"` for 2-3× CPU speedup. Falls back to default PyTorch backend if ONNX unavailable.
 - **Download**: First call downloads ~80MB to `~/.cache/huggingface/`.
 - **Normalization**: Output vectors are L2-normalized (unit length) — required for cosine similarity in Qdrant.
 
 ```python
-async def encode(text: str) -> list[float]:
-    # Runs model.encode() in a thread pool to not block event loop
+def encode(text: str) -> list[float]:
+    # Runs model.encode() synchronously (called from thread pool in endpoints)
     # Returns 384-dim normalized vector
 ```
+
+### Backend Comparison
+
+| Backend | Speed | Memory | Notes |
+|---------|-------|--------|-------|
+| Default (PyTorch) | 1× | FP32 (full) | Safe fallback |
+| ONNX | 2-3× faster | FP32 or int8 | Requires `sentence-transformers[onnx]` |
+| ONNX + int8 quantized | 3-4× faster | ~40% less | Requires optuna/optimum |
 
 ### Limitations
 
@@ -80,39 +92,47 @@ Qdrant client for semantic search.
 class QdrantSettings(BaseSettings):
     host: str = "localhost"
     port: int = 6333
-    prefer_grpc: bool = True
-    collection_name_pois: str = "pois"
-    collection_name_experiences: str = "experiences"
-    vector_size: int = 384
+    grpc_port: int = 6334
+    prefer_grpc: bool = True       # gRPC is faster than REST
+    api_key: str = ""              # Qdrant 1.16+ API key auth
 ```
 
 ### Collections
 
 | Collection | Vector Dim | Payload | Used By |
 |-----------|-----------|---------|---------|
-| `pois` | 384 | `{poi_id, name, description, category, wilaya_id}` | POI search |
-| `experiences` | 384 | `{experience_id, title, description, type, wilaya_id}` | Experience search |
+| `pois` | 384 | `{poi_id, name, category, wilaya_id}` | POI search |
+| `experiences` | 384 | `{experience_id, title, category, wilaya_id, provider_id, status}` | Experience search |
 
 ### Methods
 
 ```python
-async def index_poi(poi_id: str, text: str, payload: dict) -> None
-async def index_experience(experience_id: str, text: str, payload: dict) -> None
-async def search(text: str, filters: dict | None = None, limit: int = 20) -> list[dict]
-async def search_experiences(text: str, filters: dict | None = None, limit: int = 20) -> list[dict]
-async def delete_poi(poi_id: str) -> None
-async def delete_experience(experience_id: str) -> None
+def index_poi(self, poi: POI) -> None
+def index_experience(self, experience: Experience) -> None
+def search(self, query: str, limit: int = 10) -> list[uuid.UUID]
+def search_experiences(self, query: str, limit: int = 10) -> list[uuid.UUID]
+def delete_poi(self, poi_id: uuid.UUID) -> None
+def delete_experience(self, experience_id: uuid.UUID) -> None
 ```
+
+### API Key Authentication
+
+When `QDRANT_API_KEY` is set, the Qdrant client passes the API key on every request. All requests without the key are rejected with 401. Requires Qdrant 1.16+.
+
+### gRPC vs REST
+
+`prefer_grpc=True` uses Qdrant's gRPC interface instead of REST:
+- ~2× faster for search operations
+- Binary protocol (smaller payloads)
+- Native streaming support
 
 ### Startup Auto-Indexing
 
 On app startup (`lifespan`), the service:
-1. Checks if `pois` and `experiences` collections exist.
-2. If they exist and have points, skips (assumes already indexed).
-3. Otherwise, fetches all POIs/Experiences from PostgreSQL and indexes them.
+1. Fetches all POIs/Experiences from PostgreSQL.
+2. Skips if Qdrant collection already has points (dedup by ID).
+3. Otherwise indexes all items into Qdrant.
 4. Logs count of indexed items.
-
-This keeps the search index in sync with the database without manual reindexing.
 
 ### Search Flow
 
@@ -120,15 +140,14 @@ This keeps the search index in sync with the database without manual reindexing.
 1. Receive text query + optional filters (wilaya_id, category/type)
 2. EmbeddingService.encode(text) → 384-dim vector
 3. Qdrant.search(collection, vector, filter) → scored results
-4. Extract IDs from results
+4. Extract UUIDs from result payloads
 5. SQLAlchemy: SELECT * FROM pois WHERE id IN (results)
-6. Attach scores from Qdrant (optional, for relevance display)
-7. Return items ordered by Qdrant score
+6. Return items ordered by Qdrant score
 ```
 
 ### Graceful Fallback
 
 If Qdrant is not running:
-- `search()` returns empty list.
+- `search()` returns empty list (caller uses SQL ILIKE fallback).
 - `index_*()` logs warning and does nothing.
-- DB-only search (SQL LIKE on name/title) is used as fallback in endpoints.
+- DB-only search (SQL `ILIKE` on name/title) is used as fallback in endpoints.

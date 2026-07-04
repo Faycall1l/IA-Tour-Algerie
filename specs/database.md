@@ -1,10 +1,30 @@
 # Database
 
 ## Stack
-- **PostgreSQL 16** via asyncpg
-- **SQLAlchemy 2.0** async ORM with `async_sessionmaker`
-- **Alembic** async migration runner
-- Connection pool: 20 workers, 30s timeout
+- **PostgreSQL 16.4** via asyncpg
+- **SQLAlchemy 2.0.38** async ORM with `async_sessionmaker` (greenlet via `[asyncio]` extra)
+- **Alembic 1.15** async migration runner
+- Connection pool: 10 persistent + 5 overflow, 30s timeout, SSL support
+
+## Connection Pool Configuration
+
+```python
+engine = create_async_engine(
+    settings.database.url,
+    pool_size=10,               # Persistent connections
+    max_overflow=5,             # Burst connections under load
+    pool_pre_ping=True,         # Check health before checkout
+    pool_recycle=1800,          # Reconnect after 30 min (handles server-side timeout)
+    pool_timeout=30,            # Wait max 30s for a connection
+    echo=settings.debug,        # Log all queries in dev only
+    connect_args={"ssl": "require"} if sslmode=require in URL else None,
+)
+```
+
+**Security**:
+- Pool size reduced from 20→10 to avoid `TooManyConnectionsError` with multiple workers.
+- `pool_timeout=30` prevents infinite waits under load.
+- SSL support via `?sslmode=require` in connection URL → `connect_args["ssl"]` activates.
 
 ## Models (13 total)
 
@@ -16,10 +36,11 @@
 | display_name | String(100) | Nullable |
 | avatar_url | String(500) | Nullable, MinIO URL |
 | role | String(20) | `traveler` \| `guide` \| `agency` \| `hotel` \| `admin`, default `traveler`, CHECK constraint |
-| is_onboarded | Boolean | Default false |
+| is_active | Boolean | Default true |
 | is_verified | Boolean | Default false, admin action |
+| language | String(5) | Default 'fr' |
 | languages | ARRAY(String) | E.g. `{AR,FR,EN}` |
-| bio | Text | Nullable, max 2000 |
+| bio | String(1000) | Nullable |
 | created_at | DateTime(tz) | server_default now() |
 | updated_at | DateTime(tz) | onupdate now() |
 
@@ -28,10 +49,11 @@
 |--------|------|-------|
 | id | UUID | PK |
 | user_id | UUID | FK → users.id, CASCADE |
-| token_hash | String(256) | Indexed, SHA-256 of token |
-| device_info | String(500) | Nullable |
-| expires_at | DateTime(tz) | |
+| token_hash | String(128) | SHA-256 of token |
+| family | String(36) | UUID grouping tokens for rotation |
+| is_revoked | Boolean | Default false |
 | created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
 
 ### Wilaya (`wilayas`)
 58 pre-seeded rows with AR/FR/EN names + lat/lng.
@@ -98,16 +120,20 @@
 | id | UUID | PK |
 | provider_id | UUID | FK → users.id |
 | title | String(200) | |
-| description | Text | |
-| type | String(20) | CHECK: `tour`, `workshop`, `homestay`, `hiking`, `cultural`, `food`, `adventure`, `wellness` |
+| category | String(50) | CHECK: `tour`, `workshop`, `homestay`, `hiking`, `cultural`, `food`, `adventure`, `wellness`, `other` |
+| description | Text | Nullable |
 | wilaya_id | Integer | FK → wilayas.id |
-| price | Integer | In DZD |
-| duration | String(50) | E.g. "3 hours", "Full day", "2 days" |
-| max_participants | Integer | |
-| includes | Text | Nullable |
-| meets_at | String(300) | Nullable |
-| status | String(20) | Default `active`, CHECK |
+| meeting_point | String(500) | Nullable |
+| meeting_point_lat | Float | Nullable |
+| meeting_point_lng | Float | Nullable |
+| price_dzd | Float | Nullable |
+| duration_hours | Float | Nullable |
+| max_participants | Integer | Nullable |
+| language | String(5) | Nullable |
+| included | ARRAY(String) | Nullable |
+| what_to_bring | ARRAY(String) | Nullable |
 | photos | ARRAY(String) | MinIO URLs |
+| status | String(20) | Default `draft`, CHECK: `draft`, `active`, `cancelled` |
 | created_at | DateTime(tz) | |
 | updated_at | DateTime(tz) | |
 
@@ -157,7 +183,7 @@ One-to-one with User.
 | created_at | DateTime(tz) | |
 
 ## Constraints at DB Level
-- **CHECK constraints** on `role`, `category`, `transport_mode`, `rating`, `status`, `type` — data integrity enforced regardless of client.
+- **CHECK constraints** on `role`, `category`, `transport_mode`, `rating`, `status` — data integrity enforced regardless of client.
 - **UNIQUE(user_id, poi_id)** on reviews — one review per user per POI.
 - **FK CASCADE** on all user/POI/experience references.
 
@@ -173,19 +199,3 @@ One-to-one with User.
 | 006 | User roles + providers | Role field, ProviderProfile table |
 | 007 | Experiences | Experiences table + CHECK constraints |
 | 008 | Bookings + Notifications | Bookings + Notifications tables |
-
-## Session Management
-
-```python
-# app/db/session.py
-engine = create_async_engine(url, pool_size=20, max_overflow=10, pool_pre_ping=True)
-async_session = async_sessionmaker(engine, expire_on_commit=False)
-
-# In endpoints:
-async def get_db():
-    async with async_session() as session:
-        yield session
-```
-
-- `expire_on_commit=False` prevents lazy-load errors after commit.
-- `pool_pre_ping=True` checks connection health before use.
