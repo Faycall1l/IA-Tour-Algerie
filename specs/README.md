@@ -23,3 +23,9 @@
 
 [Security & Data Sovereignty](./security.md)
 : Loi 18-07 compliance, data flow, PII handling
+
+[Admin Dashboard](./admin.md)
+: Admin endpoints, moderation, human-in-the-loop oversight
+
+[Agentic Traveler Layer](./agentic-traveler.md)
+: AI trip planning, multi-agent orchestration, conversational travel companion
