@@ -42,7 +42,7 @@ Auth required. User must have a provider role (`guide`, `agency`, or `hotel`).
 | Param | Values |
 |-------|--------|
 | `type` | `tour`, `workshop`, ... |
-| `wilaya_id` | 1–58 |
+| `wilaya_id` | 1–69 |
 | `min_price` / `max_price` | Integer (DZD) |
 | `provider_id` | UUID |
 | `sort` | `created_at`, `price`, `title` |

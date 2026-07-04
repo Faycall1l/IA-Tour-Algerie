@@ -192,7 +192,7 @@ One-to-one with User.
 | # | Name | Changes |
 |---|------|---------|
 | 001 | Initial schema | users, refresh_tokens, reviews, pois, live_posts, price_reports |
-| 002 | Seed wilayas | wilayas table + 58 rows |
+| 002 | Seed wilayas | wilayas table + 69 rows |
 | 003 | Price constraints | CHECK on transport_mode |
 | 004 | POI constraints | CHECK on category |
 | 005 | Review constraints | UNIQUE(user_id, poi_id) |

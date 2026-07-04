@@ -12,7 +12,7 @@ POST   /api/v1/auth/verify-otp              # Login
 POST   /api/v1/auth/refresh                 # Rotate tokens
 
 # Wilayas
-GET    /api/v1/wilayas                      # List 58 wilayas
+GET    /api/v1/wilayas                      # List 69 wilayas
 GET    /api/v1/wilayas/{wilaya_id}          # Single wilaya
 
 # POIs
