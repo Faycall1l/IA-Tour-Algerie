@@ -2,22 +2,24 @@ import hashlib
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.deps import get_twilio
 from app.core.exceptions import BadRequestException, UnauthorizedException
+from app.core.limiter import limiter
 from app.core.security import (
     create_access_token,
     create_refresh_token,
     decode_token,
 )
 from app.db.session import get_db
-from app.core.limiter import limiter
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.auth import OTPRequest, OTPVerify, TokenRefresh
 from app.schemas.user import TokenResponse, UserRead
+from app.services.twilio import TwilioService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
@@ -27,21 +29,41 @@ _otp_store: dict[str, dict] = {}
 
 @router.post("/send-otp")
 @limiter.limit("10/minute")
-async def send_otp(body: OTPRequest, request=None):  # noqa: ARG001
+async def send_otp(
+    body: OTPRequest,
+    request: Request,  # noqa: ARG001 — required by slowapi limiter
+    twilio: TwilioService = Depends(get_twilio),
+):
+    if twilio.is_available:
+        result = await twilio.send_otp(body.phone)
+        if result:
+            logger.info("OTP sent via Twilio to %s", body.phone)
+            return {"message": "OTP sent successfully"}
+        logger.warning("Twilio send failed, falling back for %s", body.phone)
+
     code = "123456"
     _otp_store[body.phone] = {"code": code}
-    logger.info("OTP sent to %s", body.phone)
+    logger.info("OTP (fallback) sent to %s", body.phone)
     return {"message": "OTP sent successfully", "otp": code}
 
 
 @router.post("/verify-otp", response_model=TokenResponse)
 @limiter.limit("20/minute")
-async def verify_otp(body: OTPVerify, request=None, db: AsyncSession = Depends(get_db)):  # noqa: ARG001
-    stored = _otp_store.get(body.phone)
-    if not stored or stored["code"] != body.code:
-        raise BadRequestException(message="Invalid or expired OTP")
-
-    del _otp_store[body.phone]
+async def verify_otp(
+    body: OTPVerify,
+    request: Request,  # noqa: ARG001 — required by slowapi limiter
+    db: AsyncSession = Depends(get_db),
+    twilio: TwilioService = Depends(get_twilio),
+):
+    if twilio.is_available:
+        verified = await twilio.verify_otp(body.phone, body.code)
+        if not verified:
+            raise BadRequestException(message="Invalid or expired OTP")
+    else:
+        stored = _otp_store.get(body.phone)
+        if not stored or stored["code"] != body.code:
+            raise BadRequestException(message="Invalid or expired OTP")
+        del _otp_store[body.phone]
 
     user = await _get_or_create_user(db, body.phone)
     access_token = create_access_token(str(user.id), user.role)
@@ -67,7 +89,7 @@ async def verify_otp(body: OTPVerify, request=None, db: AsyncSession = Depends(g
 
 @router.post("/refresh", response_model=TokenResponse)
 @limiter.limit("20/minute")
-async def refresh_token(body: TokenRefresh, request=None, db: AsyncSession = Depends(get_db)):  # noqa: ARG001
+async def refresh_token(body: TokenRefresh, request: Request, db: AsyncSession = Depends(get_db)):  # noqa: ARG001
     try:
         payload = decode_token(body.refresh_token)
     except Exception:

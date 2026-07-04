@@ -8,7 +8,6 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 
 from app.core.config import settings
 
-
 _cached_priv: str | None = None
 _cached_pub: str | None = None
 

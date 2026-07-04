@@ -3,13 +3,12 @@ import uuid
 import pytest
 from httpx import AsyncClient
 
-
 pytestmark = pytest.mark.asyncio
 
 
 class TestTripEndpoints:
 
-    async def test_create_trip(self, client: AsyncClient, auth_headers: dict[str, str], sample_poi):
+    async def test_create_trip(self, client: AsyncClient, auth_headers: dict[str, str], sample_poi):  # noqa: ARG002
         payload = {
             "title": "Weekend in Tizi Ouzou",
             "total_budget_dzd": 15000,

@@ -18,7 +18,8 @@ ignore = ["B008", "B904", "SIM117", "N818"]
 "app/routers/*" = ["E402", "F811", "N803", "ARG001"]
 "app/models/*" = ["F811"]
 "app/services/*" = ["ARG002", "F401"]
-"tests/*" = ["S101"]
+"alembic/*" = ["E402", "E501", "N806"]
+"tests/*" = ["S101", "ARG002"]
 
 [tool.mypy]
 python_version = "3.14"

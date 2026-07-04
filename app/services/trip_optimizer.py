@@ -27,14 +27,14 @@ class Coord:
 
 
 def _haversine_km(a: Coord, b: Coord) -> float:
-    R = 6371
+    radius = 6371  # noqa: N806
     dlat = math.radians(b.lat - a.lat)
     dlng = math.radians(b.lng - a.lng)
     ha = (
         math.sin(dlat / 2) ** 2
         + math.cos(math.radians(a.lat)) * math.cos(math.radians(b.lat)) * math.sin(dlng / 2) ** 2
     )
-    return R * 2 * math.atan2(math.sqrt(ha), math.sqrt(1 - ha))
+    return radius * 2 * math.atan2(math.sqrt(ha), math.sqrt(1 - ha))
 
 
 def _walk_time_minutes(dist_km: float) -> int:
@@ -62,7 +62,8 @@ class TripOptimizer:
 
         exps: dict[uuid.UUID, Experience] = {}
         if exp_ids:
-            rows = (await db.execute(select(Experience).where(Experience.id.in_(exp_ids)))).scalars().all()
+            stmt = select(Experience).where(Experience.id.in_(exp_ids))
+            rows = (await db.execute(stmt)).scalars().all()
             exps = {e.id: e for e in rows}
 
         result = []
@@ -82,7 +83,9 @@ class TripOptimizer:
                 base.item_image = e.photos[0] if e.photos else None
                 base.latitude = e.meeting_point_lat
                 base.longitude = e.meeting_point_lng
-                base.estimated_duration_minutes = int(e.duration_hours * 60) if e.duration_hours else _DEFAULT_EXPERIENCE_DURATION
+                base.estimated_duration_minutes = (
+                    int(e.duration_hours * 60) if e.duration_hours else _DEFAULT_EXPERIENCE_DURATION
+                )
                 base.estimated_cost_dzd = e.price_dzd or 0
             result.append(base)
 

@@ -4,13 +4,14 @@ Revision ID: 002
 Revises: 001
 Create Date: 2026-07-03
 """
-from typing import Sequence, Union
+from collections.abc import Sequence
+
 from alembic import op
 
 revision: str = "002"
-down_revision: Union[str, None] = "001"
-branch_labels: Union[str, Sequence[str], None] = None
-depends_on: Union[str, Sequence[str], None] = None
+down_revision: str | None = "001"
+branch_labels: str | Sequence[str] | None = None
+depends_on: str | Sequence[str] | None = None
 
 WILAYAS_SQL = """
 INSERT INTO wilayas (id, name_ar, name_fr, name_en, name_tz, latitude, longitude) VALUES

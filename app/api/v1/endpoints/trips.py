@@ -4,7 +4,6 @@ import uuid
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import selectinload
 
 from app.api.deps import (
     get_current_user,
@@ -12,20 +11,18 @@ from app.api.deps import (
     get_trip_brief_generator,
     get_trip_optimizer,
 )
-from app.core.exceptions import BadRequestException, NotFoundException
+from app.core.exceptions import NotFoundException
 from app.models.poi import POI
-from app.models.trip import ITEM_TYPES, Trip, TripItem
+from app.models.trip import Trip, TripItem
 from app.models.user import User
 from app.schemas.trip import (
     DayPlan,
-    OptimizationSuggestion,
     TripBrief,
     TripCreate,
     TripFeed,
     TripItemCreate,
     TripItemRead,
     TripItemUpdate,
-    TripOptimizeResponse,
     TripRead,
     TripUpdate,
 )
@@ -67,7 +64,9 @@ async def _build_trip_read(
             a, b = day_items[i], day_items[i + 1]
             if a.latitude and a.longitude and b.latitude and b.longitude:
                 from app.services.trip_optimizer import Coord, _haversine_km
-                total_km += _haversine_km(Coord(a.latitude, a.longitude), Coord(b.latitude, b.longitude))
+                total_km += _haversine_km(
+                    Coord(a.latitude, a.longitude), Coord(b.latitude, b.longitude)
+                )
 
         days.append(
             DayPlan(
@@ -83,7 +82,8 @@ async def _build_trip_read(
     if trip.total_budget_dzd is not None:
         budget_remaining = round(trip.total_budget_dzd - total_spent, 0)
 
-    base = TripRead.model_validate(trip).model_dump(exclude={"days", "budget_spent", "budget_remaining"})
+    excluded = {"days", "budget_spent", "budget_remaining"}
+    base = TripRead.model_validate(trip).model_dump(exclude=excluded)
     return TripRead(
         **base,
         days=days,
@@ -310,7 +310,7 @@ async def optimize_trip(
     for item in items:
         day_groups.setdefault(item.day_number, []).append(item)
 
-    for day_num, day_items in day_groups.items():
+    for _day_num, day_items in day_groups.items():
         sorted_items, _ = await optimizer.optimize_day(db, day_items)
         for i, enriched in enumerate(sorted_items):
             db_item = next((it for it in day_items if it.id == enriched.id), None)

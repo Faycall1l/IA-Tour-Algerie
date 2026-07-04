@@ -61,12 +61,14 @@ async def client() -> AsyncIterator[AsyncClient]:
     app.dependency_overrides[get_db] = override_get_db
 
     from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
+    from app.services.twilio import TwilioService
 
     app.state.storage = None
     app.state.embedder = None
     app.state.vector_search = None
     app.state.trip_optimizer = TripOptimizer()
     app.state.trip_brief_generator = TripBriefGenerator()
+    app.state.twilio = TwilioService()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.services.storage import StorageService
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
+from app.services.twilio import TwilioService
 from app.services.vector_search import VectorSearchService
 
 
@@ -53,3 +54,7 @@ async def get_trip_optimizer(request: Request) -> TripOptimizer:
 
 async def get_trip_brief_generator(request: Request) -> TripBriefGenerator:
     return request.app.state.trip_brief_generator
+
+
+async def get_twilio(request: Request) -> TwilioService:
+    return request.app.state.twilio

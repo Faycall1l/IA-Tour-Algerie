@@ -47,6 +47,7 @@ class TwilioSettings(BaseSettings):
     account_sid: str | None = None
     auth_token: str | None = None
     verify_service_sid: str | None = None
+    from_phone: str | None = None
 
 
 class Settings(BaseSettings):

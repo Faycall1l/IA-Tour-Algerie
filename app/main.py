@@ -15,11 +15,12 @@ from app.api.v1.router import router as v1_router
 from app.core.config import settings
 from app.core.error_middleware import ErrorMiddleware
 from app.core.i18n import LocaleMiddleware, load_translations
-from app.core.limiter import limiter, _rate_limit_exceeded_handler
+from app.core.limiter import _rate_limit_exceeded_handler, limiter
 from app.core.logging import setup_logging
 from app.services.embeddings import EmbeddingService
 from app.services.storage import StorageService
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
+from app.services.twilio import TwilioService
 from app.services.vector_search import VectorSearchService
 
 logger = logging.getLogger(__name__)
@@ -57,6 +58,7 @@ async def lifespan(app: FastAPI):
     app.state.vector_search = VectorSearchService(app.state.embedder)
     app.state.trip_optimizer = TripOptimizer()
     app.state.trip_brief_generator = TripBriefGenerator()
+    app.state.twilio = TwilioService()
     _load_legacy_routers()
 
     async def _index_existing_pois():
@@ -144,7 +146,7 @@ async def security_headers(request: Request, call_next):
 
 
 @app.exception_handler(Exception)
-async def global_exception_handler(request: Request, exc: Exception):
+async def global_exception_handler(request: Request, exc: Exception):  # noqa: ARG001
     from app.core.exceptions import AppError
 
     if isinstance(exc, AppError):
