@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING
 from fastapi import UploadFile
 
 from app.core.config import settings
+from app.core.exceptions import BadRequestException
 
 if TYPE_CHECKING:
     from minio import Minio
@@ -62,16 +63,17 @@ class StorageService:
 
     def _public_url(self, object_name: str) -> str:
         endpoint = settings.minio.endpoint
-        return f"http://{endpoint}/{self.bucket}/{object_name}"
+        scheme = "https" if settings.minio.secure else "http"
+        return f"{scheme}://{endpoint}/{self.bucket}/{object_name}"
 
     def _validate(self, file: UploadFile) -> None:
         ext = Path(file.filename or "").suffix.lower()
         if ext not in ALLOWED_EXTENSIONS:
             allowed = ", ".join(sorted(ALLOWED_EXTENSIONS))
-            raise ValueError(f"Unsupported file type '{ext}'. Allowed: {allowed}")
+            raise BadRequestException(f"Unsupported file type '{ext}'. Allowed: {allowed}")
         if file.size and file.size > MAX_FILE_SIZE:
             max_mb = MAX_FILE_SIZE // 1024 // 1024
-            raise ValueError(f"File too large ({file.size} bytes). Max: {max_mb} MB")
+            raise BadRequestException(f"File too large ({file.size} bytes). Max: {max_mb} MB")
 
     async def upload(self, file: UploadFile, folder: str = "general") -> str:
         self._validate(file)

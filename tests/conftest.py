@@ -1,6 +1,7 @@
 import asyncio
 import uuid
 from collections.abc import AsyncIterator
+from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
@@ -56,19 +57,33 @@ async def db() -> AsyncIterator[AsyncSession]:
         yield session
 
 
+class _MockTwilio:
+    is_available = False
+    sms_available = False
+    whatsapp_available = False
+
+    async def send_otp(self, phone: str) -> dict | None:
+        return None
+
+    async def verify_otp(self, phone: str, code: str) -> bool:
+        return False
+
+    async def send_whatsapp(self, to_phone: str, message: str) -> bool:
+        return False
+
+
 @pytest_asyncio.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     app.dependency_overrides[get_db] = override_get_db
 
     from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
-    from app.services.twilio import TwilioService
 
-    app.state.storage = None
-    app.state.embedder = None
-    app.state.vector_search = None
+    app.state.storage = AsyncMock()
+    app.state.embedder = AsyncMock()
+    app.state.vector_search = AsyncMock()
     app.state.trip_optimizer = TripOptimizer()
     app.state.trip_brief_generator = TripBriefGenerator()
-    app.state.twilio = TwilioService()
+    app.state.twilio = _MockTwilio()
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:

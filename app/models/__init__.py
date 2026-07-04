@@ -8,6 +8,7 @@ from app.models.price_report import PriceReport
 from app.models.provider_profile import ProviderProfile
 from app.models.refresh_token import RefreshToken
 from app.models.review import Review
+from app.models.stay import Stay
 from app.models.traveler_profile import AtharTravelerProfile
 from app.models.trip import Trip, TripItem
 from app.models.user import User
@@ -27,6 +28,7 @@ __all__ = [
     "ProviderProfile",
     "Review",
     "RefreshToken",
+    "Stay",
     "Trip",
     "TripItem",
 ]

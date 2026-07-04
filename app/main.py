@@ -63,10 +63,10 @@ async def lifespan(app: FastAPI):
 
     async def _index_existing_pois():
         try:
-            from app.db.session import async_session_factory
+            from app.db.session import async_session
             from app.models.poi import POI
 
-            async with async_session_factory() as session:
+            async with async_session() as session:
                 pois = (await session.execute(select(POI))).scalars().all()
             if pois:
                 loop = asyncio.get_running_loop()
@@ -84,10 +84,10 @@ async def lifespan(app: FastAPI):
 
     async def _index_existing_experiences():
         try:
-            from app.db.session import async_session_factory
+            from app.db.session import async_session
             from app.models.experience import Experience
 
-            async with async_session_factory() as session:
+            async with async_session() as session:
                 exps = (await session.execute(select(Experience))).scalars().all()
             if exps:
                 loop = asyncio.get_running_loop()
@@ -101,8 +101,8 @@ async def lifespan(app: FastAPI):
         except Exception as exc:
             logger.warning("Failed to index existing experiences: %s", exc)
 
-    asyncio.ensure_future(_index_existing_pois())
-    asyncio.ensure_future(_index_existing_experiences())
+    asyncio.create_task(_index_existing_pois())
+    asyncio.create_task(_index_existing_experiences())
     for r in _legacy_routers:
         app.include_router(r)
     Instrumentator().instrument(app).expose(app)
@@ -129,7 +129,7 @@ app.add_middleware(
 app.add_middleware(ErrorMiddleware)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts or ["*"])
 
 app.include_router(v1_router)
 

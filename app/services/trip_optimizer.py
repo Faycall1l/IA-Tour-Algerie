@@ -9,6 +9,7 @@ from app.models.experience import Experience
 from app.models.poi import POI
 from app.models.price_report import PriceReport
 from app.models.review import Review
+from app.models.stay import Stay
 from app.models.trip import TripItem
 from app.models.wilaya import Wilaya
 from app.schemas.trip import (
@@ -43,17 +44,19 @@ def _walk_time_minutes(dist_km: float) -> int:
 
 _DEFAULT_POI_DURATION = 90
 _DEFAULT_EXPERIENCE_DURATION = 180
+_DEFAULT_STAY_DURATION = 720  # overnight ~12h
+_DEFAULT_RESTAURANT_DURATION = 90
+_DEFAULT_TRANSPORT_DURATION = 60
 
 
 class TripOptimizer:
-    async def enrich_items(
-        self, db: AsyncSession, items: list[TripItem]
-    ) -> list[TripItemRead]:
+    async def enrich_items(self, db: AsyncSession, items: list[TripItem]) -> list[TripItemRead]:
         if not items:
             return []
 
         poi_ids = [i.item_id for i in items if i.item_type == "poi"]
         exp_ids = [i.item_id for i in items if i.item_type == "experience"]
+        stay_ids = [i.item_id for i in items if i.item_type == "stay"]
 
         pois: dict[uuid.UUID, POI] = {}
         if poi_ids:
@@ -65,6 +68,11 @@ class TripOptimizer:
             stmt = select(Experience).where(Experience.id.in_(exp_ids))
             rows = (await db.execute(stmt)).scalars().all()
             exps = {e.id: e for e in rows}
+
+        stays: dict[uuid.UUID, Stay] = {}
+        if stay_ids:
+            rows = (await db.execute(select(Stay).where(Stay.id.in_(stay_ids)))).scalars().all()
+            stays = {s.id: s for s in rows}
 
         result = []
         for item in items:
@@ -87,6 +95,20 @@ class TripOptimizer:
                     int(e.duration_hours * 60) if e.duration_hours else _DEFAULT_EXPERIENCE_DURATION
                 )
                 base.estimated_cost_dzd = e.price_dzd or 0
+            elif item.item_type == "stay" and item.item_id in stays:
+                s = stays[item.item_id]
+                base.item_name = s.name
+                base.item_image = s.photos[0] if s.photos else None
+                base.latitude = s.latitude
+                base.longitude = s.longitude
+                base.estimated_duration_minutes = _DEFAULT_STAY_DURATION
+                base.estimated_cost_dzd = s.price_per_night_dzd
+            elif item.item_type == "restaurant":
+                base.item_name = "Restaurant"
+                base.estimated_duration_minutes = _DEFAULT_RESTAURANT_DURATION
+            elif item.item_type == "transport":
+                base.item_name = "Transport"
+                base.estimated_duration_minutes = _DEFAULT_TRANSPORT_DURATION
             result.append(base)
 
         return result
@@ -159,12 +181,16 @@ class TripOptimizer:
         suggestions = []
         for wid in wilaya_ids:
             rows = (
-                await db.execute(
-                    select(POI)
-                    .where(POI.wilaya_id == wid, POI.id.notin_(existing_ids))
-                    .limit(3)
+                (
+                    await db.execute(
+                        select(POI)
+                        .where(POI.wilaya_id == wid, POI.id.notin_(existing_ids))
+                        .limit(3)
+                    )
                 )
-            ).scalars().all()
+                .scalars()
+                .all()
+            )
             for p in rows:
                 suggestions.append(
                     OptimizationSuggestion(
@@ -209,26 +235,30 @@ class TripBriefGenerator:
             )
         ).all()
 
+        poi_ids = [r.id for r in pois_rows]
+        review_scores: dict[uuid.UUID, list[int]] = {}
+        if poi_ids:
+            review_rows = (
+                await db.execute(
+                    select(Review.poi_id, Review.overall_score).where(Review.poi_id.in_(poi_ids))
+                )
+            ).all()
+            for pid, score in review_rows:
+                review_scores.setdefault(pid, []).append(score)
+
         top_pois = []
         for row in pois_rows:
-            reviews_query = (
-                await db.execute(
-                    select(Review.overall_score).where(Review.poi_id == row.id)
-                )
-            )
-            scores = [r[0] for r in reviews_query.all()]
+            scores = review_scores.get(row.id, [])
             avg = round(sum(scores) / len(scores), 1) if scores else None
 
             transport_cost = None
-            price_rows = (
-                await db.execute(
-                    select(PriceReport.price_dzd)
-                    .where(
-                        PriceReport.origin_wilaya_id == origin_wilaya_id,
-                        PriceReport.dest_wilaya_id == wilaya_id,
-                    )
-                    .limit(5)
+            price_rows = await db.execute(
+                select(PriceReport.price_dzd)
+                .where(
+                    PriceReport.origin_wilaya_id == origin_wilaya_id,
+                    PriceReport.dest_wilaya_id == wilaya_id,
                 )
+                .limit(5)
             )
             prices = [r[0] for r in price_rows.all()]
             if prices:
@@ -249,13 +279,19 @@ class TripBriefGenerator:
             )
 
         exp_rows = (
-            await db.execute(
-                select(Experience).where(
-                    Experience.wilaya_id == wilaya_id,
-                    Experience.status == "active",
-                ).limit(3)
+            (
+                await db.execute(
+                    select(Experience)
+                    .where(
+                        Experience.wilaya_id == wilaya_id,
+                        Experience.status == "active",
+                    )
+                    .limit(3)
+                )
             )
-        ).scalars().all()
+            .scalars()
+            .all()
+        )
 
         top_experiences = [
             TripBriefExperience(

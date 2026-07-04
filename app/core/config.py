@@ -58,6 +58,7 @@ class Settings(BaseSettings):
     app_version: str = "0.3.0"
     debug: bool = False
     allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_hosts: list[str] = ["*"]
 
     database: DatabaseSettings = DatabaseSettings()
     qdrant: QdrantSettings = QdrantSettings()

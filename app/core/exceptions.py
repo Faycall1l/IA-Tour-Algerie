@@ -13,6 +13,9 @@ class AppError(Exception):
         if details:
             self.details = details
 
+    def __str__(self) -> str:
+        return f"[{self.status_code}] {self.code}: {self.message}"
+
 
 class NotFoundException(AppError):
     status_code = 404

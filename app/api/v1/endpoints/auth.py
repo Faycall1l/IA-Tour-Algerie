@@ -17,7 +17,7 @@ from app.core.security import (
 from app.db.session import get_db
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
-from app.schemas.auth import OTPRequest, OTPVerify, TokenRefresh
+from app.schemas.auth import OTPRequest, OTPSendResponse, OTPVerify, TokenRefresh
 from app.schemas.user import TokenResponse, UserRead
 from app.services.twilio import TwilioService
 
@@ -27,7 +27,7 @@ router = APIRouter(prefix="/auth", tags=["Authentication"])
 _otp_store: dict[str, dict] = {}
 
 
-@router.post("/send-otp")
+@router.post("/send-otp", response_model=OTPSendResponse)
 @limiter.limit("10/minute")
 async def send_otp(
     body: OTPRequest,
@@ -38,13 +38,13 @@ async def send_otp(
         result = await twilio.send_otp(body.phone)
         if result:
             logger.info("OTP sent via Twilio to %s", body.phone)
-            return {"message": "OTP sent successfully"}
+            return OTPSendResponse(message="OTP sent successfully")
         logger.warning("Twilio send failed, falling back for %s", body.phone)
 
     code = "123456"
     _otp_store[body.phone] = {"code": code}
     logger.info("OTP (fallback) sent to %s", body.phone)
-    return {"message": "OTP sent successfully", "otp": code}
+    return OTPSendResponse(message="OTP sent successfully", otp=code)
 
 
 @router.post("/verify-otp", response_model=TokenResponse)

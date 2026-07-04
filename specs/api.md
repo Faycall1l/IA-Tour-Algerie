@@ -1,6 +1,6 @@
 # API Layer
 
-## Route Inventory (60+ routes)
+## Route Inventory (80+ routes)
 
 ```
 # Public
@@ -56,6 +56,13 @@ PUT    /api/v1/experiences/{exp_id}         # Update (author only)
 DELETE /api/v1/experiences/{exp_id}         # Delete (author/admin)
 POST   /api/v1/experiences/{exp_id}/photos  # Upload photos (author)
 
+# Stays
+POST   /api/v1/stays                        # Create stay (auth, hotel/agency/admin role)
+GET    /api/v1/stays                        # List stays (filters: wilaya, type, price range)
+GET    /api/v1/stays/{stay_id}              # Stay detail
+PUT    /api/v1/stays/{stay_id}              # Update (author only)
+DELETE /api/v1/stays/{stay_id}              # Delete (author/admin)
+
 # Bookings
 POST   /api/v1/bookings                     # Create booking request
 GET    /api/v1/bookings                     # List my bookings
@@ -66,6 +73,23 @@ PUT    /api/v1/bookings/{booking_id}/status  # Confirm/cancel
 GET    /api/v1/notifications                # List notifications
 PUT    /api/v1/notifications/{id}/read      # Mark read
 PUT    /api/v1/notifications/read-all       # Mark all read
+
+# Trips (Trip Dashboard)
+POST   /api/v1/trips                        # Create trip (auth)
+GET    /api/v1/trips                        # List my trips
+GET    /api/v1/trips/{trip_id}              # Trip detail
+PUT    /api/v1/trips/{trip_id}              # Update trip
+DELETE /api/v1/trips/{trip_id}              # Delete trip
+POST   /api/v1/trips/{trip_id}/items        # Add item (poi/experience/stay/restaurant/transport)
+DELETE /api/v1/trips/{trip_id}/items/{item_id}  # Remove item
+PUT    /api/v1/trips/{trip_id}/items/{item_id}  # Reorder / change day
+POST   /api/v1/trips/{trip_id}/optimize     # Route optimization
+POST   /api/v1/trips/{trip_id}/brief        # Generate trip summary
+POST   /api/v1/trips/{trip_id}/optimize/send-whatsapp  # Send brief via WhatsApp
+
+# Discover
+GET    /api/v1/discover/wilayas/{wilaya_id}           # Consolidated view (POIs + experiences + stays)
+GET    /api/v1/discover/experiences/by-poi/{poi_id}   # Find experiences matching a POI
 
 # Admin Dashboard 🔐
 GET    /api/v1/admin/price-reports          # List reports (filter: verified)
@@ -141,21 +165,102 @@ Consistent JSON shape via `AppError` hierarchy:
 
 ## Middleware Stack (order in `main.py`)
 
-1. **CORS** (`CORSMiddleware`) — allows all origins in dev
-2. **LocaleMiddleware** — detects `Accept-Language` or `?lang=`, stores in `request.state.locale`
-3. **Prometheus** (`prometheus-fastapi-instrumentator`) — metrics at `/metrics`
-4. **Exception handlers** — `AppError` → JSON, unhandled → 500 with stack trace
+1. **TrustedHostMiddleware** — validates `Host` header against `allowed_hosts`
+2. **SecurityHeadersMiddleware** — adds `X-Content-Type-Options`, `X-Frame-Options`, etc.
+3. **CORS** (`CORSMiddleware`) — explicit origins (not `*`)
+4. **LocaleMiddleware** — detects `Accept-Language` or `?lang=`, stores in `request.state.locale`
+5. **Prometheus** (`prometheus-fastapi-instrumentator`) — metrics at `/metrics`
+6. **ErrorMiddleware** — catches `AppError` → JSON, unhandled → 500 with sanitized stack trace
+7. **Rate limiter** — slowapi with Redis backend (in-memory fallback)
 
 ## Request Flow
 
 ```
-Request → CORS → LocaleMiddleware → Router → Endpoint
-                                                 │
-                                          get_db() → async session
-                                          get_current_user() → JWT decode → DB fetch
-                                          business logic → DB queries
-                                          response → Pydantic validation → JSON
+Request → TrustedHost → SecurityHeaders → CORS → LocaleMiddleware → Prometheus → ErrorMiddleware → Limiter → Router → Endpoint
+                                                                                                                         │
+                                                                                                                  get_db() → async session
+                                                                                                                  get_current_user() → JWT decode → DB fetch
+                                                                                                                  business logic → DB queries
+                                                                                                                  response → Pydantic validation → JSON
 ```
+
+## Discover Endpoints
+
+### Consolidated Wilaya View
+
+`GET /api/v1/discover/wilayas/{wilaya_id}` returns all content for a wilaya:
+
+```json
+{
+  "wilaya_id": 16,
+  "wilaya_name": "Alger",
+  "pois": [
+    {
+      "id": "...",
+      "name": "Grande Poste",
+      "category": "landmark",
+      "average_score": 4.5,
+      "total_reviews": 12
+    }
+  ],
+  "experiences": [
+    {
+      "id": "...",
+      "title": "Algiers City Tour",
+      "category": "tour",
+      "provider_name": "Travel Algeria",
+      "price_dzd": 5000
+    }
+  ],
+  "stays": [
+    {
+      "id": "...",
+      "name": "Hotel El Aurassi",
+      "property_type": "hotel",
+      "price_per_night_dzd": 15000
+    }
+  ]
+}
+```
+
+### POI-to-Experience Linking
+
+`GET /api/v1/discover/experiences/by-poi/{poi_id}` finds experiences in the same wilaya that match the POI by title/description keyword overlap.
+
+## Trip Item Types
+
+Trip items are polymorphic with no FK constraints:
+
+| `item_type` | Description | Enrichment in TripOptimizer |
+|------------|-------------|----------------------------|
+| `poi` | Points of interest | Duration: 120 min default |
+| `experience` | Bookable tours/activities | Duration: from DB |
+| `stay` | Accommodation | Duration: 720 min (overnight) |
+| `restaurant` | Dining | Duration: 90 min |
+| `transport` | Transfers between locations | Duration: 60 min |
+
+## Stay Model
+
+Stays represent bookable accommodations with:
+
+- **Property types:** `hotel`, `riad`, `guesthouse`, `hostel`, `eco_lodge`, `apartment`
+- **Amenities:** JSON array of strings (e.g., `["wifi", "parking", "breakfast"]`)
+- **Location:** Wilaya FK + address + lat/lng
+- **Capacity:** `max_guests` + `total_rooms`
+- **Pricing:** `price_per_night_dzd` in DZD
+- **Photos:** MinIO URLs array
+- **Availability:** `is_active` flag
+
+## Security
+
+- **JWT EdDSA (Ed25519)** — asymmetric keys, aud/iss validation
+- **Rate limiting** — 10/min for OTP, 20/min for general endpoints
+- **CSRF protection** — not needed (API uses Bearer tokens, not cookies)
+- **Security headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`
+- **Host validation** — TrustedHostMiddleware with configurable `allowed_hosts`
+- **CORS** — explicit origin allowlist, credentials enabled
+- **Container security** — non-root user, `cap_drop: ALL`, `no-new-privileges`, read-only root
+- **Docker secrets** — sensitive config passed via `/run/secrets/`
 
 ## Legacy Routes (guarded)
 

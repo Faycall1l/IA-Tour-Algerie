@@ -10,6 +10,7 @@ from app.api.deps import (
     get_db,
     get_trip_brief_generator,
     get_trip_optimizer,
+    get_twilio,
 )
 from app.core.exceptions import NotFoundException
 from app.models.poi import POI
@@ -25,8 +26,10 @@ from app.schemas.trip import (
     TripItemUpdate,
     TripRead,
     TripUpdate,
+    TripWhatsAppResponse,
 )
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
+from app.services.twilio import TwilioService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/trips", tags=["Trip Dashboard"])
@@ -38,12 +41,16 @@ async def _build_trip_read(
     optimizer: TripOptimizer,
 ) -> TripRead:
     items = (
-        await db.execute(
-            select(TripItem)
-            .where(TripItem.trip_id == trip.id)
-            .order_by(TripItem.day_number, TripItem.sort_order)
+        (
+            await db.execute(
+                select(TripItem)
+                .where(TripItem.trip_id == trip.id)
+                .order_by(TripItem.day_number, TripItem.sort_order)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     enriched = await optimizer.enrich_items(db, items)
 
@@ -64,6 +71,7 @@ async def _build_trip_read(
             a, b = day_items[i], day_items[i + 1]
             if a.latitude and a.longitude and b.latitude and b.longitude:
                 from app.services.trip_optimizer import Coord, _haversine_km
+
                 total_km += _haversine_km(
                     Coord(a.latitude, a.longitude), Coord(b.latitude, b.longitude)
                 )
@@ -299,12 +307,16 @@ async def optimize_trip(
         raise NotFoundException(message="Trip not found")
 
     items = (
-        await db.execute(
-            select(TripItem)
-            .where(TripItem.trip_id == trip_id)
-            .order_by(TripItem.day_number, TripItem.sort_order)
+        (
+            await db.execute(
+                select(TripItem)
+                .where(TripItem.trip_id == trip_id)
+                .order_by(TripItem.day_number, TripItem.sort_order)
+            )
         )
-    ).scalars().all()
+        .scalars()
+        .all()
+    )
 
     day_groups: dict[int, list[TripItem]] = {}
     for item in items:
@@ -320,6 +332,84 @@ async def optimize_trip(
     await db.commit()
 
     return await _build_trip_read(db, trip, optimizer)
+
+
+@router.post("/{trip_id}/optimize/send-whatsapp", response_model=TripWhatsAppResponse)
+async def optimize_and_send_whatsapp(
+    trip_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+    optimizer: TripOptimizer = Depends(get_trip_optimizer),
+    twilio: TwilioService = Depends(get_twilio),
+):
+    trip = await db.get(Trip, trip_id)
+    if not trip or trip.user_id != current_user.id:
+        raise NotFoundException(message="Trip not found")
+
+    if not twilio.whatsapp_available:
+        return TripWhatsAppResponse(sent=False, error="WhatsApp not configured on server")
+
+    if not current_user.phone:
+        return TripWhatsAppResponse(sent=False, error="User has no phone number")
+
+    # Run optimization
+    items = (
+        (
+            await db.execute(
+                select(TripItem)
+                .where(TripItem.trip_id == trip_id)
+                .order_by(TripItem.day_number, TripItem.sort_order)
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    day_groups: dict[int, list[TripItem]] = {}
+    for item in items:
+        day_groups.setdefault(item.day_number, []).append(item)
+
+    for _day_num, day_items in day_groups.items():
+        sorted_items, _ = await optimizer.optimize_day(db, day_items)
+        for i, enriched in enumerate(sorted_items):
+            db_item = next((it for it in day_items if it.id == enriched.id), None)
+            if db_item:
+                db_item.sort_order = i
+
+    await db.commit()
+
+    trip_read = await _build_trip_read(db, trip, optimizer)
+
+    # Format WhatsApp message
+    title = trip.title or f"Trip #{str(trip.id)[:8]}"
+    lines = [f"\U0001f9ed *{title}*", ""]
+
+    for day in trip_read.days:
+        items_str = []
+        for item in day.items:
+            emoji = "\U0001f4cd" if item.item_type == "poi" else "\u2728"
+            cost = f" ({item.estimated_cost_dzd:,.0f} DZD)" if item.estimated_cost_dzd else ""
+            items_str.append(f"  {emoji} {item.item_name or 'Unnamed'}{cost}")
+        gap_str = f"  \u23f0 Free: {day.free_slots[0]}" if day.free_slots else ""
+        lines.append(
+            f"\U0001f4c5 *Day {day.day_number}*"
+            f" \u2014 {day.total_distance_km} km | {day.total_cost_dzd:,.0f} DZD"
+        )
+        lines.extend(items_str)
+        if gap_str:
+            lines.append(gap_str)
+        lines.append("")
+
+    budget_line = f"\U0001f4b0 *Budget*: {trip_read.budget_spent:,.0f} DZD spent"
+    if trip_read.budget_remaining is not None:
+        budget_line += f" | {trip_read.budget_remaining:,.0f} DZD remaining"
+    lines.append(budget_line)
+    lines.append(f"\U0001f310 {len(trip_read.days)} day(s) planned")
+
+    message = "\n".join(lines)
+
+    sent = await twilio.send_whatsapp(current_user.phone, message)
+    return TripWhatsAppResponse(sent=sent, phone=current_user.phone)
 
 
 # ── Trip Brief ──────────────────────────────────────────────────

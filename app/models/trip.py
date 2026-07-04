@@ -8,7 +8,7 @@ from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPkMixin
 
 TRIP_STATUSES = ("active", "archived")
-ITEM_TYPES = ("poi", "experience")
+ITEM_TYPES = ("poi", "experience", "stay", "restaurant", "transport")
 TIME_SLOTS = ("morning", "afternoon", "evening")
 
 

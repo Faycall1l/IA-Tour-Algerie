@@ -12,3 +12,8 @@ class OTPVerify(BaseModel):
 
 class TokenRefresh(BaseModel):
     refresh_token: str
+
+
+class OTPSendResponse(BaseModel):
+    message: str
+    otp: str | None = None

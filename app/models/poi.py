@@ -14,6 +14,8 @@ POI_CATEGORIES = (
     "mountain",
     "park",
     "market",
+    "restaurant",
+    "cafe",
     "other",
 )
 
