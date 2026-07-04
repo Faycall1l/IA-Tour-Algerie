@@ -9,21 +9,30 @@ from cryptography.hazmat.primitives.asymmetric import ed25519
 from app.core.config import settings
 
 
+_cached_priv: str | None = None
+_cached_pub: str | None = None
+
+
 def _get_keys() -> tuple[str, str]:
+    global _cached_priv, _cached_pub
+    if _cached_priv and _cached_pub:
+        return _cached_priv, _cached_pub
     if settings.auth.jwt_private_key:
-        return settings.auth.jwt_private_key, settings.auth.jwt_public_key
+        _cached_priv = settings.auth.jwt_private_key
+        _cached_pub = settings.auth.jwt_public_key
+        return _cached_priv, _cached_pub
     private_key = ed25519.Ed25519PrivateKey.generate()
     public_key = private_key.public_key()
-    private_pem = private_key.private_bytes(
+    _cached_priv = private_key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.PKCS8,
         encryption_algorithm=serialization.NoEncryption(),
     ).decode()
-    public_pem = public_key.public_bytes(
+    _cached_pub = public_key.public_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PublicFormat.SubjectPublicKeyInfo,
     ).decode()
-    return private_pem, public_pem
+    return _cached_priv, _cached_pub
 
 
 def _privkey() -> str:

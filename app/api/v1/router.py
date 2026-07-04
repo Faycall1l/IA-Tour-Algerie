@@ -11,6 +11,7 @@ from app.api.v1.endpoints import (
     pois,
     prices,
     reviews,
+    trips,
     users,
     wilayas,
 )
@@ -28,3 +29,4 @@ router.include_router(wilayas.router)
 router.include_router(experiences.router)
 router.include_router(bookings.router)
 router.include_router(notifications.router)
+router.include_router(trips.router)

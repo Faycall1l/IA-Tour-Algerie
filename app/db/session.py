@@ -20,7 +20,7 @@ engine = create_async_engine(
     pool_recycle=settings.database.pool_recycle,
     pool_timeout=settings.database.pool_timeout,
     echo=settings.debug,
-    connect_args=connect_args if connect_args else None,
+    connect_args=connect_args,
 )
 
 async_session = async_sessionmaker(

@@ -9,7 +9,9 @@ from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models.poi import POI
 from app.models.user import User
+from app.models.wilaya import Wilaya
 from httpx import ASGITransport, AsyncClient
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
@@ -57,6 +59,15 @@ async def db() -> AsyncIterator[AsyncSession]:
 @pytest_asyncio.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     app.dependency_overrides[get_db] = override_get_db
+
+    from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
+
+    app.state.storage = None
+    app.state.embedder = None
+    app.state.vector_search = None
+    app.state.trip_optimizer = TripOptimizer()
+    app.state.trip_brief_generator = TripBriefGenerator()
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         yield ac
@@ -99,3 +110,33 @@ async def auth_headers(user_token: str) -> dict[str, str]:
 @pytest_asyncio.fixture
 async def admin_headers(admin_token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {admin_token}"}
+
+
+@pytest_asyncio.fixture
+async def sample_poi(db: AsyncSession) -> POI:
+    existing = await db.get(Wilaya, 1)
+    if not existing:
+        wilaya = Wilaya(
+            id=1,
+            name_ar="أدرار",
+            name_en="Adrar",
+            name_fr="Adrar",
+            latitude=27.873,
+            longitude=-0.295,
+        )
+        db.add(wilaya)
+        await db.commit()
+
+    poi = POI(
+        name="Grande Mosquée d'Alger",
+        category="religious",
+        wilaya_id=1,
+        latitude=36.737,
+        longitude=3.068,
+        description="Iconic mosque on the bay of Algiers",
+        entry_fee_dzd=0,
+    )
+    db.add(poi)
+    await db.commit()
+    await db.refresh(poi)
+    return poi

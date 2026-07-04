@@ -13,7 +13,7 @@ from app.core.security import (
     decode_token,
 )
 from app.db.session import get_db
-from app.main import limiter
+from app.core.limiter import limiter
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.auth import OTPRequest, OTPVerify, TokenRefresh

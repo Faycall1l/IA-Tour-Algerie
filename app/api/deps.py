@@ -8,6 +8,7 @@ from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User
 from app.services.storage import StorageService
+from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.vector_search import VectorSearchService
 
 
@@ -44,3 +45,11 @@ async def get_storage(request: Request) -> StorageService:
 
 async def get_vector_search(request: Request) -> VectorSearchService:
     return request.app.state.vector_search
+
+
+async def get_trip_optimizer(request: Request) -> TripOptimizer:
+    return request.app.state.trip_optimizer
+
+
+async def get_trip_brief_generator(request: Request) -> TripBriefGenerator:
+    return request.app.state.trip_brief_generator

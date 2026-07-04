@@ -20,6 +20,21 @@ from app.schemas.price_report import (
     PriceReportRead,
 )
 from app.schemas.review import POIRating, ReviewCreate, ReviewFeed, ReviewRead
+from app.schemas.trip import (
+    DayPlan,
+    OptimizationSuggestion,
+    TripBrief,
+    TripBriefExperience,
+    TripBriefPOI,
+    TripCreate,
+    TripFeed,
+    TripItemCreate,
+    TripItemRead,
+    TripItemUpdate,
+    TripOptimizeResponse,
+    TripRead,
+    TripUpdate,
+)
 from app.schemas.user import TokenResponse, UserCreate, UserRead
 from app.schemas.wilaya import WilayaRead
 
@@ -55,4 +70,17 @@ __all__ = [
     "UserAdminFeed",
     "ProviderProfileAdminRead",
     "ProviderAdminFeed",
+    "TripCreate",
+    "TripUpdate",
+    "TripRead",
+    "TripFeed",
+    "TripItemCreate",
+    "TripItemUpdate",
+    "TripItemRead",
+    "DayPlan",
+    "TripOptimizeResponse",
+    "OptimizationSuggestion",
+    "TripBrief",
+    "TripBriefPOI",
+    "TripBriefExperience",
 ]

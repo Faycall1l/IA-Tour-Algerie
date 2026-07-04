@@ -7,18 +7,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 from prometheus_fastapi_instrumentator import Instrumentator
-from slowapi import Limiter, _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
-from slowapi.util import get_remote_address
 from sqlalchemy import select
 
 from app.api.v1.router import router as v1_router
 from app.core.config import settings
+from app.core.error_middleware import ErrorMiddleware
 from app.core.i18n import LocaleMiddleware, load_translations
+from app.core.limiter import limiter, _rate_limit_exceeded_handler
 from app.core.logging import setup_logging
 from app.services.embeddings import EmbeddingService
 from app.services.storage import StorageService
+from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.vector_search import VectorSearchService
 
 logger = logging.getLogger(__name__)
@@ -54,6 +55,8 @@ async def lifespan(app: FastAPI):
     app.state.storage = StorageService()
     app.state.embedder = EmbeddingService()
     app.state.vector_search = VectorSearchService(app.state.embedder)
+    app.state.trip_optimizer = TripOptimizer()
+    app.state.trip_brief_generator = TripBriefGenerator()
     _load_legacy_routers()
 
     async def _index_existing_pois():
@@ -104,8 +107,6 @@ async def lifespan(app: FastAPI):
     yield
 
 
-limiter = Limiter(key_func=get_remote_address)
-
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
@@ -123,6 +124,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type", "X-Requested-With"],
     max_age=3600,
 )
+app.add_middleware(ErrorMiddleware)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(SlowAPIMiddleware)
 app.add_middleware(TrustedHostMiddleware, allowed_hosts=["*"])
@@ -142,7 +144,7 @@ async def security_headers(request: Request, call_next):
 
 
 @app.exception_handler(Exception)
-async def global_exception_handler(_request: Request, exc: Exception):
+async def global_exception_handler(request: Request, exc: Exception):
     from app.core.exceptions import AppError
 
     if isinstance(exc, AppError):
