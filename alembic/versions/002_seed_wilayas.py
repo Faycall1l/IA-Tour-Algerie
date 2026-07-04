@@ -1,4 +1,4 @@
-"""seed 58 algerian wilayas
+"""seed 69 algerian wilayas
 
 Revision ID: 002
 Revises: 001
@@ -72,7 +72,18 @@ INSERT INTO wilayas (id, name_ar, name_fr, name_en, name_tz, latitude, longitude
 (55, 'المغير', 'El M''Ghair', 'El M''Ghair', NULL, 33.95, 5.92),
 (56, 'المنيعة', 'El Meniaa', 'El Menia', NULL, 30.58, 2.88),
 (57, 'أولاد جلال', 'Ouled Djellal', 'Ouled Djellal', NULL, 34.43, 5.07),
-(58, 'برج باجي مختار', 'Bordj Badji Mokhtar', 'Bordj Badji Mokhtar', NULL, 21.33, 0.95)
+(58, 'برج باجي مختار', 'Bordj Badji Mokhtar', 'Bordj Badji Mokhtar', NULL, 21.33, 0.95),
+(59, 'آفلو', 'Aflou', 'Aflou', NULL, 34.11, 2.10),
+(60, 'الأبيض سيدي الشيخ', 'El Abiodh Sidi Cheikh', 'El Abiodh Sidi Cheikh', NULL, 32.90, 0.54),
+(61, 'العريشة', 'El Aricha', 'El Aricha', NULL, 34.22, -1.26),
+(62, 'القنطرة', 'El Kantara', 'El Kantara', NULL, 35.19, 5.67),
+(63, 'بريكة', 'Barika', 'Barika', NULL, 35.40, 5.37),
+(64, 'بوسعادة', 'Bou Saâda', 'Bou Saada', NULL, 35.22, 4.18),
+(65, 'بئر العاتر', 'Bir El Ater', 'Bir El Ater', NULL, 34.75, 8.06),
+(66, 'قصر البخاري', 'Ksar El Boukhari', 'Ksar El Boukhari', NULL, 35.89, 2.75),
+(67, 'قصر الشلالة', 'Ksar Chellala', 'Ksar Chellala', NULL, 35.22, 2.32),
+(68, 'عين وسارة', 'Aïn Oussera', 'Ain Oussera', NULL, 35.45, 2.90),
+(69, 'مسعد', 'Messaad', 'Messaad', NULL, 34.17, 3.50)
 ON CONFLICT (id) DO NOTHING;
 """
 
