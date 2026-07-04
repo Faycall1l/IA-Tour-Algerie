@@ -1,6 +1,8 @@
+from app.models.booking import Booking
 from app.models.experience import Experience
 from app.models.live_post import LivePost
 from app.models.local_agency import LocalAgency
+from app.models.notification import Notification
 from app.models.poi import POI
 from app.models.price_report import PriceReport
 from app.models.provider_profile import ProviderProfile
@@ -15,8 +17,10 @@ __all__ = [
     "Wilaya",
     "LocalAgency",
     "AtharTravelerProfile",
+    "Booking",
     "Experience",
     "LivePost",
+    "Notification",
     "POI",
     "PriceReport",
     "ProviderProfile",
