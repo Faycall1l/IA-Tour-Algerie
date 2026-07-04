@@ -1,3 +1,4 @@
+from pydantic import BaseModel
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -43,7 +44,20 @@ class AuthSettings(BaseSettings):
     refresh_token_expire_days: int = 30
 
 
-class TwilioSettings(BaseSettings):
+class VLLMSettings(BaseModel):
+    base_url: str = "http://localhost:8000/v1"
+    api_key: str = ""
+    model: str = "Qwen2.5-7B-Instruct"
+    timeout: int = 30
+
+
+class AgentSettings(BaseModel):
+    enabled: bool = False
+    max_iterations: int = 5
+    vllm: VLLMSettings = VLLMSettings()
+
+
+class TwilioSettings(BaseModel):
     account_sid: str | None = None
     auth_token: str | None = None
     verify_service_sid: str | None = None
@@ -66,6 +80,7 @@ class Settings(BaseSettings):
     minio: MinIOSettings = MinIOSettings()
     auth: AuthSettings = AuthSettings()
     twilio: TwilioSettings = TwilioSettings()
+    agent: AgentSettings = AgentSettings()
 
 
 settings = Settings()

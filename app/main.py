@@ -17,6 +17,7 @@ from app.core.error_middleware import ErrorMiddleware
 from app.core.i18n import LocaleMiddleware, load_translations
 from app.core.limiter import _rate_limit_exceeded_handler, limiter
 from app.core.logging import setup_logging
+from app.services.agent.agents.coordinator import get_coordinator
 from app.services.embeddings import EmbeddingService
 from app.services.storage import StorageService
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
@@ -59,6 +60,13 @@ async def lifespan(app: FastAPI):
     app.state.trip_optimizer = TripOptimizer()
     app.state.trip_brief_generator = TripBriefGenerator()
     app.state.twilio = TwilioService()
+    if settings.agent.enabled:
+        coordinator = get_coordinator()
+        app.state.coordinator_agent = coordinator
+        if coordinator:
+            logger.info("Agent layer initialized (enabled=%s)", settings.agent.enabled)
+        else:
+            logger.warning("Agent layer enabled but failed to initialize")
     _load_legacy_routers()
 
     async def _index_existing_pois():

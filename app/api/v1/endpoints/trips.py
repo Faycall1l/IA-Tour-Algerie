@@ -1,11 +1,13 @@
 import logging
 import uuid
+from typing import Any
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import (
+    get_coordinator_agent,
     get_current_user,
     get_db,
     get_trip_brief_generator,
@@ -301,10 +303,43 @@ async def optimize_trip(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
     optimizer: TripOptimizer = Depends(get_trip_optimizer),
+    coordinator: Any = Depends(get_coordinator_agent),
 ):
     trip = await db.get(Trip, trip_id)
     if not trip or trip.user_id != current_user.id:
         raise NotFoundException(message="Trip not found")
+
+    if coordinator is not None:
+        try:
+            items = (
+                (
+                    await db.execute(
+                        select(TripItem)
+                        .where(TripItem.trip_id == trip_id)
+                        .order_by(TripItem.day_number, TripItem.sort_order)
+                    )
+                )
+                .scalars()
+                .all()
+            )
+            context = {
+                "trip_id": str(trip_id),
+                "title": trip.title,
+                "items_count": len(items),
+            }
+            result = await coordinator.ainvoke(
+                {
+                    "messages": [
+                        {
+                            "role": "user",
+                            "content": f"Optimize trip: {context}",
+                        }
+                    ]
+                }
+            )
+            logger.info("Agent optimization result: %s", result.get("structured_response", {}))
+        except Exception as exc:
+            logger.warning("Agent optimization failed, falling back: %s", exc)
 
     items = (
         (

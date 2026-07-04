@@ -58,3 +58,7 @@ async def get_trip_brief_generator(request: Request) -> TripBriefGenerator:
 
 async def get_twilio(request: Request) -> TwilioService:
     return request.app.state.twilio
+
+
+async def get_coordinator_agent(request: Request):
+    return getattr(request.app.state, "coordinator_agent", None)

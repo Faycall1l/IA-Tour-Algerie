@@ -3,6 +3,10 @@ name = "athar-os"
 version = "0.5.0"
 description = "ATHAR OS (أثر) — Sovereign Algerian AI Tourism Platform"
 requires-python = ">=3.14"
+dependencies = [
+    "langchain>=1.0.0",
+    "langchain-openai>=0.3.0",
+]
 
 [tool.ruff]
 target-version = "py314"
@@ -18,6 +22,8 @@ ignore = ["B008", "B904", "SIM117", "N818"]
 "app/routers/*" = ["E402", "F811", "N803", "ARG001"]
 "app/models/*" = ["F811"]
 "app/services/*" = ["ARG002", "F401"]
+"app/services/agent/registry.py" = ["ARG001"]
+"app/services/agent/middleware.py" = ["ARG005"]
 "alembic/*" = ["E402", "E501", "N806"]
 "tests/*" = ["S101", "ARG002"]
 

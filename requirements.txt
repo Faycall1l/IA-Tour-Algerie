@@ -42,3 +42,7 @@ numpy==2.2.0
 
 # SMS / WhatsApp
 twilio==9.4.0
+
+# Agent Framework (LangChain 1.0)
+langchain>=1.0.0
+langchain-openai>=0.3.0
