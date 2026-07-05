@@ -15,7 +15,6 @@ from app.api.deps import (
     get_twilio,
 )
 from app.core.exceptions import NotFoundException
-from app.services.agent.session import ToolContext, set_tool_context
 from app.models.poi import POI
 from app.models.trip import Trip, TripItem
 from app.models.user import User
@@ -31,6 +30,7 @@ from app.schemas.trip import (
     TripUpdate,
     TripWhatsAppResponse,
 )
+from app.services.agent.session import ToolContext, set_tool_context
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.twilio import TwilioService
 

@@ -13,6 +13,7 @@ from app.models.traveler_profile import AtharTravelerProfile
 from app.models.trip import Trip, TripItem
 from app.models.user import User
 from app.models.wilaya import Wilaya
+from app.models.wilaya_distance import WilayaDistance
 
 __all__ = [
     "User",
@@ -31,4 +32,5 @@ __all__ = [
     "Stay",
     "Trip",
     "TripItem",
+    "WilayaDistance",
 ]

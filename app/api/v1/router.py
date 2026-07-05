@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     prices,
     reviews,
     stays,
+    transport,
     trips,
     users,
     wilayas,
@@ -33,4 +34,5 @@ router.include_router(experiences.router)
 router.include_router(bookings.router)
 router.include_router(notifications.router)
 router.include_router(stays.router)
+router.include_router(transport.router)
 router.include_router(trips.router)

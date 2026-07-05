@@ -23,6 +23,7 @@ from app.services.agent.registry import (
     get_price_estimate,
     get_review_summary,
     get_stay,
+    get_transport_route,
     search_pois,
 )
 from app.services.agent.schemas import TripOptimizerOutput
@@ -50,6 +51,7 @@ def get_trip_optimizer_agent():
                 get_price_estimate,
                 get_review_summary,
                 compute_travel_time,
+                get_transport_route,
                 find_nearby,
             ],
             system_prompt=TRIP_OPTIMIZER_PROMPT,

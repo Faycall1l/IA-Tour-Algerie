@@ -20,6 +20,7 @@ from app.core.logging import setup_logging
 from app.services.agent.agents.coordinator import get_coordinator
 from app.services.embeddings import EmbeddingService
 from app.services.storage import StorageService
+from app.services.transport import TransportService
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.twilio import TwilioService
 from app.services.vector_search import VectorSearchService
@@ -54,11 +55,12 @@ def _load_legacy_routers():
 async def lifespan(app: FastAPI):
     setup_logging(debug=settings.debug)
     load_translations()
+    app.state.transport = TransportService()
     app.state.storage = StorageService()
     app.state.embedder = EmbeddingService()
     app.state.vector_search = VectorSearchService(app.state.embedder)
     app.state.trip_optimizer = TripOptimizer()
-    app.state.trip_brief_generator = TripBriefGenerator()
+    app.state.trip_brief_generator = TripBriefGenerator(transport_service=app.state.transport)
     app.state.twilio = TwilioService()
     if settings.agent.enabled:
         coordinator = get_coordinator()

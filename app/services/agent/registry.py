@@ -9,6 +9,7 @@ from app.models.price_report import PriceReport
 from app.models.review import Review
 from app.models.stay import Stay
 from app.services.agent.session import get_tool_context
+from app.services.transport import TransportService
 
 
 @tool
@@ -145,6 +146,40 @@ async def get_stay(
         "latitude": stay.latitude,
         "longitude": stay.longitude,
     }
+
+
+@tool
+async def get_transport_route(
+    origin_wilaya_id: int,
+    dest_wilaya_id: int,
+) -> dict:
+    """Get real road distance, driving time, and transport cost estimates between two wilayas."""
+    ctx = get_tool_context()
+    if ctx.db_session is None:
+        return {"error": "no database session"}
+    svc = TransportService()
+    route = await svc.get_route(ctx.db_session, origin_wilaya_id, dest_wilaya_id)
+    if route is None:
+        return {"error": "no route found"}
+    result = {
+        "origin_wilaya_id": origin_wilaya_id,
+        "dest_wilaya_id": dest_wilaya_id,
+        "driving_distance_km": route.driving_distance_km,
+        "driving_time_minutes": route.driving_time_minutes,
+        "road_classification": route.road_classification,
+        "estimated_costs_dzd": {
+            "bus": route.estimate_bus_cost(),
+            "shared_taxi": route.estimate_shared_taxi_cost(),
+            "private_taxi": route.estimate_private_taxi_cost(),
+        },
+    }
+    train = route.estimate_train_cost()
+    if train is not None:
+        result["estimated_costs_dzd"]["train"] = train
+    plane = route.estimate_plane_cost()
+    if plane is not None:
+        result["estimated_costs_dzd"]["plane"] = plane
+    return result
 
 
 @tool

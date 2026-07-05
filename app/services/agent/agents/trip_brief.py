@@ -20,6 +20,7 @@ from app.services.agent.registry import (
     get_experience,
     get_price_estimate,
     get_review_summary,
+    get_transport_route,
     search_pois,
 )
 from app.services.agent.schemas import WilayaBriefOutput
@@ -45,6 +46,7 @@ def get_trip_brief_agent():
                 get_experience,
                 get_price_estimate,
                 get_review_summary,
+                get_transport_route,
             ],
             system_prompt=TRIP_BRIEF_PROMPT,
             response_format=WilayaBriefOutput,

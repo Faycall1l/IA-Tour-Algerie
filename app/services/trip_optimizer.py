@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.experience import Experience
 from app.models.poi import POI
-from app.models.price_report import PriceReport
 from app.models.review import Review
 from app.models.stay import Stay
 from app.models.trip import TripItem
@@ -19,6 +18,7 @@ from app.schemas.trip import (
     TripBriefPOI,
     TripItemRead,
 )
+from app.services.transport import TransportService
 
 
 @dataclass
@@ -210,6 +210,9 @@ class TripOptimizer:
 
 
 class TripBriefGenerator:
+    def __init__(self, transport_service: TransportService | None = None) -> None:
+        self._transport = transport_service or TransportService()
+
     async def generate(
         self,
         db: AsyncSession,
@@ -246,23 +249,21 @@ class TripBriefGenerator:
             for pid, score in review_rows:
                 review_scores.setdefault(pid, []).append(score)
 
+        route = None
+        if origin_wilaya_id != wilaya_id:
+            route = await self._transport.get_route(db, origin_wilaya_id, wilaya_id)
+
         top_pois = []
         for row in pois_rows:
             scores = review_scores.get(row.id, [])
             avg = round(sum(scores) / len(scores), 1) if scores else None
 
             transport_cost = None
-            price_rows = await db.execute(
-                select(PriceReport.price_dzd)
-                .where(
-                    PriceReport.origin_wilaya_id == origin_wilaya_id,
-                    PriceReport.dest_wilaya_id == wilaya_id,
-                )
-                .limit(5)
-            )
-            prices = [r[0] for r in price_rows.all()]
-            if prices:
-                transport_cost = f"{min(prices):,.0f}–{max(prices):,.0f} DZD"
+            if route:
+                bus = route.estimate_bus_cost()
+                taxi = route.estimate_shared_taxi_cost()
+                label = route.travel_time_label()
+                transport_cost = f"Bus ~{bus:,.0f} DZD | Taxi ~{taxi:,.0f} DZD ({label})"
 
             top_pois.append(
                 TripBriefPOI(
@@ -306,11 +307,22 @@ class TripBriefGenerator:
         ]
 
         transport_advice = None
-        if top_pois and top_pois[0].estimated_transport_cost:
+        if route:
+            label = route.travel_time_label()
+            bus_cost = route.estimate_bus_cost()
+            taxi_cost = route.estimate_shared_taxi_cost()
             transport_advice = (
-                f"From Algiers: {top_pois[0].estimated_transport_cost}. "
-                f"Check /prices/estimate for exact routes."
+                f"From Algiers: {route.driving_distance_km:.0f}km, ~{label} by car. "
+                f"Bus ~{bus_cost:,.0f} DZD, shared taxi ~{taxi_cost:,.0f} DZD."
             )
+            if route.has_train_route:
+                train_cost = route.estimate_train_cost()
+                if train_cost:
+                    transport_advice += f" Train ~{train_cost:,.0f} DZD."
+            if route.has_direct_flight:
+                plane_cost = route.estimate_plane_cost()
+                if plane_cost:
+                    transport_advice += f" Flight ~{plane_cost:,.0f} DZD."
 
         tips = []
         if top_pois:
