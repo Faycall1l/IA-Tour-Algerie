@@ -1,10 +1,20 @@
 import logging
 
 from langchain.agents import create_agent
-from langchain.agents.middleware import PIIMiddleware
+from langchain.agents.middleware import (
+    ModelRetryMiddleware,
+    PIIMiddleware,
+    ToolCallLimitMiddleware,
+    ToolRetryMiddleware,
+)
 
 from app.services.agent.llm import get_llm
-from app.services.agent.middleware import AtharLoggingMiddleware, MetricsMiddleware
+from app.services.agent.middleware import (
+    AtharLoggingMiddleware,
+    CheckpointMiddleware,
+    ContextInjectionMiddleware,
+    MetricsMiddleware,
+)
 from app.services.agent.prompts.trip_brief import TRIP_BRIEF_PROMPT
 from app.services.agent.registry import (
     get_experience,
@@ -12,6 +22,7 @@ from app.services.agent.registry import (
     get_review_summary,
     search_pois,
 )
+from app.services.agent.schemas import WilayaBriefOutput
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +47,14 @@ def get_trip_brief_agent():
                 get_review_summary,
             ],
             system_prompt=TRIP_BRIEF_PROMPT,
-            response_format=dict,
+            response_format=WilayaBriefOutput,
             middleware=[
-                PIIMiddleware(
-                    pattern=r"\+213\d{8,9}",
-                    strategy="redact",
-                ),
+                PIIMiddleware(pattern=r"\+213\d{8,9}", strategy="redact"),
+                ContextInjectionMiddleware(),
+                CheckpointMiddleware(),
+                ToolCallLimitMiddleware(run_limit=10),
+                ModelRetryMiddleware(max_retries=2, initial_delay=1.0),
+                ToolRetryMiddleware(max_retries=1, initial_delay=0.5),
                 AtharLoggingMiddleware(),
                 MetricsMiddleware(),
             ],

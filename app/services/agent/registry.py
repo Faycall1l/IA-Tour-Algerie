@@ -2,25 +2,25 @@ import uuid
 
 from langchain.tools import tool
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.experience import Experience
 from app.models.poi import POI
 from app.models.price_report import PriceReport
 from app.models.review import Review
 from app.models.stay import Stay
+from app.services.agent.session import get_tool_context
 
 
 @tool
-async def search_pois(  # noqa: ARG001
+async def search_pois(
     query: str,
     wilaya_id: int | None = None,
     category: str | None = None,
     limit: int = 10,
-    session: AsyncSession | None = None,
 ) -> list[dict]:
     """Search points of interest. Optionally filter by wilaya_id or category."""
-    if session is None:
+    ctx = get_tool_context()
+    if ctx.db_session is None:
         return []
     stmt = select(POI)
     if wilaya_id is not None:
@@ -28,7 +28,7 @@ async def search_pois(  # noqa: ARG001
     if category is not None:
         stmt = stmt.where(POI.category == category)
     stmt = stmt.limit(limit)
-    rows = (await session.execute(stmt)).scalars().all()
+    rows = (await ctx.db_session.execute(stmt)).scalars().all()
     return [
         {
             "id": str(p.id),
@@ -49,14 +49,14 @@ async def search_pois(  # noqa: ARG001
 async def get_price_estimate(
     item_type: str,
     item_id: str,
-    session: AsyncSession | None = None,
 ) -> dict:
     """Get fair price estimate for a POI or experience."""
-    if session is None:
+    ctx = get_tool_context()
+    if ctx.db_session is None:
         return {"min": None, "max": None, "median": None, "count": 0}
     uid = uuid.UUID(item_id)
     rows = (
-        await session.execute(
+        await ctx.db_session.execute(
             select(PriceReport.price_dzd).where(PriceReport.poi_id == uid).limit(20)
         )
     ).all()
@@ -81,13 +81,15 @@ async def get_price_estimate(
 async def get_review_summary(
     item_type: str,
     item_id: str,
-    session: AsyncSession | None = None,
 ) -> dict:
     """Get aggregated review scores and count for a POI."""
-    if session is None:
+    ctx = get_tool_context()
+    if ctx.db_session is None:
         return {"average_score": None, "total_reviews": 0}
     uid = uuid.UUID(item_id)
-    rows = (await session.execute(select(Review.overall_score).where(Review.poi_id == uid))).all()
+    rows = (
+        await ctx.db_session.execute(select(Review.overall_score).where(Review.poi_id == uid))
+    ).all()
     scores = [r[0] for r in rows]
     if not scores:
         return {"average_score": None, "total_reviews": 0}
@@ -100,12 +102,12 @@ async def get_review_summary(
 @tool
 async def get_experience(
     experience_id: str,
-    session: AsyncSession | None = None,
 ) -> dict | None:
     """Get details of a bookable experience."""
-    if session is None:
+    ctx = get_tool_context()
+    if ctx.db_session is None:
         return None
-    exp = await session.get(Experience, uuid.UUID(experience_id))
+    exp = await ctx.db_session.get(Experience, uuid.UUID(experience_id))
     if exp is None:
         return None
     return {
@@ -124,12 +126,12 @@ async def get_experience(
 @tool
 async def get_stay(
     stay_id: str,
-    session: AsyncSession | None = None,
 ) -> dict | None:
     """Get accommodation details."""
-    if session is None:
+    ctx = get_tool_context()
+    if ctx.db_session is None:
         return None
-    stay = await session.get(Stay, uuid.UUID(stay_id))
+    stay = await ctx.db_session.get(Stay, uuid.UUID(stay_id))
     if stay is None:
         return None
     return {
@@ -178,16 +180,16 @@ async def find_nearby(
     radius_km: float = 5.0,
     types: str = "poi,experience,stay",
     limit: int = 5,
-    session: AsyncSession | None = None,
 ) -> list[dict]:
     """Find items near a location. Types: comma-separated poi,experience,stay."""
-    if session is None:
+    ctx = get_tool_context()
+    if ctx.db_session is None:
         return []
-    results = []
+    results: list[dict] = []
     item_types = [t.strip() for t in types.split(",")]
 
     if "poi" in item_types:
-        rows = (await session.execute(select(POI).limit(limit))).scalars().all()
+        rows = (await ctx.db_session.execute(select(POI).limit(limit))).scalars().all()
         for p in rows:
             if p.latitude and p.longitude:
                 dist = _haversine(lat, lng, p.latitude, p.longitude)

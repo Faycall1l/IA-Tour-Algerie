@@ -2,11 +2,42 @@ from __future__ import annotations
 
 import json
 import logging
+from contextvars import ContextVar
+from dataclasses import dataclass, field
 from typing import Any
+
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class ToolContext:
+    db_session: AsyncSession | None = None
+    user_id: str = ""
+    trip_id: str = ""
+    locale: str = "en"
+
+
+_tool_ctx: ContextVar[ToolContext | None] = ContextVar("_tool_ctx", default=None)
+
+
+def get_tool_context() -> ToolContext:
+    val = _tool_ctx.get()
+    if val is None:
+        return ToolContext()
+    return val
+
+
+def set_tool_context(ctx: ToolContext) -> None:
+    _tool_ctx.set(ctx)
+
+
+@dataclass
+class AgentContext(ToolContext):
+    thread_id: str = ""
 
 
 class UserSession:

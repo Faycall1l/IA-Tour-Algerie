@@ -1,7 +1,16 @@
 import logging
 import time
+from typing import Any
 
-from langchain.agents.middleware import AgentMiddleware
+from langchain.agents.middleware import (
+    AgentMiddleware,
+    ModelRetryMiddleware,
+    PIIMiddleware,
+    ToolCallLimitMiddleware,
+    ToolRetryMiddleware,
+)
+
+from app.services.agent.session import get_tool_context
 
 logger = logging.getLogger(__name__)
 
@@ -31,9 +40,8 @@ class AtharLoggingMiddleware(AgentMiddleware):
 class MetricsMiddleware(AgentMiddleware):
     async def after_tool(self, state, runtime, tool_call, result):
         duration = getattr(result, "duration", 0)
-        labels = {"tool": tool_call.name, "status": "ok"}
-        _TOOL_DURATION.labels(**labels).observe(duration)
-        _TOOL_CALLS.labels(**labels).inc()
+        _TOOL_DURATION.labels(tool=tool_call.name).observe(duration)
+        _TOOL_CALLS.labels(tool=tool_call.name, status="ok").inc()
 
     async def after_agent(self, state, runtime):
         agent_name = (runtime.config or {}).get("agent_name", "unknown")
@@ -52,18 +60,45 @@ try:
     _TOOL_DURATION = Histogram("athar_tool_duration_seconds", "Tool duration", ["tool"])
 except ImportError:
 
-    class _Dummy:  # noqa: ARG004
+    class _Dummy:
         @staticmethod
-        def labels(*_args, **_kwargs):
+        def labels(*_args: Any, **_kwargs: Any) -> _Dummy:
             return _Dummy()
 
         @staticmethod
-        def inc():
+        def inc() -> None:
             pass
 
         @staticmethod
-        def observe(val):
+        def observe(val: Any) -> None:
             pass
 
     _AGENT_CALLS = _Dummy()
     _AGENT_DURATION = _TOOL_CALLS = _TOOL_DURATION = _AGENT_CALLS
+
+
+class ContextInjectionMiddleware(AgentMiddleware):
+    async def before_model(self, state, runtime):
+        ctx = get_tool_context()
+        if not ctx.locale or ctx.locale == "en":
+            return
+        if state.messages and hasattr(state.messages[0], "content"):
+            state.messages[0].content += f"\n\nUser locale: {ctx.locale}"
+
+
+class CheckpointMiddleware(AgentMiddleware):
+    def __init__(self, store: dict[str, Any] | None = None) -> None:
+        self._store: dict[str, Any] = store if store is not None else {}
+
+    async def before_model(self, state, runtime):
+        ctx = get_tool_context()
+        tid = getattr(ctx, "thread_id", None)
+        if tid and tid in self._store:
+            saved = self._store[tid]
+            state.messages[:] = saved
+
+    async def after_agent(self, state, runtime):
+        ctx = get_tool_context()
+        tid = getattr(ctx, "thread_id", None)
+        if tid:
+            self._store[tid] = state.messages[:]

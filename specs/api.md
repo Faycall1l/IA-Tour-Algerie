@@ -1,10 +1,10 @@
 # API Layer
 
-## Route Inventory (80+ routes)
+## Route Inventory (76 routes)
 
 ```
 # Public
-GET    /health                              # Health check
+GET    /api/v1/health                       # Health check
 
 # Auth
 POST   /api/v1/auth/send-otp                # Passwordless OTP
@@ -17,10 +17,11 @@ GET    /api/v1/wilayas/{wilaya_id}          # Single wilaya
 
 # POIs
 POST   /api/v1/pois                         # Create POI (auth)
-GET    /api/v1/pois                         # List POIs (filters, sort, search via Qdrant)
+GET    /api/v1/pois                         # List POIs (filters, sort)
+GET    /api/v1/pois/search                  # Semantic search via Qdrant
 GET    /api/v1/pois/{poi_id}                # POI detail with average_score + total_reviews
-DELETE /api/v1/pois/{poi_id}                # Delete POI (admin)
 POST   /api/v1/pois/{poi_id}/photo          # Upload POI photo (admin)
+DELETE /api/v1/pois/{poi_id}                # Delete POI (admin)
 
 # Price Reports
 POST   /api/v1/prices                       # Create price report (auth)
@@ -51,10 +52,10 @@ GET    /api/v1/users/providers/{user_id}    # Single provider detail
 POST   /api/v1/experiences                  # Create experience (auth, provider role)
 GET    /api/v1/experiences                  # List experiences (filters, sort)
 GET    /api/v1/experiences/search           # Semantic search via Qdrant
-GET    /api/v1/experiences/{exp_id}         # Experience detail
-PUT    /api/v1/experiences/{exp_id}         # Update (author only)
-DELETE /api/v1/experiences/{exp_id}         # Delete (author/admin)
-POST   /api/v1/experiences/{exp_id}/photos  # Upload photos (author)
+GET    /api/v1/experiences/{experience_id}  # Experience detail
+PUT    /api/v1/experiences/{experience_id}  # Update (author only)
+DELETE /api/v1/experiences/{experience_id}  # Delete (author/admin)
+POST   /api/v1/experiences/{experience_id}/photos  # Upload photos (author)
 
 # Stays
 POST   /api/v1/stays                        # Create stay (auth, hotel/agency/admin role)
@@ -84,7 +85,7 @@ POST   /api/v1/trips/{trip_id}/items        # Add item (poi/experience/stay/rest
 DELETE /api/v1/trips/{trip_id}/items/{item_id}  # Remove item
 PUT    /api/v1/trips/{trip_id}/items/{item_id}  # Reorder / change day
 POST   /api/v1/trips/{trip_id}/optimize     # Route optimization
-POST   /api/v1/trips/{trip_id}/brief        # Generate trip summary
+GET    /api/v1/trips/brief/{wilaya_id}      # Generate wilaya trip brief
 POST   /api/v1/trips/{trip_id}/optimize/send-whatsapp  # Send brief via WhatsApp
 
 # Discover
@@ -106,9 +107,9 @@ PUT    /api/v1/admin/live-posts/{id}/moderate  # Mark post as moderated
 DELETE /api/v1/admin/experiences/{id}       # Delete any experience
 
 # Legacy (guarded)
-GET    /api/v1/visa/{...}                   # Admin visa checker
-POST   /api/v1/whatsapp/{...}               # WhatsApp bot stub
-POST   /api/v1/studio/{...}                 # Studio media
+POST   /api/v1/visa/process-passport        # Admin visa checker
+POST   /api/v1/whatsapp/webhook             # WhatsApp bot stub
+POST   /api/v1/studio/refine-video          # Studio media
 ```
 
 ## Naming Conventions
@@ -265,9 +266,9 @@ Stays represent bookable accommodations with:
 ## Legacy Routes (guarded)
 
 ```
-GET /api/v1/visa/{...}        # Admin visa checker
-POST /api/v1/whatsapp/{...}    # WhatsApp bot stub
-POST /api/v1/studio/{...}      # Studio media
+POST /api/v1/visa/process-passport    # Admin visa checker
+POST /api/v1/whatsapp/webhook          # WhatsApp bot stub
+POST /api/v1/studio/refine-video       # Studio media
 ```
 
 These are wrapped in `try/except` in `main.py` — if their dependencies (Whisper, OpenCV, Qdrant) aren't installed, they silently fail to load instead of crashing the app.

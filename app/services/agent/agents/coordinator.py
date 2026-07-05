@@ -1,13 +1,20 @@
 import logging
 
 from langchain.agents import create_agent
+from langchain.agents.middleware import ToolCallLimitMiddleware
 from langchain.tools import tool
 
 from app.services.agent.agents.trip_brief import get_trip_brief_agent
 from app.services.agent.agents.trip_optimizer import get_trip_optimizer_agent
 from app.services.agent.llm import get_llm
-from app.services.agent.middleware import AtharLoggingMiddleware, MetricsMiddleware
+from app.services.agent.middleware import (
+    AtharLoggingMiddleware,
+    CheckpointMiddleware,
+    ContextInjectionMiddleware,
+    MetricsMiddleware,
+)
 from app.services.agent.prompts.coordinator import COORDINATOR_PROMPT
+from app.services.agent.schemas import CoordinatorOutput
 
 logger = logging.getLogger(__name__)
 
@@ -31,20 +38,18 @@ def get_coordinator():
         return None
 
     @tool
-    async def route_to_optimizer(trip_context: str) -> dict:
+    async def route_to_optimizer(trip_context: str) -> dict:  # noqa: ARG001
         """Optimize a trip: reorder items, detect gaps, calculate budget.
         Input: JSON string with trip_id, items, budget."""
         if optimizer is None:
             return {"error": "Optimizer not available"}
-        from langchain.globals import set_debug
-
         result = await optimizer.ainvoke(
             {"messages": [{"role": "user", "content": f"Optimize this trip:\n{trip_context}"}]}
         )
         return {"output": result.get("structured_response", {}), "agent": "trip_optimizer"}
 
     @tool
-    async def route_to_brief(wilaya_context: str) -> dict:
+    async def route_to_brief(wilaya_context: str) -> dict:  # noqa: ARG001
         """Generate a trip brief for a wilaya.
         Input: JSON string with wilaya_id and any context."""
         if brief is None:
@@ -55,19 +60,28 @@ def get_coordinator():
         return {"output": result.get("structured_response", {}), "agent": "trip_brief"}
 
     try:
+        tools = []
+        if optimizer:
+            tools.append(route_to_optimizer)
+        if brief:
+            tools.append(route_to_brief)
+
         _coordinator = create_agent(
             model=llm,
-            tools=[route_to_optimizer, route_to_brief],
+            tools=tools,
             system_prompt=COORDINATOR_PROMPT,
-            response_format=dict,
+            response_format=CoordinatorOutput,
             middleware=[
+                ContextInjectionMiddleware(),
+                CheckpointMiddleware(),
+                ToolCallLimitMiddleware(run_limit=5),
                 AtharLoggingMiddleware(),
                 MetricsMiddleware(),
             ],
             name="coordinator",
         )
         logger.info(
-            "Coordinator agent initialized with subagents: optimizer=%s brief=%s",
+            "Coordinator agent initialized — optimizer=%s brief=%s",
             optimizer is not None,
             brief is not None,
         )
