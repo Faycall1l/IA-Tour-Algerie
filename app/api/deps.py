@@ -8,6 +8,7 @@ from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User
 from app.services.storage import StorageService
+from app.services.transit_routing import TransitRoutingService
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.twilio import TwilioService
 from app.services.vector_search import VectorSearchService
@@ -62,3 +63,7 @@ async def get_twilio(request: Request) -> TwilioService:
 
 async def get_coordinator_agent(request: Request):
     return getattr(request.app.state, "coordinator_agent", None)
+
+
+async def get_transit_routing(request: Request) -> TransitRoutingService:
+    return request.app.state.transit_routing

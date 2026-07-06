@@ -18,6 +18,7 @@ from app.schemas.trip import (
     TripBriefPOI,
     TripItemRead,
 )
+from app.services.transit_routing import TransitRoutingService
 from app.services.transport import TransportService
 
 
@@ -50,6 +51,9 @@ _DEFAULT_TRANSPORT_DURATION = 60
 
 
 class TripOptimizer:
+    def __init__(self, transit_routing: TransitRoutingService | None = None) -> None:
+        self._transit_routing = transit_routing
+
     async def enrich_items(self, db: AsyncSession, items: list[TripItem]) -> list[TripItemRead]:
         if not items:
             return []
@@ -113,6 +117,21 @@ class TripOptimizer:
 
         return result
 
+    async def _travel_time_min(
+        self, db: AsyncSession, a: TripItemRead, b: TripItemRead
+    ) -> int | None:
+        if not self._transit_routing:
+            return None
+        try:
+            result = await self._transit_routing.find_route(
+                db, a.latitude, a.longitude, b.latitude, b.longitude
+            )
+            if result and result.total_estimated_minutes:
+                return result.total_estimated_minutes
+        except Exception:
+            pass
+        return None
+
     async def optimize_day(
         self, db: AsyncSession, items: list[TripItem]
     ) -> tuple[list[TripItemRead], float]:
@@ -126,27 +145,32 @@ class TripOptimizer:
 
         sorted_items = [with_coords[0]]
         remaining = list(with_coords[1:])
-        total_km = 0
+        total_cost = 0
 
         while remaining:
             current = sorted_items[-1]
             current_coord = Coord(current.latitude, current.longitude)
             nearest_idx = 0
-            nearest_dist = float("inf")
+            nearest_cost = float("inf")
 
             for i, candidate in enumerate(remaining):
-                dist = _haversine_km(current_coord, Coord(candidate.latitude, candidate.longitude))
-                if dist < nearest_dist:
-                    nearest_dist = dist
+                transit = await self._travel_time_min(db, current, candidate)
+                if transit is not None:
+                    cost = transit
+                else:
+                    cost = _haversine_km(current_coord, Coord(candidate.latitude, candidate.longitude))
+                if cost < nearest_cost:
+                    nearest_cost = cost
                     nearest_idx = i
 
-            total_km += nearest_dist
+            total_cost += nearest_cost
             sorted_items.append(remaining.pop(nearest_idx))
 
-        return sorted_items + without_coords, round(total_km, 1)
+        return sorted_items + without_coords, round(total_cost, 1)
 
     async def detect_gaps(
-        self, enriched: list[TripItemRead], day_start_hour: int = 9, day_end_hour: int = 18
+        self, db: AsyncSession, enriched: list[TripItemRead],
+        day_start_hour: int = 9, day_end_hour: int = 18
     ) -> list[str]:
         if not enriched:
             return []
@@ -157,12 +181,16 @@ class TripOptimizer:
             duration = item.estimated_duration_minutes or _DEFAULT_POI_DURATION
             used_minutes += duration
             if i < len(enriched) - 1:
-                travel = _walk_time_minutes(
-                    _haversine_km(
-                        Coord(enriched[i].latitude or 0, enriched[i].longitude or 0),
-                        Coord(enriched[i + 1].latitude or 0, enriched[i + 1].longitude or 0),
+                transit = await self._travel_time_min(db, enriched[i], enriched[i + 1])
+                if transit is not None:
+                    travel = transit
+                else:
+                    travel = _walk_time_minutes(
+                        _haversine_km(
+                            Coord(enriched[i].latitude or 0, enriched[i].longitude or 0),
+                            Coord(enriched[i + 1].latitude or 0, enriched[i + 1].longitude or 0),
+                        )
                     )
-                )
                 used_minutes += travel
 
         gap_minutes = available_minutes - used_minutes

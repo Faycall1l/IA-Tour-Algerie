@@ -32,3 +32,11 @@ secrets/
 
 # Audio/Video
 temp_*
+
+# Intermediate scraping data (raw/intermediate files, not consumed by the app)
+app/data/sntf_*.json
+app/data/transit_edges.json
+app/data/transit_nodes.json
+
+# Scraping scripts are in scripts/data/
+# but any generated artifacts from them should be tracked if consumed by the app

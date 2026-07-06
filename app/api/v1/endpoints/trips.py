@@ -65,7 +65,7 @@ async def _build_trip_read(
     total_spent = 0
     for day_num in sorted(day_map):
         day_items = day_map[day_num]
-        gaps = await optimizer.detect_gaps(day_items)
+        gaps = await optimizer.detect_gaps(db, day_items)
         day_total = sum(i.estimated_cost_dzd or 0 for i in day_items)
         total_spent += day_total
 

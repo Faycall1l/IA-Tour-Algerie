@@ -10,9 +10,14 @@ DZD_PER_KM: dict[str, float] = {
     "shared_taxi": 10.0,
     "train": 5.0,
     "private_taxi": 20.0,
+    "plane": 14.0,
+    "ferry": 8.0,
 }
 
 FLAT_COST: dict[str, float] = {
+    "metro": 50.0,
+    "tram": 40.0,
+    "cablecar": 30.0,
     "plane": 12000.0,
     "ferry": 5000.0,
 }
@@ -42,10 +47,20 @@ class TransportRoute:
     def estimate_private_taxi_cost(self) -> float:
         return round(self.driving_distance_km * DZD_PER_KM["private_taxi"], -1)
 
+    def estimate_shared_taxi_cost_per_person(self) -> float:
+        return round(self.estimate_shared_taxi_cost() / 4, -1)
+
     def estimate_plane_cost(self) -> float | None:
         if not self.has_direct_flight:
             return None
-        return round(FLAT_COST["plane"], -2)
+        dist_cost = round(self.driving_distance_km * DZD_PER_KM["plane"], -2)
+        return max(dist_cost, FLAT_COST["plane"])
+
+    def estimate_ferry_cost(self) -> float | None:
+        if not self.origin_wilaya_id == 16 and not (self.origin_wilaya_id == 31 or self.dest_wilaya_id in (16, 31)):
+            return None
+        dist_cost = round(self.driving_distance_km * DZD_PER_KM["ferry"], -2)
+        return max(dist_cost, FLAT_COST["ferry"])
 
     def travel_time_label(self) -> str:
         h, m = divmod(self.driving_time_minutes, 60)

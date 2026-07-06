@@ -10,6 +10,7 @@ from collections.abc import Sequence
 from pathlib import Path
 from typing import Any
 
+import sqlalchemy as sa
 from alembic import op
 
 revision: str = "012"
@@ -27,19 +28,20 @@ def _load_data() -> list[dict[str, Any]]:
 
 def upgrade() -> None:
     data = _load_data()
-    op.execute("TRUNCATE TABLE wilaya_distances")
+    conn = op.get_bind()
+    conn.execute(sa.text("TRUNCATE TABLE wilaya_distances"))
     for entry in data:
-        op.execute(
-            """
-            INSERT INTO wilaya_distances
-                (created_at, updated_at, origin_wilaya_id, dest_wilaya_id,
-                 driving_distance_km, driving_time_minutes, road_classification,
-                 has_train_route, has_direct_flight)
-            VALUES
-                (NOW(), NOW(), %(origin_id)s, %(dest_id)s,
-                 %(distance)s, %(time)s, %(road)s,
-                 %(train)s, %(flight)s)
-            """,
+        conn.execute(
+            sa.text("""
+                INSERT INTO wilaya_distances
+                    (created_at, updated_at, origin_wilaya_id, dest_wilaya_id,
+                     driving_distance_km, driving_time_minutes, road_classification,
+                     has_train_route, has_direct_flight)
+                VALUES
+                    (NOW(), NOW(), :origin_id, :dest_id,
+                     :distance, :time, :road,
+                     :train, :flight)
+            """),
             {
                 "origin_id": entry["origin_id"],
                 "dest_id": entry["dest_id"],
@@ -54,4 +56,4 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.execute("TRUNCATE TABLE wilaya_distances")
+    op.get_bind().execute(sa.text("TRUNCATE TABLE wilaya_distances"))

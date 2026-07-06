@@ -6,7 +6,6 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
-from prometheus_fastapi_instrumentator import Instrumentator
 from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import select
@@ -20,6 +19,7 @@ from app.core.logging import setup_logging
 from app.services.agent.agents.coordinator import get_coordinator
 from app.services.embeddings import EmbeddingService
 from app.services.storage import StorageService
+from app.services.transit_routing import TransitRoutingService
 from app.services.transport import TransportService
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.twilio import TwilioService
@@ -56,10 +56,11 @@ async def lifespan(app: FastAPI):
     setup_logging(debug=settings.debug)
     load_translations()
     app.state.transport = TransportService()
+    app.state.transit_routing = TransitRoutingService()
     app.state.storage = StorageService()
     app.state.embedder = EmbeddingService()
     app.state.vector_search = VectorSearchService(app.state.embedder)
-    app.state.trip_optimizer = TripOptimizer()
+    app.state.trip_optimizer = TripOptimizer(transit_routing=app.state.transit_routing)
     app.state.trip_brief_generator = TripBriefGenerator(transport_service=app.state.transport)
     app.state.twilio = TwilioService()
     if settings.agent.enabled:
@@ -115,7 +116,6 @@ async def lifespan(app: FastAPI):
     asyncio.create_task(_index_existing_experiences())
     for r in _legacy_routers:
         app.include_router(r)
-    Instrumentator().instrument(app).expose(app)
     yield
 
 
@@ -127,7 +127,6 @@ app = FastAPI(
 
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
-
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,

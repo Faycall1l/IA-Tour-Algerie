@@ -7,7 +7,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPkMixin
 
-TRANSPORT_MODES = ("taxi", "bus", "train", "plane", "ferry")
+TRANSPORT_MODES = ("taxi", "shared_taxi", "private_taxi", "bus", "train", "metro", "tram", "cablecar", "plane", "ferry")
 CONFIDENCE_TIERS = ("user", "verified", "official")
 
 
