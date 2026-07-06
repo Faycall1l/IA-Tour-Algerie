@@ -40,3 +40,6 @@ app/data/transit_nodes.json
 
 # Scraping scripts are in scripts/data/
 # but any generated artifacts from them should be tracked if consumed by the app
+
+# Scraping cache
+tmp/
