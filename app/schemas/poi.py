@@ -22,15 +22,37 @@ class POIRead(BaseModel):
 
     id: uuid.UUID
     name: str
+    name_ar: str | None = None
+    name_en: str | None = None
     category: str
+    subtype: str | None = None
     wilaya_id: int
-    latitude: float | None
-    longitude: float | None
-    description: str | None
-    entry_fee_dzd: float | None
-    photo_url: str | None
+    commune: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    description: str | None = None
+    photo_url: str | None = None
+    photo_urls: list[str] | None = None
+    entry_fee_dzd: float | None = None
+    price_level: str | None = None
+    website: str | None = None
+    phone: str | None = None
+    opening_hours: str | None = None
+    operator: str | None = None
+    cuisine: str | None = None
+    has_parking: bool | None = None
+    has_accessibility: bool | None = None
+    historic_civilization: str | None = None
+    is_featured: bool = False
+    featured_order: int | None = None
+    ranking_position: int | None = None
+    ranking_total: int | None = None
+    suggested_duration_min: int | None = None
+    neighborhood: str | None = None
+    award: str | None = None
+    getting_there: dict | None = None
     created_at: datetime
-    updated_at: datetime | None
+    updated_at: datetime | None = None
     average_score: float | None = None
     total_reviews: int = 0
 
