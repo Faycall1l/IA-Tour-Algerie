@@ -12,11 +12,8 @@
 [API Layer](./api.md)
 : Route index, conventions, pagination, error handling, middleware
 
-[Storage Service](./services-storage.md)
-: MinIO file uploads, bucket policies, validation
-
-[Embeddings & Vector Search](./services-vector.md)
-: sentence-transformers, Qdrant collections, semantic search
+[Services](./services.md)
+: MinIO storage, sentence-transformers embeddings, Qdrant vector search, startup auto-indexing
 
 [Configuration & Deployment](./config-deployment.md)
 : pydantic-settings, Docker, docker-compose, CI/CD
@@ -27,5 +24,5 @@
 [Admin Dashboard](./admin.md)
 : Admin endpoints, moderation, human-in-the-loop oversight
 
-[Agentic Traveler Layer](./agentic-traveler.md)
+[Agentic Traveler](./agentic-traveler.md)
 : AI trip planning, multi-agent orchestration, conversational travel companion

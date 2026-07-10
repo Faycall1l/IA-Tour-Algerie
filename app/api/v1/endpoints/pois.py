@@ -41,7 +41,9 @@ async def _attach_ratings(db: AsyncSession, pois: list[POI]) -> list[POIRead]:
     for p in pois:
         avg, cnt = ratings_map.get(p.id, (None, 0))
         base = POIRead.model_validate(p)
-        items.append(POIRead(**base.model_dump(), average_score=avg, total_reviews=cnt))
+        base.average_score = avg
+        base.total_reviews = cnt
+        items.append(base)
     return items
 
 

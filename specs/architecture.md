@@ -5,25 +5,27 @@
 ATHAR OS is an async Python backend (Python 3.14, FastAPI 0.139) for a three-sided marketplace connecting travelers with local Algerian providers (guides, agencies, hotels). Built for sovereignty, offline-first mobile consumption, and hackathon-velocity iteration.
 
 ```
-┌─────────────────────────────────────────────────────┐
-│                  Flutter App (future)                │
-│              PWA (offline-first shell)               │
-└────────────────┬────────────────────────────────────┘
-                 │ HTTPS / JSON (reverse proxy)
-┌────────────────▼────────────────────────────────────┐
-│           FastAPI 0.139 (uvicorn 0.34)               │
-│  ┌─────┬─────┬──────┬──────┬──────┬───────────┐   │
-│  │Auth │POIs │Prices│ Live │Exper │Bookings   │   │
-│  │     │     │      │ Feed │iences│+ Notifs   │   │
-│  └──┬──┴──┬──┴──┬───┴──┬───┴──┬───┴───────────┘   │
-│     │     │     │      │      │                     │
-└─────┼─────┼─────┼──────┼──────┼─────────────────────┘
-      │     │     │      │      │
-  ┌───▼──┐┌─▼──┐┌─▼───┐┌─▼───┐
-  │ PG   ││Qdnt││MinIO││Redis│
-  │16    ││1.18││2026 ││7.4  │
-  │asyncp││gRPC││Apr  ││pass │
-  └──────┘└────┘└─────┘└─────┘
+                          ┌─────────────────────────────┐
+                          │  PWA / Flutter App (future)  │
+                          └──────────┬──────────────────┘
+                                     │ HTTPS / JSON
+                          ┌──────────▼──────────────────┐
+                          │   FastAPI 0.139 (uvicorn)    │
+                          │                              │
+                          │  Auth  POIs  Prices  Live    │
+                          │  Experiences  Stays  Trips   │
+                          │  Bookings  Notifications     │
+                          │  Transport  Circuits         │
+                          │  Discover  Admin  Users      │
+                          │  Wilayas  Health             │
+                          └──────┬────┬────┬────┬───────┘
+                                 │    │    │    │
+                        ┌────────▼──┐┌─▼──┐┌▼───┐┌▼────┐
+                        │PostgreSQL ││Qdnt││MinIO││Redis│
+                        │  16.4     ││1.18││2026││7.4  │
+                        │  asyncpg  ││gRPC││Apr ││pass │
+                        └───────────┘└────┘└────┘└─────┘
+```
 ```
 
 All services run in Docker Compose on an isolated `backend` network. Only the API has an external port (bound to `127.0.0.1`).
@@ -96,20 +98,62 @@ All services run in Docker Compose on an isolated `backend` network. Only the AP
 
 ## Route Count
 
-**~50 routes** across 12 endpoint modules + 3 legacy + health + metrics.
+**~85 routes** across 17 endpoint modules + health + 3 legacy.
 
 ## Project Structure
 
 ```
 app/
 ├── api/v1/
-│   ├── endpoints/     # 12 resource modules (auth, pois, prices, bookings, ...)
+│   ├── endpoints/     # 17 resource modules
+│   │   ├── admin.py          # 12 routes
+│   │   ├── auth.py           # 3 routes
+│   │   ├── bookings.py       # 4 routes
+│   │   ├── circuits.py       # 2 routes
+│   │   ├── discover.py       # 2 routes
+│   │   ├── experiences.py    # 7 routes
+│   │   ├── health.py         # 1 route
+│   │   ├── live.py           # 4 routes
+│   │   ├── notifications.py  # 3 routes
+│   │   ├── pois.py           # 6 routes
+│   │   ├── prices.py         # 3 routes
+│   │   ├── reviews.py        # 4 routes
+│   │   ├── stays.py          # 5 routes
+│   │   ├── transport.py      # 7 routes
+│   │   ├── trips.py          # 11 routes
+│   │   ├── users.py          # 6 routes
+│   │   └── wilayas.py        # 2 routes
 │   ├── router.py      # Aggregates all endpoint modules
 │   └── __init__.py
 ├── core/              # config, security (EdDSA), exceptions, i18n, logging
 ├── db/                # session (async engine with pool_timeout + SSL), base, mixins
-├── models/            # 13 SQLAlchemy ORM models
-├── schemas/           # 50+ pydantic schemas
-├── services/          # StorageService, EmbeddingService (ONNX), VectorSearchService
+├── models/            # 22 SQLAlchemy ORM models (18 files)
+│   ├── poi.py              # POI
+│   ├── user.py             # User
+│   ├── wilaya.py           # Wilaya
+│   ├── stay.py             # Stay
+│   ├── experience.py       # Experience
+│   ├── trip.py             # Trip, TripItem
+│   ├── circuit.py          # Circuit, CircuitItem
+│   ├── booking.py          # Booking
+│   ├── review.py           # Review
+│   ├── price_report.py     # PriceReport
+│   ├── live_post.py        # LivePost
+│   ├── notification.py     # Notification
+│   ├── refresh_token.py    # RefreshToken
+│   ├── provider_profile.py # ProviderProfile
+│   ├── traveler_profile.py # AtharTravelerProfile
+│   ├── station.py          # Station, TransportLine, LineStop
+│   ├── local_agency.py     # LocalAgency
+│   └── wilaya_distance.py  # WilayaDistance
+├── schemas/           # ~78 pydantic schemas (19 files)
+│   ├── admin.py, auth.py, booking.py, circuit.py, experience.py
+│   ├── health.py, live_post.py, notification.py, poi.py
+│   ├── price_report.py, provider_profile.py, review.py
+│   ├── stay.py, transport.py, trip.py, user.py, wilaya.py
+│   └── __init__.py
+├── services/          # StorageService (MinIO), EmbeddingService (ONNX)
+│                      # VectorSearchService (Qdrant), TransitRoutingService
+│                      # TransportService, TripOptimizer
 └── main.py            # App factory, lifespan, middleware stack, error handlers
 ```

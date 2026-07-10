@@ -1,115 +1,128 @@
 # API Layer
 
-## Route Inventory (76 routes)
+## Route Inventory (~85 routes)
 
 ```
 # Public
-GET    /api/v1/health                       # Health check
+GET    /api/v1/health                          # Health check
 
 # Auth
-POST   /api/v1/auth/send-otp                # Passwordless OTP
-POST   /api/v1/auth/verify-otp              # Login
-POST   /api/v1/auth/refresh                 # Rotate tokens
+POST   /api/v1/auth/send-otp                   # Passwordless OTP
+POST   /api/v1/auth/verify-otp                 # Login
+POST   /api/v1/auth/refresh                    # Rotate tokens
 
 # Wilayas
-GET    /api/v1/wilayas                      # List 69 wilayas
-GET    /api/v1/wilayas/{wilaya_id}          # Single wilaya
+GET    /api/v1/wilayas                         # List 69 wilayas
+GET    /api/v1/wilayas/{wilaya_id}             # Single wilaya
 
 # POIs
-POST   /api/v1/pois                         # Create POI (auth)
-GET    /api/v1/pois                         # List POIs (filters, sort)
-GET    /api/v1/pois/search                  # Semantic search via Qdrant
-GET    /api/v1/pois/{poi_id}                # POI detail with average_score + total_reviews
-POST   /api/v1/pois/{poi_id}/photo          # Upload POI photo (admin)
-DELETE /api/v1/pois/{poi_id}                # Delete POI (admin)
+POST   /api/v1/pois                            # Create POI (auth)
+GET    /api/v1/pois                            # List POIs (filters, sort)
+GET    /api/v1/pois/search                     # Semantic search via Qdrant
+GET    /api/v1/pois/{poi_id}                   # POI detail with average_score + total_reviews
+POST   /api/v1/pois/{poi_id}/photo             # Upload POI photo (admin)
+DELETE /api/v1/pois/{poi_id}                   # Delete POI (admin)
 
 # Price Reports
-POST   /api/v1/prices                       # Create price report (auth)
-GET    /api/v1/prices                       # List price reports
-GET    /api/v1/prices/estimate              # Fair price engine
+POST   /api/v1/prices                          # Create price report (auth)
+GET    /api/v1/prices                          # List price reports
+GET    /api/v1/prices/estimate                 # Fair price engine
 
 # Reviews
-POST   /api/v1/reviews                      # Create review (auth, one per user per POI)
-GET    /api/v1/reviews                      # List reviews
-GET    /api/v1/reviews/ratings/{poi_id}     # Rating distribution
-DELETE /api/v1/reviews/{review_id}          # Delete review (author/admin)
+POST   /api/v1/reviews                         # Create review (auth, one per user per POI)
+GET    /api/v1/reviews                         # List reviews
+GET    /api/v1/reviews/ratings/{poi_id}        # Rating distribution
+DELETE /api/v1/reviews/{review_id}             # Delete review (author/admin)
 
 # Live Posts
-POST   /api/v1/live/posts                   # Create live post (auth, with photo upload)
-GET    /api/v1/live/posts                   # List live posts (filters)
-GET    /api/v1/live/posts/{post_id}         # Single live post
-DELETE /api/v1/live/posts/{post_id}         # Delete (author/admin)
+POST   /api/v1/live/posts                      # Create live post (auth, with photo upload)
+GET    /api/v1/live/posts                      # List live posts (filters)
+GET    /api/v1/live/posts/{post_id}            # Single live post
+DELETE /api/v1/live/posts/{post_id}            # Delete (author/admin)
 
 # Users
-GET    /api/v1/users/me                     # Current user profile
-PUT    /api/v1/users/me                     # Update profile
-PUT    /api/v1/users/me/role                # Switch role
-PUT    /api/v1/users/me/profile             # Update provider profile
-GET    /api/v1/users/providers              # List providers (role=guide/agency/hotel)
-GET    /api/v1/users/providers/{user_id}    # Single provider detail
+GET    /api/v1/users/me                        # Current user profile
+PUT    /api/v1/users/me                        # Update profile
+PUT    /api/v1/users/me/role                   # Switch role
+PUT    /api/v1/users/me/profile                # Update provider profile
+GET    /api/v1/users/providers                 # List providers (role=guide/agency/hotel)
+GET    /api/v1/users/providers/{user_id}       # Single provider detail
 
 # Experiences
-POST   /api/v1/experiences                  # Create experience (auth, provider role)
-GET    /api/v1/experiences                  # List experiences (filters, sort)
-GET    /api/v1/experiences/search           # Semantic search via Qdrant
-GET    /api/v1/experiences/{experience_id}  # Experience detail
-PUT    /api/v1/experiences/{experience_id}  # Update (author only)
-DELETE /api/v1/experiences/{experience_id}  # Delete (author/admin)
+POST   /api/v1/experiences                     # Create experience (auth, provider role)
+GET    /api/v1/experiences                     # List experiences (filters, sort)
+GET    /api/v1/experiences/search              # Semantic search via Qdrant
+GET    /api/v1/experiences/{experience_id}     # Experience detail
+PUT    /api/v1/experiences/{experience_id}     # Update (author only)
+DELETE /api/v1/experiences/{experience_id}     # Delete (author/admin)
 POST   /api/v1/experiences/{experience_id}/photos  # Upload photos (author)
 
 # Stays
-POST   /api/v1/stays                        # Create stay (auth, hotel/agency/admin role)
-GET    /api/v1/stays                        # List stays (filters: wilaya, type, price range)
-GET    /api/v1/stays/{stay_id}              # Stay detail
-PUT    /api/v1/stays/{stay_id}              # Update (author only)
-DELETE /api/v1/stays/{stay_id}              # Delete (author/admin)
+POST   /api/v1/stays                           # Create stay (auth, hotel/agency/admin role)
+GET    /api/v1/stays                           # List stays (filters: wilaya, type, price range)
+GET    /api/v1/stays/{stay_id}                 # Stay detail
+PUT    /api/v1/stays/{stay_id}                 # Update (author only)
+DELETE /api/v1/stays/{stay_id}                 # Delete (author/admin)
+
+# Transport Network
+GET    /api/v1/transport/routes/{origin_wilaya_id}/{dest_wilaya_id}  # Inter-city routes
+GET    /api/v1/transport/routes/from/{origin_wilaya_id}              # All routes from wilaya
+GET    /api/v1/transport/stations              # List all stations
+GET    /api/v1/transport/stations/nearby       # Nearby stations (lat/lng/radius)
+GET    /api/v1/transport/lines                 # List transport lines
+GET    /api/v1/transport/plan                  # Route planner (origin,dest,time)
+GET    /api/v1/transport/access/{poi_id}       # Transit access info for a POI
 
 # Bookings
-POST   /api/v1/bookings                     # Create booking request
-GET    /api/v1/bookings                     # List my bookings
-GET    /api/v1/bookings/{booking_id}        # Booking detail
-PUT    /api/v1/bookings/{booking_id}/status  # Confirm/cancel
+POST   /api/v1/bookings                        # Create booking request
+GET    /api/v1/bookings                        # List my bookings
+GET    /api/v1/bookings/{booking_id}           # Booking detail
+PUT    /api/v1/bookings/{booking_id}/status    # Confirm/cancel
 
 # Notifications
-GET    /api/v1/notifications                # List notifications
-PUT    /api/v1/notifications/{id}/read      # Mark read
-PUT    /api/v1/notifications/read-all       # Mark all read
+GET    /api/v1/notifications                   # List notifications
+PUT    /api/v1/notifications/{id}/read         # Mark read
+PUT    /api/v1/notifications/read-all          # Mark all read
 
 # Trips (Trip Dashboard)
-POST   /api/v1/trips                        # Create trip (auth)
-GET    /api/v1/trips                        # List my trips
-GET    /api/v1/trips/{trip_id}              # Trip detail
-PUT    /api/v1/trips/{trip_id}              # Update trip
-DELETE /api/v1/trips/{trip_id}              # Delete trip
-POST   /api/v1/trips/{trip_id}/items        # Add item (poi/experience/stay/restaurant/transport)
-DELETE /api/v1/trips/{trip_id}/items/{item_id}  # Remove item
-PUT    /api/v1/trips/{trip_id}/items/{item_id}  # Reorder / change day
-POST   /api/v1/trips/{trip_id}/optimize     # Route optimization
-GET    /api/v1/trips/brief/{wilaya_id}      # Generate wilaya trip brief
+POST   /api/v1/trips                           # Create trip (auth)
+GET    /api/v1/trips                           # List my trips
+GET    /api/v1/trips/{trip_id}                 # Trip detail
+PUT    /api/v1/trips/{trip_id}                 # Update trip
+DELETE /api/v1/trips/{trip_id}                 # Delete trip
+POST   /api/v1/trips/{trip_id}/items           # Add item
+DELETE /api/v1/trips/{trip_id}/items/{item_id} # Remove item
+PUT    /api/v1/trips/{trip_id}/items/{item_id} # Reorder / change day
+POST   /api/v1/trips/{trip_id}/optimize        # Route optimization
+GET    /api/v1/trips/brief/{wilaya_id}         # Generate wilaya trip brief
 POST   /api/v1/trips/{trip_id}/optimize/send-whatsapp  # Send brief via WhatsApp
 
+# Circuits (pre-seeded itineraries)
+GET    /api/v1/circuits                        # List circuits (filters)
+GET    /api/v1/circuits/{circuit_id}           # Circuit detail with all items
+
 # Discover
-GET    /api/v1/discover/wilayas/{wilaya_id}           # Consolidated view (POIs + experiences + stays)
-GET    /api/v1/discover/experiences/by-poi/{poi_id}   # Find experiences matching a POI
+GET    /api/v1/discover/wilayas/{wilaya_id}    # Consolidated view (POIs + experiences + stays)
+GET    /api/v1/discover/experiences/by-poi/{poi_id}  # Find experiences matching a POI
 
 # Admin Dashboard 🔐
-GET    /api/v1/admin/price-reports          # List reports (filter: verified)
-PUT    /api/v1/admin/price-reports/{id}/verify   # Verify report
-DELETE /api/v1/admin/price-reports/{id}     # Reject & delete report
-GET    /api/v1/admin/users                  # List users (filter: role, verified)
-PUT    /api/v1/admin/users/{id}/role        # Change user role
-PUT    /api/v1/admin/users/{id}/verify      # Toggle user verified
-GET    /api/v1/admin/providers              # List provider profiles
-PUT    /api/v1/admin/providers/{id}/approve # Approve provider
-DELETE /api/v1/admin/reviews/{id}           # Delete any review
-DELETE /api/v1/admin/live-posts/{id}        # Delete any live post
+GET    /api/v1/admin/price-reports             # List reports (filter: verified)
+PUT    /api/v1/admin/price-reports/{id}/verify # Verify report
+DELETE /api/v1/admin/price-reports/{id}        # Reject & delete report
+GET    /api/v1/admin/users                     # List users (filter: role, verified)
+PUT    /api/v1/admin/users/{id}/role           # Change user role
+PUT    /api/v1/admin/users/{id}/verify         # Toggle user verified
+GET    /api/v1/admin/providers                 # List provider profiles
+PUT    /api/v1/admin/providers/{id}/approve    # Approve provider
+DELETE /api/v1/admin/reviews/{id}              # Delete any review
+DELETE /api/v1/admin/live-posts/{id}           # Delete any live post
 PUT    /api/v1/admin/live-posts/{id}/moderate  # Mark post as moderated
-DELETE /api/v1/admin/experiences/{id}       # Delete any experience
+DELETE /api/v1/admin/experiences/{id}          # Delete any experience
 
 # Legacy (guarded)
-POST   /api/v1/visa/process-passport        # Admin visa checker
-POST   /api/v1/whatsapp/webhook             # WhatsApp bot stub
-POST   /api/v1/studio/refine-video          # Studio media
+POST   /api/v1/visa/process-passport           # Admin visa checker
+POST   /api/v1/whatsapp/webhook                # WhatsApp bot stub
+POST   /api/v1/studio/refine-video             # Studio media
 ```
 
 ## Naming Conventions
