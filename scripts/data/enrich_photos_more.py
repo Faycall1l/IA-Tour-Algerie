@@ -173,8 +173,19 @@ def phase1_sparql(conn, cur):
 
 # ── Phase 2: Commons API ──
 
-def commons_search(query, retries=3):
-    """Search Commons for best image matching query."""
+IMAGE_EXTENSIONS = (".jpg", ".jpeg", ".png", ".webp", ".gif", ".svg", ".tiff", ".tif")
+
+
+def is_image_url(url):
+    """Check if a URL points to an image file."""
+    parsed = urllib.parse.urlparse(url)
+    path = parsed.path.lower()
+    return any(path.endswith(ext) for ext in IMAGE_EXTENSIONS)
+
+
+def commons_search(query, retries=2):
+    """Search Commons for best image matching query.
+    Only returns actual image files (no PDFs)."""
     headers = {"User-Agent": USER_AGENT}
     for attempt in range(retries):
         params = {
@@ -182,12 +193,12 @@ def commons_search(query, retries=3):
             "list": "search",
             "srsearch": query,
             "srnamespace": 6,
-            "srlimit": 3,
+            "srlimit": 5,
             "format": "json",
         }
         url = f"{COMMONS_API}?{urllib.parse.urlencode(params)}"
         try:
-            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=20) as resp:
+            with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=15) as resp:
                 data = json.loads(resp.read())
         except urllib.error.HTTPError as e:
             if e.code == 429:
@@ -208,7 +219,7 @@ def commons_search(query, retries=3):
             }
             url2 = f"{COMMONS_API}?{urllib.parse.urlencode(params2)}"
             try:
-                with urllib.request.urlopen(urllib.request.Request(url2, headers=headers), timeout=20) as resp2:
+                with urllib.request.urlopen(urllib.request.Request(url2, headers=headers), timeout=15) as resp2:
                     data2 = json.loads(resp2.read())
             except Exception:
                 continue
@@ -220,9 +231,10 @@ def commons_search(query, retries=3):
                 info = page.get("imageinfo", [])
                 if info:
                     i = info[0]
+                    img_url = i.get("url", "")
                     w, h = i.get("width", 0), i.get("height", 0)
-                    if w >= MIN_WIDTH and h >= MIN_HEIGHT:
-                        return i["url"]
+                    if (w >= MIN_WIDTH or h >= MIN_HEIGHT) and is_image_url(img_url):
+                        return img_url
         return None
 
 
@@ -237,7 +249,7 @@ def phase2_commons(conn, cur):
         WHERE (p.photo_urls IS NULL OR p.photo_urls = '{}')
           AND p.name NOT LIKE '%non nommé%'
           AND p.name NOT ILIKE 'unknown%'
-          AND LENGTH(p.name) > 5
+          AND LENGTH(p.name) > 7
           AND p.category IN ('museum', 'beach', 'natural', 'cultural', 'historical')
         ORDER BY p.is_featured DESC, RANDOM()
     """)
@@ -245,10 +257,10 @@ def phase2_commons(conn, cur):
     print(f"Top POIs to photo-find: {len(pois)}")
 
     found = 0
-    total = min(len(pois), 1000)
+    total = min(len(pois), 500)
     for pid, name, category, wilaya in pois[:total]:
         clean = clean_name(name)
-        if len(clean) < 5:
+        if len(clean) < 7:
             continue
         print(f"  [{found+1}/{total}] {clean[:40]:40s}...", end=" ")
         sys.stdout.flush()
@@ -256,6 +268,8 @@ def phase2_commons(conn, cur):
         url = commons_search(f"{clean} {wilaya} Algeria")
         if not url:
             url = commons_search(f"{clean} Algeria")
+        if not url:
+            url = commons_search(f"{clean} Algérie")
         if not url:
             url = commons_search(clean)
 
@@ -270,7 +284,7 @@ def phase2_commons(conn, cur):
         else:
             print("✗")
 
-        time.sleep(1.5 + random.random() * 1.0)
+        time.sleep(1.0 + random.random() * 0.5)
 
     print(f"\n  Phase 2: {found}/{total} photos found")
 
