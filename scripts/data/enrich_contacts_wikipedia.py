@@ -133,7 +133,17 @@ def main():
     db_pois = cur.fetchall()
     print(f"DB POIs: {len(db_pois)}")
 
-    contact_stats = {"phone": 0, "website": 0, "opening_hours": 0, "email": 0}
+    # Ensure social_media column exists
+    cur.execute("""
+        SELECT column_name FROM information_schema.columns
+        WHERE table_name='pois' AND column_name='social_media'
+    """)
+    if not cur.fetchone():
+        cur.execute("ALTER TABLE pois ADD COLUMN social_media JSONB DEFAULT '{}'::jsonb")
+        conn.commit()
+        print("  Added social_media column")
+
+    contact_stats = {"phone": 0, "website": 0, "opening_hours": 0, "email": 0, "facebook": 0, "instagram": 0}
 
     for pid, lat, lon in db_pois:
         if lat is None or lon is None:
@@ -148,8 +158,8 @@ def main():
         updates = []
         vals = []
 
-        # Extract contact fields
-        phone = tags.get("phone")
+        # Extract phone from any phone field
+        phone = tags.get("phone") or tags.get("contact:phone") or tags.get("contact:mobile") or tags.get("mobile")
         if phone:
             phone = normalize_phone(phone)
             if phone:
@@ -157,7 +167,7 @@ def main():
                 vals.append(phone)
                 contact_stats["phone"] += 1
 
-        website = tags.get("website")
+        website = tags.get("website") or tags.get("contact:website")
         if website:
             website = normalize_website(website)
             if website:
@@ -171,11 +181,25 @@ def main():
             vals.append(str(opening_hours)[:200])
             contact_stats["opening_hours"] += 1
 
-        email = tags.get("email")
+        email = tags.get("email") or tags.get("contact:email")
         if email:
             updates.append("email = %s")
             vals.append(str(email)[:200])
             contact_stats["email"] += 1
+
+        # Social media
+        social = {}
+        fb = tags.get("contact:facebook")
+        if fb:
+            social["facebook"] = str(fb)[:300]
+            contact_stats["facebook"] += 1
+        ig = tags.get("contact:instagram")
+        if ig:
+            social["instagram"] = str(ig)[:300]
+            contact_stats["instagram"] += 1
+        if social:
+            updates.append("social_media = social_media || %s::jsonb")
+            vals.append(json.dumps(social))
 
         if updates:
             updates.append("updated_at = NOW()")
@@ -190,6 +214,8 @@ def main():
     print(f"  website: {contact_stats['website']}")
     print(f"  opening_hours: {contact_stats['opening_hours']}")
     print(f"  email: {contact_stats['email']}")
+    print(f"  facebook: {contact_stats['facebook']}")
+    print(f"  instagram: {contact_stats['instagram']}")
 
     # ── Phase B2: Wikipedia Descriptions ──
     print("\n--- Phase B2: Wikipedia Descriptions ---")
