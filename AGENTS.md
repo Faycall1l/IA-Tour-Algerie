@@ -49,6 +49,7 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
   - **Phase A2** (`enrich_photos_more.py`): 4,096 photos from enhanced SPARQL + Commons API fallback (5,174 total)
   - **Names**: 48,580 Arabic/English names extracted from osm_tags
   - **POI↔Experience links**: 167 links via keyword matching in `poi_experiences` junction table
+- **Phase B: Contact data + Wikipedia** (`enrich_contacts_wikipedia.py`): Extracted phone (946), website (89), opening_hours (790), email (103) from source OSM tags; fetched 52 Wikipedia descriptions for POIs with wikipedia tag
 - **App runs without Docker**: API starts and serves all endpoints, gracefully falling back (Qdrant→no vector search, MinIO→no uploads, Redis→in-memory rate limiter)
 - **Spec docs synced**: `database.md` (22 models), `api.md` (85 routes), `architecture.md` (accurate counts), `README.md` (fixed links)
 
@@ -75,7 +76,7 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 5. ⬜ Expand experiences with seasonal/event-based activities
 6. ⬜ Build user-facing frontend or mobile app
 7. ⬜ Add Wikidata scraping for richer POI metadata (opening hours, contacts, websites)
-8. ⬜ Phase B: Wikipedia descriptions, OSM contact extraction, GenAI descriptions
+8. ↪ Phase B: Wikipedia descriptions, OSM contact extraction, GenAI descriptions — phone/website/hours/email extracted from source (up to 946/89/790/103), 52 Wikipedia descriptions fetched. Remaining: extend contact extraction to more POIs, GenAI descriptions.
 9. ⬜ Phase C: TripAdvisor API integration for ratings & reviews
 10. ⬜ Phase D: Q&A per POI, neighborhood browsing, price calendar for experiences
 
@@ -108,3 +109,4 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - `scripts/data/enrich_phase_a.py`: Rankings, price level, duration, POI↔experience links
 - `scripts/data/enrich_photos_bulk.py`: Photo enrichment via Wikidata SPARQL matching
 - `scripts/data/enrich_photos_more.py`: Enhanced photo enrichment (SPARQL + Commons API)
+- `scripts/data/enrich_contacts_wikipedia.py`: Contact data + Wikipedia description extraction
