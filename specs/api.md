@@ -1,6 +1,6 @@
 # API Layer
 
-## Route Inventory (~85 routes)
+## Route Inventory (~88 routes)
 
 ```
 # Public
@@ -102,7 +102,9 @@ GET    /api/v1/circuits                        # List circuits (filters)
 GET    /api/v1/circuits/{circuit_id}           # Circuit detail with all items
 
 # Discover
-GET    /api/v1/discover/wilayas/{wilaya_id}    # Consolidated view (POIs + experiences + stays)
+GET    /api/v1/discover/wilayas                 # List all wilayas with summary stats (counts, highlight POI)
+GET    /api/v1/discover/wilayas/{wilaya_id}    # Consolidated view (all POIs + experiences + stays)
+GET    /api/v1/discover/wilayas/{wilaya_id}/guide  # **Curated guide**: POIs sorted by combined score (accessibility × category × featured), capped top N per category, includes transport access info
 GET    /api/v1/discover/experiences/by-poi/{poi_id}  # Find experiences matching a POI
 
 # Admin Dashboard 🔐

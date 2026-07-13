@@ -252,7 +252,7 @@ class TransitGraph:
                 estimated_minutes=est_min,
                 departure_time=None,
                 arrival_time=None,
-                pricing=pricing_info,
+                pricing=None,
                 schedule=None,
             ))
             i = j

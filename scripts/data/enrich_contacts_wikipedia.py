@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Phase B: Extract contact data + Wikipedia descriptions from source JSON.
+"""Phase B: Contact extraction + Wikipedia description enrichment.
 
-Extracts phone, website, opening_hours, email from tags dict in
-poi_nodes_enriched.json, then fetches Wikipedia descriptions for POIs
-that have a wikipedia tag.
+Phase 1: Extract phone, website, opening_hours, email, social from source tags.
+Phase 2: Fetch Wikipedia extracts for POIs with explicit wikipedia tags.
 """
 
 import json
@@ -23,7 +22,6 @@ DB_CONFIG = {
 }
 
 DATA_DIR = "app/data"
-WIKIPEDIA_API = "https://fr.wikipedia.org/w/api.php"
 USER_AGENT = "ATHAR-Tourism/1.0 (faycal@athar.dz)"
 
 SRC_FIELDS = {
@@ -292,19 +290,24 @@ def main():
             COUNT(*) FILTER (WHERE phone IS NOT NULL AND phone != '') AS with_phone,
             COUNT(*) FILTER (WHERE website IS NOT NULL AND website != '') AS with_website,
             COUNT(*) FILTER (WHERE opening_hours IS NOT NULL AND opening_hours != '') AS with_hours,
-            COUNT(*) FILTER (WHERE email IS NOT NULL AND email != '') AS with_email
+            COUNT(*) FILTER (WHERE email IS NOT NULL AND email != '') AS with_email,
+            COUNT(*) FILTER (WHERE description LIKE '%Source: Wikidata%') AS wd_desc,
+            COUNT(*) FILTER (WHERE description LIKE '%Source: Wikipedia%') AS wp_desc
         FROM pois
     """)
     stats = cur.fetchone()
 
-    print(f"\n=== Final Contact Coverage ===")
+    print(f"\n=== Final Coverage ===")
     print(f"  phone: {stats[0]}")
     print(f"  website: {stats[1]}")
     print(f"  opening_hours: {stats[2]}")
     print(f"  email: {stats[3]}")
+    print(f"  Wikidata descriptions: {stats[4]}")
+    print(f"  Wikipedia descriptions: {stats[5]}")
     print("\nDone!")
 
     conn.close()
+ 
 
 
 if __name__ == "__main__":

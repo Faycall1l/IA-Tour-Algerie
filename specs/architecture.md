@@ -98,7 +98,7 @@ All services run in Docker Compose on an isolated `backend` network. Only the AP
 
 ## Route Count
 
-**~85 routes** across 17 endpoint modules + health + 3 legacy.
+**~88 routes** across 17 endpoint modules + health + 3 legacy.
 
 ## Project Structure
 
