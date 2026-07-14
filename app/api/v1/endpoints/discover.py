@@ -2,7 +2,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
-from sqlalchemy import select, text
+from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
@@ -91,6 +91,63 @@ class DiscoverResponse(BaseModel):
     stays: list[DiscoverStay]
 
 
+class WilayaSummary(BaseModel):
+    id: int
+    name: str
+    description: str | None = None
+    total_pois: int = 0
+    total_featured: int = 0
+    total_experiences: int = 0
+    total_stays: int = 0
+    top_categories: list[str] = []
+    highlight_poi: str | None = None
+    highlight_poi_photo: str | None = None
+    highlight_category: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+
+
+class GuidePOI(BaseModel):
+    id: uuid.UUID
+    name: str
+    name_ar: str | None = None
+    category: str
+    subtype: str | None = None
+    description: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    photo_urls: list[str] | None = None
+    is_featured: bool = False
+    entry_fee_dzd: float | None = None
+    price_level: str | None = None
+    suggested_duration_min: int | None = None
+    average_score: float | None = None
+    total_reviews: int = 0
+    accessibility_score: int | None = None
+    combined_score: float | None = None
+    nearest_station_name: str | None = None
+    distance_to_station_km: float | None = None
+    walking_time_min: int | None = None
+    modes_nearby: list[str] | None = None
+
+
+class GuideCategory(BaseModel):
+    count: int
+    pois: list[GuidePOI]
+
+
+class GuideResponse(BaseModel):
+    wilaya_id: int
+    wilaya_name: str
+    description: str | None = None
+    total_pois: int
+    total_featured: int
+    featured_pois: list[GuidePOI]
+    categories: dict[str, GuideCategory]
+    experiences: list[DiscoverExperience]
+    stays: list[DiscoverStay]
+
+
 class ExperienceFilterPOI(BaseModel):
     experience_id: uuid.UUID
     title: str
@@ -111,11 +168,6 @@ async def list_wilayas(
 
     summaries = []
     for w in wilayas:
-        # POI counts
-        poi_count = await db.scalar(
-            select(POI.id).where(POI.wilaya_id == w.id)
-        )
-        # We'll get actual counts from individual queries
         poi_rows = (
             await db.execute(
                 select(POI.id, POI.is_featured, POI.category, POI.name, POI.photo_url, POI.photo_urls, POI.getting_there)
@@ -158,13 +210,13 @@ async def list_wilayas(
 
         # Experience and stay counts
         exp_count = await db.scalar(
-            select(Experience.id).where(
+            select(func.count(Experience.id)).where(
                 Experience.wilaya_id == w.id, Experience.status == "active"
             )
         )
 
         stay_count = await db.scalar(
-            select(Stay.id).where(
+            select(func.count(Stay.id)).where(
                 Stay.wilaya_id == w.id, Stay.is_active.is_(True)
             )
         )
@@ -314,65 +366,6 @@ async def discover_wilaya(
         experiences=experiences,
         stays=stays,
     )
-
-
-class WilayaSummary(BaseModel):
-    id: int
-    name: str
-    description: str | None = None
-    total_pois: int = 0
-    total_featured: int = 0
-    total_experiences: int = 0
-    total_stays: int = 0
-    top_categories: list[str] = []
-    highlight_poi: str | None = None
-    highlight_poi_photo: str | None = None
-    highlight_category: str | None = None
-    latitude: float | None = None
-    longitude: float | None = None
-
-
-class GuidePOI(BaseModel):
-    id: uuid.UUID
-    name: str
-    name_ar: str | None = None
-    category: str
-    subtype: str | None = None
-    description: str | None = None
-    latitude: float | None = None
-    longitude: float | None = None
-    photo_urls: list[str] | None = None
-    is_featured: bool = False
-    entry_fee_dzd: float | None = None
-    price_level: str | None = None
-    suggested_duration_min: int | None = None
-    average_score: float | None = None
-    total_reviews: int = 0
-    accessibility_score: int | None = None
-    combined_score: float | None = None
-    nearest_station_name: str | None = None
-    distance_to_station_km: float | None = None
-    walking_time_min: int | None = None
-    modes_nearby: list[str] | None = None
-
-
-class GuideCategory(BaseModel):
-    count: int
-    pois: list[GuidePOI]
-
-
-class GuideResponse(BaseModel):
-    wilaya_id: int
-    wilaya_name: str
-    description: str | None = None
-    total_pois: int
-    total_featured: int
-    featured_pois: list[GuidePOI]
-    categories: dict[str, GuideCategory]
-    experiences: list[DiscoverExperience]
-    stays: list[DiscoverStay]
-
-
 @router.get("/wilayas/{wilaya_id}/guide", response_model=GuideResponse)
 async def wilaya_guide(
     wilaya_id: int,
@@ -550,7 +543,7 @@ async def wilaya_guide(
     )
 
 
-@router.get("/experiences/by-poi/{poi_id}")
+@router.get("/experiences/by-poi/{poi_id}", response_model=list[ExperienceFilterPOI])
 async def experiences_by_poi(
     poi_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

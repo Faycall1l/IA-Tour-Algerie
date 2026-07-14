@@ -112,9 +112,17 @@ class TripBriefPOI(BaseModel):
     average_score: float | None
     total_reviews: int
     photo_url: str | None
+    photo_urls: list[str] | None = None
     latitude: float | None
     longitude: float | None
     estimated_transport_cost: str | None
+    is_featured: bool = False
+    accessibility_score: int | None = None
+    combined_score: float | None = None
+    nearest_station_name: str | None = None
+    distance_to_station_km: float | None = None
+    walking_time_min: int | None = None
+    modes_nearby: list[str] | None = None
 
 
 class TripBriefExperience(BaseModel):

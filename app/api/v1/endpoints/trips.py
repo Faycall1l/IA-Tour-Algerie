@@ -156,6 +156,22 @@ async def list_trips(
     )
 
 
+# ── Trip Brief (must be before /{trip_id} to avoid UUID parse) ──
+
+
+@router.get("/brief/{wilaya_id}", response_model=TripBrief)
+async def get_trip_brief(
+    wilaya_id: int,
+    db: AsyncSession = Depends(get_db),
+    brief_generator: TripBriefGenerator = Depends(get_trip_brief_generator),
+):
+    brief = await brief_generator.generate(db, wilaya_id)
+    if not brief:
+        raise NotFoundException(message="Wilaya not found")
+
+    return brief
+
+
 @router.get("/{trip_id}", response_model=TripRead)
 async def get_trip(
     trip_id: uuid.UUID,
@@ -457,17 +473,4 @@ async def optimize_and_send_whatsapp(
     return TripWhatsAppResponse(sent=sent, phone=current_user.phone)
 
 
-# ── Trip Brief ──────────────────────────────────────────────────
 
-
-@router.get("/brief/{wilaya_id}", response_model=TripBrief)
-async def get_trip_brief(
-    wilaya_id: int,
-    db: AsyncSession = Depends(get_db),
-    brief_generator: TripBriefGenerator = Depends(get_trip_brief_generator),
-):
-    brief = await brief_generator.generate(db, wilaya_id)
-    if not brief:
-        raise NotFoundException(message="Wilaya not found")
-
-    return brief

@@ -2,7 +2,7 @@ import math
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.experience import Experience
@@ -246,23 +246,34 @@ class TripBriefGenerator:
         db: AsyncSession,
         wilaya_id: int,
         origin_wilaya_id: int = 1,
+        limit: int = 10,
     ) -> TripBrief | None:
         wilaya = await db.get(Wilaya, wilaya_id)
         if not wilaya:
             return None
 
+        # Fetch top POIs ordered by combined score (same as guide endpoint)
         pois_rows = (
             await db.execute(
                 select(
                     POI.id,
                     POI.name,
                     POI.category,
+                    POI.subtype,
                     POI.photo_url,
+                    POI.photo_urls,
                     POI.latitude,
                     POI.longitude,
+                    POI.is_featured,
+                    POI.getting_there,
                 )
                 .where(POI.wilaya_id == wilaya_id)
-                .limit(5)
+                .order_by(
+                    POI.is_featured.desc().nullslast(),
+                    text("(getting_there->>'combined_score')::float DESC NULLS LAST"),
+                    POI.name,
+                )
+                .limit(limit)
             )
         ).all()
 
@@ -285,6 +296,7 @@ class TripBriefGenerator:
         for row in pois_rows:
             scores = review_scores.get(row.id, [])
             avg = round(sum(scores) / len(scores), 1) if scores else None
+            gt = row.getting_there or {}
 
             transport_cost = None
             if route:
@@ -292,6 +304,10 @@ class TripBriefGenerator:
                 taxi = route.estimate_shared_taxi_cost()
                 label = route.travel_time_label()
                 transport_cost = f"Bus ~{bus:,.0f} DZD | Taxi ~{taxi:,.0f} DZD ({label})"
+
+            photos = [u for u in (row.photo_urls or []) if u] if row.photo_urls else None
+            if not photos and row.photo_url:
+                photos = [row.photo_url]
 
             top_pois.append(
                 TripBriefPOI(
@@ -301,9 +317,17 @@ class TripBriefGenerator:
                     average_score=avg,
                     total_reviews=len(scores),
                     photo_url=row.photo_url,
+                    photo_urls=photos,
                     latitude=row.latitude,
                     longitude=row.longitude,
                     estimated_transport_cost=transport_cost,
+                    is_featured=row.is_featured or False,
+                    accessibility_score=gt.get("accessibility_score"),
+                    combined_score=gt.get("combined_score"),
+                    nearest_station_name=gt.get("nearest_station_name"),
+                    distance_to_station_km=gt.get("distance_km"),
+                    walking_time_min=gt.get("walking_time_min"),
+                    modes_nearby=gt.get("modes_nearby"),
                 )
             )
 
@@ -355,7 +379,13 @@ class TripBriefGenerator:
         tips = []
         if top_pois:
             tips.append(f"Most popular: {top_pois[0].name}")
-            tips.append(f"{len(top_pois)} POIs and {len(top_experiences)} experiences available")
+            featured_count = sum(1 for p in top_pois if p.is_featured)
+            if featured_count:
+                tips.append(f"{featured_count} featured attraction{'s' if featured_count > 1 else ''} in this wilaya")
+            tips.append(f"{len(top_pois)} top POIs and {len(top_experiences)} experiences available")
+            accessible = [p for p in top_pois if p.accessibility_score and p.accessibility_score >= 60]
+            if accessible:
+                tips.append(f"{len(accessible)} POIs within easy reach of public transport")
 
         return TripBrief(
             wilaya_id=wilaya_id,

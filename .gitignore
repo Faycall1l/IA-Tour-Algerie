@@ -47,3 +47,4 @@ app/data/transit_nodes.json
 # Scraping cache
 tmp/
 app/data/*.json
+minio_data/
