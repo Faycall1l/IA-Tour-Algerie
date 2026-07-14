@@ -1,3 +1,5 @@
+import uuid
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
@@ -103,10 +105,27 @@ async def test_review_missing_poi(
     assert resp.status_code == 404
 
 
+@pytest_asyncio.fixture
+async def alt_auth_headers(db) -> list[dict[str, str]]:
+    from app.core.security import create_access_token
+    from app.models.user import User
+
+    headers = []
+    for i in range(5):
+        user = User(id=uuid.uuid4(), phone=f"+21355590{i:04d}")
+        db.add(user)
+        await db.flush()
+        token = create_access_token(str(user.id), user.role)
+        headers.append({"Authorization": f"Bearer {token}"})
+    await db.commit()
+    return headers
+
+
 @pytest.mark.asyncio
 async def test_poi_rating_aggregation(
     client: AsyncClient,
     auth_headers: dict[str, str],
+    alt_auth_headers: list[dict[str, str]],
 ):
     poi = await client.post(
         "/api/v1/pois",
@@ -115,11 +134,11 @@ async def test_poi_rating_aggregation(
     )
     pid = poi.json()["id"]
 
-    for score in [5, 4, 5, 3, 5]:
+    for score, hdr in zip([5, 4, 5, 3, 5], alt_auth_headers):
         await client.post(
             "/api/v1/reviews",
             json={"poi_id": pid, "overall_score": score},
-            headers=auth_headers,
+            headers=hdr,
         )
 
     resp = await client.get(f"/api/v1/reviews/ratings/{pid}")
@@ -127,7 +146,7 @@ async def test_poi_rating_aggregation(
     data = resp.json()
     assert data["total_reviews"] == 5
     assert data["average_score"] == 4.4
-    assert data["distribution"] == {3: 1, 4: 1, 5: 3}
+    assert data["distribution"] == {"3": 1, "4": 1, "5": 3}
 
 
 @pytest.mark.asyncio
@@ -147,7 +166,7 @@ async def test_rating_no_reviews(
     data = resp.json()
     assert data["total_reviews"] == 0
     assert data["average_score"] == 0.0
-    assert data["distribution"] == {1: 0, 2: 0, 3: 0, 4: 0, 5: 0}
+    assert data["distribution"] == {"1": 0, "2": 0, "3": 0, "4": 0, "5": 0}
 
 
 @pytest.mark.asyncio

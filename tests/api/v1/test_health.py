@@ -4,8 +4,8 @@ from httpx import AsyncClient
 
 @pytest.mark.asyncio
 async def test_health_returns_ok(client: AsyncClient):
-    resp = await client.get("/health")
+    resp = await client.get("/api/v1/health")
     assert resp.status_code == 200
     data = resp.json()
     assert data["status"] in ("ok", "degraded")
-    assert data["version"] == "0.2.0"
+    assert data["version"] == "0.3.0"

@@ -37,11 +37,20 @@ async def _recalc_helpfulness(db: AsyncSession, review_id: uuid.UUID) -> int:
 
 
 async def _build_review_read(review: Review, user_name: str) -> ReviewRead:
-    base = ReviewRead.model_validate(review)
     return ReviewRead(
-        **base.model_dump(exclude={"user_name", "sub_ratings"}),
+        id=review.id,
+        user_id=review.user_id,
         user_name=user_name,
+        poi_id=review.poi_id,
+        overall_score=review.overall_score,
+        text=review.text,
+        is_verified=review.is_verified,
         sub_ratings=review.sub_ratings,
+        helpfulness_count=review.helpfulness_count,
+        owner_response=review.owner_response,
+        response_created_at=review.response_created_at,
+        edited_at=review.edited_at,
+        created_at=review.created_at,
     )
 
 

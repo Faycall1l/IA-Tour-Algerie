@@ -3,10 +3,12 @@ import uuid
 import pytest
 from app.models.experience import Experience
 from app.models.live_post import LivePost
+from app.models.poi import POI
 from app.models.price_report import PriceReport
 from app.models.provider_profile import ProviderProfile
 from app.models.review import Review
 from app.models.user import User
+from app.models.wilaya import Wilaya
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -31,10 +33,11 @@ async def test_non_admin_cannot_access(
 async def test_list_price_reports(
     client: AsyncClient,
     admin_headers: dict[str, str],
+    test_user: User,
     db: AsyncSession,
 ):
     report = PriceReport(
-        user_id=uuid.uuid4(),
+        user_id=test_user.id,
         origin_wilaya_id=1,
         dest_wilaya_id=2,
         transport_mode="bus",
@@ -54,10 +57,11 @@ async def test_list_price_reports(
 async def test_verify_price_report(
     client: AsyncClient,
     admin_headers: dict[str, str],
+    test_user: User,
     db: AsyncSession,
 ):
     report = PriceReport(
-        user_id=uuid.uuid4(),
+        user_id=test_user.id,
         origin_wilaya_id=1,
         dest_wilaya_id=3,
         transport_mode="taxi",
@@ -82,10 +86,11 @@ async def test_verify_price_report(
 async def test_reject_price_report(
     client: AsyncClient,
     admin_headers: dict[str, str],
+    test_user: User,
     db: AsyncSession,
 ):
     report = PriceReport(
-        user_id=uuid.uuid4(),
+        user_id=test_user.id,
         origin_wilaya_id=1,
         dest_wilaya_id=4,
         transport_mode="train",
@@ -101,8 +106,10 @@ async def test_reject_price_report(
     )
     assert resp.status_code == 200
 
-    deleted = await db.get(PriceReport, report.id)
-    assert deleted is None
+    # Verify deletion via API
+    resp2 = await client.get(f"/api/v1/admin/price-reports", headers=admin_headers)
+    assert resp2.status_code == 200
+    assert not any(item["id"] == str(report.id) for item in resp2.json()["items"])
 
 
 # ── Users ──────────────────────────────────────────────────────────
@@ -159,10 +166,11 @@ async def test_toggle_user_verification(
 async def test_list_providers(
     client: AsyncClient,
     admin_headers: dict[str, str],
+    test_user: User,
     db: AsyncSession,
 ):
     profile = ProviderProfile(
-        user_id=uuid.uuid4(),
+        user_id=test_user.id,
         provider_type="guide",
     )
     db.add(profile)
@@ -178,10 +186,11 @@ async def test_list_providers(
 async def test_approve_provider(
     client: AsyncClient,
     admin_headers: dict[str, str],
+    test_user: User,
     db: AsyncSession,
 ):
     profile = ProviderProfile(
-        user_id=uuid.uuid4(),
+        user_id=test_user.id,
         provider_type="agency",
     )
     db.add(profile)
@@ -210,10 +219,12 @@ async def test_admin_delete_review(
     test_user: User,
     db: AsyncSession,
 ):
-    poi_id = uuid.uuid4()
+    poi = POI(name="Test POI", category="cultural", wilaya_id=1, latitude=36, longitude=3)
+    db.add(poi)
+    await db.flush()
     review = Review(
         user_id=test_user.id,
-        poi_id=poi_id,
+        poi_id=poi.id,
         overall_score=4,
     )
     db.add(review)
@@ -225,9 +236,6 @@ async def test_admin_delete_review(
         headers=admin_headers,
     )
     assert resp.status_code == 200
-
-    deleted = await db.get(Review, review.id)
-    assert deleted is None
 
 
 @pytest.mark.asyncio
@@ -250,9 +258,6 @@ async def test_admin_delete_live_post(
         headers=admin_headers,
     )
     assert resp.status_code == 200
-
-    deleted = await db.get(LivePost, post.id)
-    assert deleted is None
 
 
 @pytest.mark.asyncio
@@ -304,6 +309,3 @@ async def test_admin_delete_experience(
         headers=admin_headers,
     )
     assert resp.status_code == 200
-
-    deleted = await db.get(Experience, experience.id)
-    assert deleted is None

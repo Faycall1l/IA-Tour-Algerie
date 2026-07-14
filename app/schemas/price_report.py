@@ -7,8 +7,8 @@ from app.models.price_report import TRANSPORT_MODES
 
 
 class PriceReportCreate(BaseModel):
-    origin_wilaya_id: int = Field(..., ge=1, le=58)
-    dest_wilaya_id: int = Field(..., ge=1, le=58)
+    origin_wilaya_id: int = Field(..., ge=1, le=999)
+    dest_wilaya_id: int = Field(..., ge=1, le=999)
     transport_mode: str = Field(..., pattern=f"^({'|'.join(TRANSPORT_MODES)})$")
     price_dzd: float = Field(..., gt=0, le=1_000_000)
 

@@ -12,6 +12,7 @@ async def test_create_post_requires_auth(client: AsyncClient):
 async def test_create_and_list_posts(client: AsyncClient, auth_headers: dict[str, str]):
     resp = await client.post(
         "/api/v1/live/posts",
+        files={"photo": ("test.jpg", b"fake-image-data", "image/jpeg")},
         data={"caption": "Algiers is beautiful!"},
         headers=auth_headers,
     )
@@ -32,6 +33,7 @@ async def test_create_and_list_posts(client: AsyncClient, auth_headers: dict[str
 async def test_get_single_post(client: AsyncClient, auth_headers: dict[str, str]):
     created = await client.post(
         "/api/v1/live/posts",
+        files={"photo": ("test.jpg", b"fake-image-data", "image/jpeg")},
         data={"caption": "Hello from Tizi Ouzou!"},
         headers=auth_headers,
     )

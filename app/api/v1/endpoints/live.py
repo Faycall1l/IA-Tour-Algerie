@@ -49,9 +49,16 @@ async def create_post(
     await db.refresh(post)
 
     return LivePostRead(
-        **LivePostRead.model_validate(post).model_dump(),
+        id=post.id,
+        user_id=post.user_id,
         user_name=current_user.display_name or current_user.phone,
         user_avatar=current_user.avatar_url,
+        photo_url=post.photo_url,
+        caption=post.caption,
+        wilaya_id=post.wilaya_id,
+        poi_id=post.poi_id,
+        is_moderated=post.is_moderated,
+        created_at=post.created_at,
     )
 
 
@@ -83,9 +90,16 @@ async def get_feed(
     for post, display_name, phone, avatar_url in rows:
         items.append(
             LivePostRead(
-                **LivePostRead.model_validate(post).model_dump(),
+                id=post.id,
+                user_id=post.user_id,
                 user_name=display_name or phone,
                 user_avatar=avatar_url,
+                photo_url=post.photo_url,
+                caption=post.caption,
+                wilaya_id=post.wilaya_id,
+                poi_id=post.poi_id,
+                is_moderated=post.is_moderated,
+                created_at=post.created_at,
             )
         )
 
@@ -115,9 +129,16 @@ async def get_post(post_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
     post, display_name, phone, avatar_url = row
     return LivePostRead(
-        **LivePostRead.model_validate(post).model_dump(),
+        id=post.id,
+        user_id=post.user_id,
         user_name=display_name or phone,
         user_avatar=avatar_url,
+        photo_url=post.photo_url,
+        caption=post.caption,
+        wilaya_id=post.wilaya_id,
+        poi_id=post.poi_id,
+        is_moderated=post.is_moderated,
+        created_at=post.created_at,
     )
 
 

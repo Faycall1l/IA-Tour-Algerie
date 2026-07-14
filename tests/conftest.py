@@ -41,6 +41,74 @@ def event_loop():
 async def setup_database():
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    # Seed base data needed by all tests (wilayas)
+    async with test_async_session() as session:
+        from app.models.wilaya import Wilaya
+        wilayas = [
+            (1, "أدرار", "Adrar", "Adrar"),
+            (2, "الشلف", "Chlef", "Chlef"),
+            (3, "الأغواط", "Laghouat", "Laghouat"),
+            (4, "أم البواقي", "Oum El Bouaghi", "Oum El Bouaghi"),
+            (5, "باتنة", "Batna", "Batna"),
+            (6, "بجاية", "Bejaia", "Béjaïa"),
+            (7, "بسكرة", "Biskra", "Biskra"),
+            (8, "بشار", "Bechar", "Béchar"),
+            (9, "البليدة", "Blida", "Blida"),
+            (10, "البويرة", "Bouira", "Bouira"),
+            (11, "تمنراست", "Tamanrasset", "Tamanrasset"),
+            (12, "تبسة", "Tebessa", "Tébessa"),
+            (13, "تلمسان", "Tlemcen", "Tlemcen"),
+            (14, "تيارت", "Tiaret", "Tiaret"),
+            (15, "تيزي وزو", "Tizi Ouzou", "Tizi Ouzou"),
+            (16, "الجزائر", "Algiers", "Alger"),
+            (17, "الجلفة", "Djelfa", "Djelfa"),
+            (18, "جيجل", "Jijel", "Jijel"),
+            (19, "سطيف", "Setif", "Sétif"),
+            (20, "سعيدة", "Saida", "Saïda"),
+            (21, "سكيكدة", "Skikda", "Skikda"),
+            (22, "سيدي بلعباس", "Sidi Bel Abbes", "Sidi Bel Abbès"),
+            (23, "عنابة", "Annaba", "Annaba"),
+            (24, "قالمة", "Guelma", "Guelma"),
+            (25, "قسنطينة", "Constantine", "Constantine"),
+            (26, "المدية", "Medea", "Médéa"),
+            (27, "مستغانم", "Mostaganem", "Mostaganem"),
+            (28, "المسيلة", "M'Sila", "M'Sila"),
+            (29, "معسكر", "Mascara", "Mascara"),
+            (30, "ورقلة", "Ouargla", "Ouargla"),
+            (31, "وهران", "Oran", "Oran"),
+            (32, "البيض", "El Bayadh", "El Bayadh"),
+            (33, "إليزي", "Illizi", "Illizi"),
+            (34, "برج بوعريريج", "Bordj Bou Arreridj", "Bordj Bou Arreridj"),
+            (35, "بومرداس", "Boumerdes", "Boumerdès"),
+            (36, "الطارف", "El Tarf", "El Tarf"),
+            (37, "تندوف", "Tindouf", "Tindouf"),
+            (38, "تيسمسيلت", "Tissemsilt", "Tissemsilt"),
+            (39, "الوادي", "El Oued", "El Oued"),
+            (40, "خنشلة", "Khenchela", "Khenchela"),
+            (41, "سوق أهراس", "Souk Ahras", "Souk Ahras"),
+            (42, "تيبازة", "Tipaza", "Tipaza"),
+            (43, "ميلة", "Mila", "Mila"),
+            (44, "عين الدفلى", "Ain Defla", "Aïn Defla"),
+            (45, "النعامة", "Naama", "Naâma"),
+            (46, "عين تموشنت", "Ain Temouchent", "Aïn Témouchent"),
+            (47, "غرداية", "Ghardaia", "Ghardaïa"),
+            (48, "غليزان", "Relizane", "Relizane"),
+            (49, "تيميمون", "Timimoun", "Timimoun"),
+            (50, "بني عباس", "Beni Abbes", "Béni Abbès"),
+            (51, "أين صالح", "Ain Salah", "Aïn Salah"),
+            (52, "أين قزام", "Ain Guezzam", "Aïn Guezzam"),
+            (53, "تقرت", "Touggourt", "Touggourt"),
+            (54, "جانت", "Djanet", "Djanet"),
+            (55, "المغير", "El M'Ghair", "El M'Ghair"),
+            (56, "المنيعة", "El Meniaa", "El Meniaa"),
+            (57, "أولاد جلال", "Ouled Djellal", "Ouled Djellal"),
+            (58, "برج باجي مختار", "Bordj Badji Mokhtar", "Bordj Badji Mokhtar"),
+        ]
+        for wid, ar, en, fr in wilayas:
+            existing = await session.get(Wilaya, wid)
+            if not existing:
+                session.add(Wilaya(id=wid, name_ar=ar, name_en=en, name_fr=fr, latitude=36.0, longitude=3.0))
+        await session.commit()
     yield
     async with test_engine.begin() as conn:
         await conn.run_sync(Base.metadata.drop_all)
@@ -78,7 +146,9 @@ async def client() -> AsyncIterator[AsyncClient]:
 
     from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 
-    app.state.storage = AsyncMock()
+    storage_mock = AsyncMock()
+    storage_mock.upload = AsyncMock(return_value="https://minio.test/uploads/photo.jpg")
+    app.state.storage = storage_mock
     app.state.embedder = AsyncMock()
     app.state.vector_search = AsyncMock()
     app.state.trip_optimizer = TripOptimizer()

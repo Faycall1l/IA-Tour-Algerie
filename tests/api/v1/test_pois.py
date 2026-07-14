@@ -61,7 +61,7 @@ async def test_create_poi_invalid_wilaya(
         },
         headers=auth_headers,
     )
-    assert resp.status_code == 404
+    assert resp.status_code == 422
 
 
 @pytest.mark.asyncio
