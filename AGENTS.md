@@ -55,14 +55,18 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - **Phase 3 bus routes** (`extract_bus_routes_phase3.py`): 4 new OSM route relations (Batna route 03, Tlemcen A42+B42, Jijel الطاهير-جيجل) — 103 new nodes, 292 new edges. New `script/data/compute_poi_accessibility.py` computes for each of 52,997 POIs: nearest station distance, walking time, transport modes nearby, stored in `getting_there` JSONB.
 - **Wilaya Travel Guide** (`GET /api/v1/discover/wilayas` + `GET /api/v1/discover/wilayas/{id}/guide`): Curated per-wilaya POI browsing sorted by combined score (accessibility × 0.4 + category weight × 0.3 + featured bonus × 0.3), capped at top N per category. Includes transport accessibility, experiences, and stays.
 - **App runs without Docker**: API starts and serves all endpoints, gracefully falling back (Qdrant→no vector search, MinIO→no uploads, Redis→in-memory rate limiter)
-- **Spec docs synced**: `database.md` (22 models), `api.md` (85 routes), `architecture.md` (accurate counts), `README.md` (fixed links)
+- **All 126 tests pass** — full suite green after fixing review/live response builders, seed data, schema constraints
+- **Seasonal experiences** (`015_seasonal_experiences_events.py`): Added `season`, `start_date`, `end_date` columns to `experiences`. New index on `season` + CHECK constraint. `seed_seasonal_experiences.py` adds ~400 seasonal/event-based experiences (spring/summer/autumn/winter + fixed-date events) across all 58 wilayas.
+- **Events API**: New `Event` SQLAlchemy model for existing raw `events` table (40 festivals). `GET /api/v1/events` (filter by wilaya/category/month) + `GET /api/v1/events/{id}`. Read-only calendar endpoints.
+- **Season filter on experiences**: `GET /api/v1/experiences?season=spring` filters by season.
 
 ### Blocked
 - **Wasly.app REST API** is partner-only (B2B request required) — bus data publicly unavailable
 - **Wasly SNTF schedule API** returns 404 without authentication
 - **SNTF.dz website** times out via curl (Joomla site, server-side rendering only)
 - **No GTFS feeds** for any Algerian city
-- **Docker daemon unavailable** — Qdrant vector search indexing requires `docker compose up` to start Qdrant container
+- **Docker daemon unavailable** — Qdrant vector search, MinIO uploads, Redis persistence need Docker
+- **Seasonal seed script** needs `docker compose up` + `alembic upgrade head` before running `seed_seasonal_experiences.py`
 
 ## Key Decisions
 - OSM POI extraction uses bounding box queries per wilaya (center ±radius) — 53,948 POIs across all 58 wilayas
@@ -74,25 +78,26 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 
 ## Next Steps
 1. **⬅️ Start Docker** (`docker compose up -d qdrant`) and run the app — Qdrant auto-indexes POIs/experiences at startup for vector search
-2. **⬅️ Migrate Wikimedia photos to MinIO** — currently stored as direct Commons URLs; move to MinIO when Docker is up
-3. **⬅️ More photos for remaining historical/cultural POIs**: 4,738 POIs now have photos (9.1%) — bulk via SPARQL + Wikipedia API; remaining ~48K have no matching Commons/Wikipedia content
-4. **⬅️ line_stops seeded**: 18,774 rows, transit graph fully loads from DB. `pricing_info` NameError + missing DB columns fixed.
-5. **⬅️ Phase 3 bus routes**: Batna (route 03), Tlemcen (A42+B42, 125 stops), Jijel (1 route). 103 new nodes, 292 new edges.
-6. **⬅️ POI accessibility computed**: All 52,997 POIs have `getting_there` data (nearest station, distance, modes). Stored in DB.
-7. **⬅️ Wilaya Travel Guide**: `GET /api/v1/discover/wilayas` (index) + `GET /api/v1/discover/wilayas/{id}/guide` (curated per-wilaya POI list sorted by combined accessibility/featured/category score).
-8. ⬜ Expand experiences with seasonal/event-based activities
-9. ⬜ Build user-facing frontend or mobile app
-10. ⬜ Phase C: TripAdvisor API integration for ratings & reviews
-11. ⬜ Phase D: Q&A per POI, neighborhood browsing, price calendar for experiences
+2. **⬅️ Migrate Wikimedia photos to MinIO** — stored as Commons URLs; move to MinIO when Docker is up
+3. **⬅️ line_stops seeded**: 18,774 rows, transit graph fully loads from DB.
+4. **⬅️ Phase 3 bus routes**: Batna (route 03), Tlemcen (A42+B42, 125 stops), Jijel (1 route). 103 new nodes, 292 new edges.
+5. **⬅️ POI accessibility computed**: All 52,997 POIs have `getting_there` data (nearest station, distance, modes).
+6. **⬅️ Wilaya Travel Guide**: `GET /api/v1/discover/wilayas` + `GET /api/v1/discover/wilayas/{id}/guide`.
+7. **⬅️ All 126 tests pass** — full suite green.
+8. **⬅️ Seasonal experiences**: ~400 new experiences with season/start_date/end_date. Events API (read-only calendar, 40 festivals).
+9. ⬜ Phase D: Q&A per POI, neighborhood browsing, price calendar for experiences
+10. ⬜ More photos: migrate Wikimedia→MinIO, bulk Commons fetch for remaining historical/cultural POIs
+11. ⬜ Build user-facing frontend or mobile app
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
 - All tourism tables now populated with real OSM and curated data
-- API endpoints at `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/bookings`, `/reviews`, `/trips` all return data
-- POI responses now include TripAdvisor-style fields: ranking (#X of Y), price_level ($/$$/$$$/Free), suggested_duration_min, photo_urls[], subtype, name_ar/name_en, is_featured, average_score, total_reviews
+- API endpoints at `/api/v1/pois`, `/stays`, `/experiences`, `/events`, `/discover`, `/bookings`, `/reviews`, `/trips` all return data
+- POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls[], subtype, name_ar/name_en, is_featured, average_score, total_reviews
 - Vector search (Qdrant) configured but needs Docker running to work
 - App has trip optimizer combining POIs + transport + stays + restaurants + experiences
-- Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `enrich_poi_descriptions.py`
+- **18 endpoint modules, ~97 routes, 26 ORM models (21 files), ~90 Pydantic schemas (20 files)**
+- Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `seed_seasonal_experiences.py`, `enrich_poi_descriptions.py`
 
 ## Relevant Files
 - `app/data/poi_nodes_enriched.json`: 53,948 standalone POI nodes
@@ -117,3 +122,8 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - `scripts/data/enrich_photos_bulk.py`: Photo enrichment via Wikidata SPARQL matching
 - `scripts/data/enrich_photos_more.py`: Enhanced photo enrichment (SPARQL + Commons API)
 - `scripts/data/enrich_contacts_wikipedia.py`: Contact data + Wikipedia description extraction
+- `scripts/data/seed_seasonal_experiences.py`: ~400 seasonal/event-based experiences across 58 wilayas
+- `alembic/versions/015_seasonal_experiences_events.py`: Migration for season/start_date/end_date on experiences
+- `app/models/event.py`: Event model for existing events table
+- `app/schemas/event.py`: EventRead/EventFeed schemas
+- `app/api/v1/endpoints/events.py`: Events API endpoints (list + detail, read-only)

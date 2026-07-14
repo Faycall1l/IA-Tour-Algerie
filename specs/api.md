@@ -1,6 +1,6 @@
 # API Layer
 
-## Route Inventory (~93 routes)
+## Route Inventory (~97 routes)
 
 ```
 # Public
@@ -51,9 +51,13 @@ PUT    /api/v1/users/me/profile                # Update provider profile
 GET    /api/v1/users/providers                 # List providers (role=guide/agency/hotel)
 GET    /api/v1/users/providers/{user_id}       # Single provider detail
 
+# Events (read-only calendar)
+GET    /api/v1/events                          # List events (filters: wilaya, category, month)
+GET    /api/v1/events/{event_id}               # Event detail
+
 # Experiences
 POST   /api/v1/experiences                     # Create experience (auth, provider role)
-GET    /api/v1/experiences                     # List experiences (filters, sort)
+GET    /api/v1/experiences                     # List experiences (filters: wilaya, category, season, provider, status)
 GET    /api/v1/experiences/search              # Semantic search via Qdrant
 GET    /api/v1/experiences/{experience_id}     # Experience detail
 PUT    /api/v1/experiences/{experience_id}     # Update (author only)

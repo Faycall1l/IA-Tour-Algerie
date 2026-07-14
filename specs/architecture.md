@@ -95,19 +95,20 @@ All services except MinIO (standalone) run in Docker Compose on an isolated `bac
 
 ## Route Count
 
-**~93 routes** across 17 endpoint modules + health + 3 legacy.
+**~97 routes** across 18 endpoint modules + health + 3 legacy.
 
 ## Project Structure
 
 ```
 app/
 ├── api/v1/
-│   ├── endpoints/     # 17 resource modules
+│   ├── endpoints/     # 18 resource modules
 │   │   ├── admin.py          # 12 routes
 │   │   ├── auth.py           # 3 routes
 │   │   ├── bookings.py       # 4 routes
 │   │   ├── circuits.py       # 2 routes
 │   │   ├── discover.py       # 4 routes
+│   │   ├── events.py         # 2 routes
 │   │   ├── experiences.py    # 7 routes
 │   │   ├── health.py         # 1 route
 │   │   ├── live.py           # 4 routes
@@ -124,7 +125,7 @@ app/
 │   └── __init__.py
 ├── core/              # config, security (EdDSA), exceptions, i18n, logging
 ├── db/                # session (async engine with pool_timeout + SSL), base, mixins
-├── models/            # 25 SQLAlchemy ORM models (20 files)
+├── models/            # 26 SQLAlchemy ORM models (21 files)
 │   ├── poi.py              # POI
 │   ├── user.py             # User
 │   ├── wilaya.py           # Wilaya
@@ -145,10 +146,10 @@ app/
 │   ├── wilaya_distance.py  # WilayaDistance
 │   ├── poi_experience.py   # POI↔Experience junction
 │   └── event.py            # Event
-├── schemas/           # ~85 pydantic schemas (19 files)
-│   ├── admin.py, auth.py, booking.py, circuit.py, experience.py
-│   ├── health.py, live_post.py, notification.py, poi.py
-│   ├── price_report.py, provider_profile.py, review.py
+├── schemas/           # ~90 pydantic schemas (20 files)
+│   ├── admin.py, auth.py, booking.py, circuit.py, event.py
+│   ├── experience.py, health.py, live_post.py, notification.py
+│   ├── poi.py, price_report.py, provider_profile.py, review.py
 │   ├── stay.py, transport.py, trip.py, user.py, wilaya.py
 │   └── __init__.py
 ├── services/          # StorageService (MinIO), EmbeddingService (ONNX)

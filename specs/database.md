@@ -26,7 +26,7 @@ engine = create_async_engine(
 - `pool_timeout=30` prevents infinite waits under load.
 - SSL support via `?sslmode=require` in connection URL → `connect_args["ssl"]` activates.
 
-## Models
+## Models (26 SQLAlchemy ORM models across 21 files)
 
 ### User (`users`)
 | Column | Type | Notes |
@@ -144,7 +144,7 @@ Indexes: `(wilaya_id, category)`, `(wilaya_id)`.
 Indexes: `(provider_id)`, `(wilaya_id)`.
 
 ### Experience (`experiences`)
-529 rows, all 69 wilayas covered.
+529+ rows (expanded with ~400 seasonal/event-based experiences via `seed_seasonal_experiences.py`).
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -165,8 +165,13 @@ Indexes: `(provider_id)`, `(wilaya_id)`.
 | what_to_bring | ARRAY(String) | |
 | photos | ARRAY(String) | |
 | status | String(20) | `draft` \| `active` \| `cancelled` |
+| season | String(10) | Nullable, `spring` \| `summer` \| `autumn` \| `winter`, CHECK |
+| start_date | Date | Nullable, for event-based experiences |
+| end_date | Date | Nullable, for event-based experiences |
 | created_at | DateTime(tz) | |
 | updated_at | DateTime(tz) | |
+
+Indexes: `(provider_id)`, `(wilaya_id, category)`, `(season)`.
 
 ### Booking (`bookings`)
 | Column | Type | Notes |
@@ -511,3 +516,4 @@ Pre-computed distances between all 69×69 wilaya pairs.
 | 012 | Seed wilaya distances | Pre-computed 69×69 distances |
 | 013 | Stations + transport lines | Station, TransportLine, LineStop tables |
 | 014 | Review enhancements | sub_ratings, helpfulness_count, owner_response on reviews; ReviewVote table |
+| 015 | Seasonal experiences | season, start_date, end_date on experiences; season index + CHECK |
