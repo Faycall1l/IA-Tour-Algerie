@@ -79,36 +79,45 @@ engine = create_async_engine(
 | name | String(200) | |
 | name_ar | String(200) | Arabic name |
 | name_en | String(200) | English name |
-| description | Text | |
 | category | String(50) | CHECK: `historical`, `natural`, `cultural`, `religious`, `museum`, `beach`, `mountain`, `park`, `market`, `restaurant`, `cafe`, `other` |
 | subtype | String(100) | E.g. `thermal_spring`, `national_park`, `amphitheatre` |
-| wilaya_id | Integer | FK → wilayas.id |
+| wilaya_id | Integer | FK → wilayas.id, indexed |
 | commune | String(200) | Commune name |
 | latitude | Float | |
 | longitude | Float | |
-| photo_url | Text | Wikimedia Commons URL |
-| entry_fee_dzd | Float | Estimated entry price 0–500 DZD |
+| description | Text | |
+| photo_url | Text | |
+| photo_urls | ARRAY(String) | Array of Wikimedia/MinIO URLs |
+| entry_fee_dzd | Float | Estimated entry price |
+| price_level | String(10) | Free/$/$$/$$$ |
 | website | String(300) | |
 | phone | String(50) | |
 | opening_hours | String(200) | |
 | operator | String(200) | POI operator |
+| cuisine | String(200) | For restaurant POIs |
 | has_parking | Boolean | |
 | has_accessibility | Boolean | Wheelchair access |
-| cuisine | String(200) | For restaurant POIs |
 | historic_civilization | String(100) | Roman, Ottoman, etc. |
-| osm_tags | JSONB | Raw OSM tags |
-| thermal_data | JSONB | Temperature, debit, minerality (for thermal springs) |
 | osm_node_id | BigInt | OSM node ID |
 | osm_type | String(20) | `node` or `way` |
-| featured_order | Integer | Ranking for featured POIs |
+| osm_tags | JSONB | Raw OSM tags |
+| thermal_data | JSONB | Temperature, debit, minerality (for thermal springs) |
 | is_featured | Boolean | Default false |
+| featured_order | Integer | Ranking for featured POIs |
+| ranking_position | Integer | Nullable, per-wilaya×category ranking |
+| ranking_total | Integer | Nullable |
+| suggested_duration_min | Integer | Per-category default (30min–4h) |
+| neighborhood | String(200) | District/quarter |
+| award | String(200) | |
+| getting_there | JSONB | Transit accessibility: nearest_station_name, distance_km, walking_time_min, modes_nearby, accessibility_score, combined_score |
+| trip_type_counts | JSONB | |
 | created_at | DateTime(tz) | |
 | updated_at | DateTime(tz) | |
 
 Indexes: `(wilaya_id, category)`, `(wilaya_id)`.
 
 ### Stay (`stays`)
-999 rows.
+999 rows from OSM hotel/guesthouse/hostel extraction.
 
 | Column | Type | Notes |
 |--------|------|-------|
@@ -210,7 +219,7 @@ Indexes: `(trip_id)`, `(trip_id, day_number)`.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| id | UUID | PK, default gen_random_uuid() |
+| id | UUID | PK |
 | title | String(200) | |
 | description | Text | |
 | duration_days | Integer | CK ≥ 1 |
@@ -229,7 +238,7 @@ Day-by-day items within a circuit.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| id | UUID | PK, gen_random_uuid() |
+| id | UUID | PK |
 | circuit_id | UUID | FK → circuits.id, CASCADE |
 | day_number | Integer | CK ≥ 1 |
 | item_order | Integer | Default 0 |
@@ -245,7 +254,7 @@ Day-by-day items within a circuit.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| id | UUID | PK, gen_random_uuid() |
+| id | UUID | PK |
 | title | String(200) | |
 | wilaya_id | Integer | FK → wilayas.id |
 | category | String(50) | |
@@ -264,7 +273,7 @@ Indexes: `(wilaya_id)`, `(month)`.
 
 | Column | Type | Notes |
 |--------|------|-------|
-| id | UUID | PK, gen_random_uuid() |
+| id | UUID | PK |
 | name | String(200) | |
 | wilaya_id | Integer | FK → wilayas.id |
 | commune_name | String(200) | |
@@ -280,37 +289,72 @@ Indexes: `(wilaya_id)`, `(month)`.
 | created_at | DateTime(tz) | |
 
 ### Review (`reviews`)
+17K rows seeded across 3K POIs (Phase C).
+
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
-| poi_id | UUID | FK → pois.id, CASCADE |
-| user_id | UUID | FK → users.id, **unique per poi_id** |
-| rating | Integer | 1–5, CHECK |
-| comment | Text | |
+| user_id | UUID | FK → users.id |
+| poi_id | UUID | FK → pois.id |
+| overall_score | Float | 1–5, CHECK |
+| text | Text | Nullable, max 2000 chars |
+| sub_ratings | JSONB | TripAdvisor-style breakdown per category |
+| is_verified | Boolean | Default false |
+| helpfulness_count | Integer | Default 0 |
+| owner_response | Text | Nullable, admin/owner reply |
+| response_created_at | DateTime(tz) | Nullable |
+| edited_at | DateTime(tz) | Nullable |
 | created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
+
+**Constraints:** UNIQUE(user_id, poi_id) — one review per user per POI.
+**Indexes:** `(poi_id, overall_score)`.
+
+### ReviewVote (`review_votes`)
+35K votes seeded (Phase C).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| user_id | UUID | FK → users.id, CASCADE |
+| review_id | UUID | FK → reviews.id, CASCADE |
+| helpful | Boolean | True = upvote, False = downvote |
+| created_at | DateTime(tz) | |
+
+**Constraints:** UNIQUE(user_id, review_id) — one vote per user per review.
 
 ### PriceReport (`price_reports`)
+Transport cost crowdsourcing.
+
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
-| poi_id | UUID | FK → pois.id |
+| user_id | UUID | FK → users.id |
+| origin_wilaya_id | Integer | FK → wilayas.id |
+| dest_wilaya_id | Integer | FK → wilayas.id |
 | transport_mode | String(10) | CHECK: `taxi`, `bus`, `train`, `walk`, `car`, `plane` |
-| amount | Integer | DZD |
-| submitted_by | UUID | FK → users.id |
+| price_dzd | Float | |
+| confidence | String(20) | `low` \| `medium` \| `high` |
+| verified_at | String(20) | Timestamp or null |
 | is_verified | Boolean | Default false |
 | created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
 
 ### LivePost (`live_posts`)
+
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
 | user_id | UUID | FK → users.id |
 | caption | String(500) | |
-| image_url | String(500) | |
+| photo_url | String(500) | |
 | wilaya_id | Integer | FK → wilayas.id |
+| poi_id | UUID | FK → pois.id, nullable |
+| is_moderated | Boolean | Default false |
 | created_at | DateTime(tz) | |
 
 ### Notification (`notifications`)
+
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
@@ -324,21 +368,33 @@ Indexes: `(wilaya_id)`, `(month)`.
 | created_at | DateTime(tz) | |
 
 ### ProviderProfile (`provider_profiles`)
-One-to-one with User.
+One-to-one with User. Uses unified `provider_type` field with polymorphic columns based on type.
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
 | user_id | UUID | FK → users.id, unique |
-| service_type | String(20) | `guide`, `agency`, `hotel` |
-| business_name | String(200) | |
+| provider_type | String(20) | `guide`, `agency`, `hotel` |
+| company_name | String(200) | Agency business name |
 | description | Text | |
+| specializations | ARRAY(String) | Guide specialties (e.g. `["hiking", "culture", "desert"]`) |
+| certifications | ARRAY(String) | Guide certifications |
+| service_areas | ARRAY(String) | Wilayas served |
+| max_group_size | Integer | |
+| team_size | Integer | Agency team size |
+| property_name | String(200) | Hotel property name |
+| property_type | String(50) | `hotel`, `riad`, `guesthouse`, `eco_lodge` |
+| amenities | ARRAY(String) | Hotel amenities |
+| price_range_min | Float | |
+| price_range_max | Float | |
+| check_in_time | String(5) | |
+| check_out_time | String(5) | |
+| star_rating | Integer | 1–5 |
+| registration_number | String(100) | License/registration |
 | years_experience | Integer | |
-| license_number | String(100) | |
 | languages | ARRAY(String) | |
-| service_area | String(300) | |
 | website | String(500) | |
-| social_links | JSON | |
+| is_approved | Boolean | Default false |
 | created_at | DateTime(tz) | |
 | updated_at | DateTime(tz) | |
 
@@ -351,9 +407,90 @@ One-to-one with User.
 | created_at | DateTime(tz) | |
 | updated_at | DateTime(tz) | |
 
+### Station (`stations`)
+3,795 rows from transit graph.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| name | String(300) | |
+| name_ar | String(300) | |
+| name_en | String(300) | |
+| station_type | String(50) | `bus_stop`, `train_station`, `tram_stop`, `metro_station`, `cable_car_station`, `ferry_terminal`, `airport`, `taxi_stand` |
+| wilaya_id | Integer | FK → wilayas.id |
+| latitude | Float | |
+| longitude | Float | |
+| osm_node_id | BigInt | |
+| lines | ARRAY(String) | Transport line names serving this station |
+| created_at | DateTime(tz) | |
+
+### TransportLine (`transport_lines`)
+636 rows.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| name | String(200) | |
+| line_type | String(20) | `bus`, `tram`, `train`, `metro`, `cable_car`, `taxi`, `flight`, `ferry`, `intercity_bus` |
+| wilaya_id | Integer | FK → wilayas.id |
+| operator | String(200) | |
+| color | String(7) | |
+| created_at | DateTime(tz) | |
+
+### LineStop (`line_stops`)
+18,774 rows linking stations to lines.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| line_id | UUID | FK → transport_lines.id |
+| station_id | UUID | FK → stations.id |
+| stop_order | Integer | |
+| schedule_info | JSONB | |
+| pricing_info | JSONB | |
+| departure_time | String(5) | |
+| arrival_time | String(5) | |
+| created_at | DateTime(tz) | |
+
+### LocalAgency (`local_agencies`)
+10 rows covering key regions.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| name | String(200) | |
+| name_ar | String(200) | |
+| description | Text | |
+| region | String(100) | |
+| wilaya_ids | ARRAY(Integer) | |
+| services | ARRAY(String) | |
+| phone | String(50) | |
+| website | String(500) | |
+| photo_url | String(500) | |
+| created_at | DateTime(tz) | |
+
+### WilayaDistance (`wilaya_distances`)
+Pre-computed distances between all 69×69 wilaya pairs.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| origin_id | Integer | FK → wilayas.id |
+| dest_id | Integer | FK → wilayas.id |
+| distance_km | Float | |
+| road_distance_km | Float | |
+
+### POI-Experience Junction (`poi_experiences`)
+167 links via keyword matching.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| poi_id | UUID | FK → pois.id |
+| experience_id | UUID | FK → experiences.id |
+
 ## Constraints at DB Level
-- **CHECK constraints** on `role`, `category`, `property_type`, `transport_mode`, `rating`, `status`, `trip_item_type`, `time_slot`, `month`, `duration_days`, `max_guests`, `price_per_night_dzd`.
+- **CHECK constraints** on `role`, `category`, `property_type`, `transport_mode`, `overall_score`, `status`, `item_type`, `time_slot`, `month`, `duration_days`, `max_guests`, `price_per_night_dzd`.
 - **UNIQUE(user_id, poi_id)** on reviews — one review per user per POI.
+- **UNIQUE(user_id, review_id)** on review_votes — one vote per user per review.
 - **FK CASCADE** on all user/POI/experience references.
 
 ## Alembic Migrations
@@ -368,3 +505,9 @@ One-to-one with User.
 | 006 | User roles + providers | Role field, ProviderProfile table |
 | 007 | Experiences | Experiences table + CHECK constraints |
 | 008 | Bookings + Notifications | Bookings + Notifications tables |
+| 009 | Trip Dashboard | Trips, TripItems, Circuits, CircuitItems |
+| 010 | Stays + trip item types | Stays table, CHECK on item_type |
+| 011 | Wilaya distances | WilayaDistance table |
+| 012 | Seed wilaya distances | Pre-computed 69×69 distances |
+| 013 | Stations + transport lines | Station, TransportLine, LineStop tables |
+| 014 | Review enhancements | sub_ratings, helpfulness_count, owner_response on reviews; ReviewVote table |

@@ -1,6 +1,6 @@
 # API Layer
 
-## Route Inventory (~88 routes)
+## Route Inventory (~93 routes)
 
 ```
 # Public
@@ -19,7 +19,7 @@ GET    /api/v1/wilayas/{wilaya_id}             # Single wilaya
 POST   /api/v1/pois                            # Create POI (auth)
 GET    /api/v1/pois                            # List POIs (filters, sort)
 GET    /api/v1/pois/search                     # Semantic search via Qdrant
-GET    /api/v1/pois/{poi_id}                   # POI detail with average_score + total_reviews
+GET    /api/v1/pois/{poi_id}                   # POI detail with average_score + total_reviews + top_reviews
 POST   /api/v1/pois/{poi_id}/photo             # Upload POI photo (admin)
 DELETE /api/v1/pois/{poi_id}                   # Delete POI (admin)
 
@@ -30,8 +30,11 @@ GET    /api/v1/prices/estimate                 # Fair price engine
 
 # Reviews
 POST   /api/v1/reviews                         # Create review (auth, one per user per POI)
-GET    /api/v1/reviews                         # List reviews
+GET    /api/v1/reviews                         # List reviews (sort: recent|highest|lowest|helpful)
 GET    /api/v1/reviews/ratings/{poi_id}        # Rating distribution
+PUT    /api/v1/reviews/{review_id}             # Edit review (author only)
+POST   /api/v1/reviews/{review_id}/vote        # Vote helpful/not-helpful (auth)
+POST   /api/v1/reviews/{review_id}/respond     # Owner/admin response
 DELETE /api/v1/reviews/{review_id}             # Delete review (author/admin)
 
 # Live Posts
@@ -104,7 +107,7 @@ GET    /api/v1/circuits/{circuit_id}           # Circuit detail with all items
 # Discover
 GET    /api/v1/discover/wilayas                 # List all wilayas with summary stats (counts, highlight POI)
 GET    /api/v1/discover/wilayas/{wilaya_id}    # Consolidated view (all POIs + experiences + stays)
-GET    /api/v1/discover/wilayas/{wilaya_id}/guide  # **Curated guide**: POIs sorted by combined score (accessibility × category × featured), capped top N per category, includes transport access info
+GET    /api/v1/discover/wilayas/{wilaya_id}/guide  # Curated guide: POIs sorted by combined score, capped top N per category
 GET    /api/v1/discover/experiences/by-poi/{poi_id}  # Find experiences matching a POI
 
 # Admin Dashboard 🔐
@@ -141,7 +144,7 @@ All list endpoints use cursorless pagination:
 | Param | Default | Max |
 |-------|---------|-----|
 | `page` | 1 | — |
-| `page_size` | 20 | 50 (100 for POIs) |
+| `page_size` | 20 | 50 |
 
 Response includes metadata:
 
@@ -185,20 +188,103 @@ Consistent JSON shape via `AppError` hierarchy:
 2. **SecurityHeadersMiddleware** — adds `X-Content-Type-Options`, `X-Frame-Options`, etc.
 3. **CORS** (`CORSMiddleware`) — explicit origins (not `*`)
 4. **LocaleMiddleware** — detects `Accept-Language` or `?lang=`, stores in `request.state.locale`
-5. **Prometheus** (`prometheus-fastapi-instrumentator`) — metrics at `/metrics`
-6. **ErrorMiddleware** — catches `AppError` → JSON, unhandled → 500 with sanitized stack trace
-7. **Rate limiter** — slowapi with Redis backend (in-memory fallback)
+5. **ErrorMiddleware** — catches `AppError` → JSON, unhandled → 500 with sanitized stack trace
+6. **Rate limiter** — slowapi with Redis backend (in-memory fallback)
 
 ## Request Flow
 
 ```
-Request → TrustedHost → SecurityHeaders → CORS → LocaleMiddleware → Prometheus → ErrorMiddleware → Limiter → Router → Endpoint
+Request → TrustedHost → SecurityHeaders → CORS → LocaleMiddleware → ErrorMiddleware → Limiter → Router → Endpoint
                                                                                                                          │
                                                                                                                   get_db() → async session
                                                                                                                   get_current_user() → JWT decode → DB fetch
                                                                                                                   business logic → DB queries
                                                                                                                   response → Pydantic validation → JSON
 ```
+
+## Review System (Phase C — TripAdvisor-style)
+
+### Schema
+
+```json
+{
+  "id": "uuid",
+  "user_id": "uuid",
+  "user_name": "Karim Bensalem",
+  "poi_id": "uuid",
+  "overall_score": 4.5,
+  "text": "Fascinating piece of history...",
+  "is_verified": true,
+  "sub_ratings": {
+    "preservation": 4.5,
+    "information": 4.0,
+    "atmosphere": 5.0,
+    "value": 4.0
+  },
+  "helpfulness_count": 12,
+  "owner_response": "Thank you for visiting!",
+  "response_created_at": "2026-07-14T...",
+  "edited_at": null,
+  "created_at": "2026-07-10T..."
+}
+```
+
+`sub_ratings` varies by POI category:
+- **Restaurant:** `food_quality`, `service`, `ambiance`, `value`
+- **Museum/Historical:** `exhibits`, `layout`, `information`, `value`
+- **Natural/Beach/Mountain:** `scenery`, `accessibility`, `cleanliness`, `value`
+- **Cultural/Market:** `authenticity`, `experience`, `value`, `accessibility`
+- **Hotel/Stay:** `cleanliness`, `location`, `value`, `service`
+
+### Helpfulness Voting
+
+```
+POST /api/v1/reviews/{review_id}/vote
+Body: {"helpful": true}   # or false
+```
+
+Users cannot vote on their own reviews. One vote per user per review (can toggle).
+
+### Owner Response
+
+```
+POST /api/v1/reviews/{review_id}/respond
+Body: {"response": "Thank you for your feedback!"}
+```
+
+Admin-only (future: POI operator / stay owner).
+
+### Sort Options
+
+`GET /api/v1/reviews?poi_id=...&sort=recent|highest|lowest|helpful`
+
+- `recent` (default) — newest first
+- `highest` — best rated first
+- `lowest` — worst rated first
+- `helpful` — most helpfulness votes first
+
+### POI Detail with Top Reviews
+
+`GET /api/v1/pois/{id}` response includes:
+
+```json
+{
+  "average_score": 4.3,
+  "total_reviews": 8,
+  "top_reviews": [
+    {
+      "id": "...",
+      "user_name": "Karim Bensalem",
+      "overall_score": 5.0,
+      "text": "Absolutely stunning!",
+      "created_at": "...",
+      "helpfulness_count": 4
+    }
+  ]
+}
+```
+
+Top 3 most helpful reviews per POI, shown inline like TripAdvisor's "What people are saying".
 
 ## Discover Endpoints
 
@@ -214,7 +300,7 @@ Request → TrustedHost → SecurityHeaders → CORS → LocaleMiddleware → Pr
     {
       "id": "...",
       "name": "Grande Poste",
-      "category": "landmark",
+      "category": "historical",
       "average_score": 4.5,
       "total_reviews": 12
     }
@@ -238,6 +324,15 @@ Request → TrustedHost → SecurityHeaders → CORS → LocaleMiddleware → Pr
   ]
 }
 ```
+
+### Wilaya Travel Guide
+
+`GET /api/v1/discover/wilayas/{wilaya_id}/guide?top=10` returns curated per-wilaya guide:
+
+- POIs sorted by combined score (`accessibility_score × 0.4 + category_weight × 0.3 + featured_bonus × 0.3`)
+- Capped at top N per category (11 categories)
+- Includes transport access info (`getting_there`), featured status, experiences, stays
+- Category weights: museum=100, cultural=90, historical=85, natural=80, beach=75, park=70, mountain=65, market=60, religious=55, restaurant=50, cafe=40, other=30
 
 ### POI-to-Experience Linking
 
