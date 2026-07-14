@@ -48,3 +48,4 @@ app/data/transit_nodes.json
 tmp/
 app/data/*.json
 minio_data/
+minio_migration_state.json
