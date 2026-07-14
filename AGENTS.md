@@ -7,6 +7,8 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - POIs should connect to the transit graph via walking edges from nearest transport nodes
 - Systematic, scripted approach (like the transit data collection), not manual entry
 - Cover all 58 wilayas progressively, starting with major cities
+- **Algorithms must be simple yet robust and state of the art** — prefer battle-tested approaches over clever hacks
+- **ALWAYS search for existing packages/libraries before implementing anything** — if there's a well-maintained package that solves the problem at scale, use it. Don't reinvent wheels. Check PyPI, npm, crates.io, etc. and prefer packages with 1M+ weekly downloads, active maintenance, and clear docs.
 
 ## Progress
 ### Done
@@ -70,6 +72,12 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - **No GTFS feeds** for any Algerian city
 - **Docker daemon unavailable** — Qdrant vector search, MinIO uploads, Redis persistence need Docker
 - **Seasonal seed script** needs `docker compose up` + `alembic upgrade head` before running `seed_seasonal_experiences.py`
+
+## Engineering Principles
+- **Simple > clever**: State-of-the-art doesn't mean complex. The best solutions are boring, well-understood, and easy to debug.
+- **Library-first**: Before writing any non-trivial logic, search for existing packages. For NLP → spaCy/HuggingFace/transformers; search → Qdrant/pgvector/Meilisearch; routing → OSRM/Valhalla/GraphHopper; geocoding → OpenStreetMap's Nominatim/photon; photos → Wikimedia Commons API/SPARQL; etc.
+- **Scale matters**: Prefer solutions that handle 100K+ records without degradation. If a library handles batching, streaming, or connection pooling, use those features rather than implementing your own.
+- **Fail gracefully**: Every external dependency should have a fallback. If Qdrant is down, fall back to SQL LIKE search. If Redis is down, use in-memory cache. Never crash because a service is unavailable.
 
 ## Key Decisions
 - OSM POI extraction uses bounding box queries per wilaya (center ±radius) — 53,948 POIs across all 58 wilayas
