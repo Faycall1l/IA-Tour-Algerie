@@ -1,9 +1,11 @@
 import uuid
-from datetime import datetime
+from datetime import date, datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.experience import EXPERIENCE_CATEGORIES, EXPERIENCE_STATUSES
+from app.models.experience import EXPERIENCE_CATEGORIES, EXPERIENCE_STATUSES, SEASONS
+
+SEASON_PATTERN = f"^({'|'.join(SEASONS)})$"
 
 
 class ExperienceCreate(BaseModel):
@@ -21,6 +23,9 @@ class ExperienceCreate(BaseModel):
     included: list[str] | None = None
     what_to_bring: list[str] | None = None
     status: str = "draft"
+    season: str | None = Field(None, pattern=SEASON_PATTERN)
+    start_date: date | None = None
+    end_date: date | None = None
 
 
 class ExperienceUpdate(BaseModel):
@@ -37,6 +42,9 @@ class ExperienceUpdate(BaseModel):
     included: list[str] | None = None
     what_to_bring: list[str] | None = None
     status: str | None = Field(None, pattern=f"^({'|'.join(EXPERIENCE_STATUSES)})$")
+    season: str | None = Field(None, pattern=SEASON_PATTERN)
+    start_date: date | None = None
+    end_date: date | None = None
 
 
 class ExperienceRead(BaseModel):
@@ -59,6 +67,9 @@ class ExperienceRead(BaseModel):
     what_to_bring: list[str] | None
     photos: list[str] | None
     status: str
+    season: str | None
+    start_date: date | None
+    end_date: date | None
     created_at: datetime
     updated_at: datetime | None
 

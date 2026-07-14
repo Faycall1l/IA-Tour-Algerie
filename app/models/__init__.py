@@ -1,4 +1,5 @@
 from app.models.booking import Booking
+from app.models.event import Event
 from app.models.experience import Experience
 from app.models.live_post import LivePost
 from app.models.local_agency import LocalAgency
@@ -22,6 +23,7 @@ __all__ = [
     "LocalAgency",
     "AtharTravelerProfile",
     "Booking",
+    "Event",
     "Experience",
     "LivePost",
     "Notification",

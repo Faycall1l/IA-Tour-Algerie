@@ -6,6 +6,7 @@ from app.api.v1.endpoints import (
     bookings,
     circuits,
     discover,
+    events,
     experiences,
     health,
     live,
@@ -25,6 +26,7 @@ router.include_router(admin.router)
 router.include_router(health.router)
 router.include_router(auth.router)
 router.include_router(discover.router)
+router.include_router(events.router)
 router.include_router(live.router)
 router.include_router(pois.router)
 router.include_router(prices.router)

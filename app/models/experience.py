@@ -1,4 +1,6 @@
-from sqlalchemy import ARRAY, CheckConstraint, Float, ForeignKey, Index, Integer, String, Text
+from datetime import date as date_type
+
+from sqlalchemy import ARRAY, CheckConstraint, Date, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -17,6 +19,7 @@ EXPERIENCE_CATEGORIES = (
     "other",
 )
 EXPERIENCE_STATUSES = ("draft", "active", "cancelled")
+SEASONS = ("spring", "summer", "autumn", "winter")
 
 
 class Experience(UUIDPkMixin, TimestampMixin, Base):
@@ -25,8 +28,10 @@ class Experience(UUIDPkMixin, TimestampMixin, Base):
     __table_args__ = (
         Index("ix_experiences_provider", "provider_id"),
         Index("ix_experiences_wilaya_category", "wilaya_id", "category"),
+        Index("ix_experiences_season", "season"),
         CheckConstraint(f"category IN {EXPERIENCE_CATEGORIES}", name="ck_experience_category"),
         CheckConstraint(f"status IN {EXPERIENCE_STATUSES}", name="ck_experience_status"),
+        CheckConstraint(f"season IS NULL OR season IN {SEASONS}", name="ck_experience_season"),
     )
 
     provider_id: Mapped[str] = mapped_column(
@@ -52,3 +57,7 @@ class Experience(UUIDPkMixin, TimestampMixin, Base):
     photos: Mapped[list[str] | None] = mapped_column(ARRAY(String(500)), nullable=True)
 
     status: Mapped[str] = mapped_column(String(20), default="draft")
+
+    season: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    start_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
+    end_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
