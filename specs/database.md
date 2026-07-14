@@ -26,7 +26,7 @@ engine = create_async_engine(
 - `pool_timeout=30` prevents infinite waits under load.
 - SSL support via `?sslmode=require` in connection URL → `connect_args["ssl"]` activates.
 
-## Models (26 SQLAlchemy ORM models across 21 files)
+## Models (29 SQLAlchemy ORM models across 24 files)
 
 ### User (`users`)
 | Column | Type | Notes |
@@ -253,6 +253,50 @@ Day-by-day items within a circuit.
 | notes | Text | |
 | created_at | DateTime(tz) | |
 | updated_at | DateTime(tz) | |
+
+### DiscussionThread (`discussion_threads`)
+Polymorphic Q&A threads attached to any entity (POI, experience, stay).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| entity_type | String(20) | `poi` \| `experience` \| `stay`, CHECK |
+| entity_id | UUID | FK to the respective entity |
+| title | String(200) | Nullable |
+| created_by | UUID | FK → users.id |
+| created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
+
+Indexes: `(entity_type, entity_id)`, `(created_by)`.
+
+### DiscussionPost (`discussion_posts`)
+Answers within discussion threads, supports threaded replies.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| thread_id | UUID | FK → discussion_threads.id, CASCADE |
+| parent_id | UUID | FK → discussion_posts.id, SET NULL (for threaded replies) |
+| author_id | UUID | FK → users.id, CASCADE |
+| content | Text | |
+| created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
+
+Indexes: `(thread_id)`, `(author_id)`.
+
+### ExperiencePrice (`experience_prices`)
+Per-date pricing calendar for experiences.
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| experience_id | UUID | FK → experiences.id, CASCADE |
+| date | Date | |
+| price_dzd | Float | |
+| available_spots | Integer | Nullable |
+
+**Constraints:** UNIQUE(experience_id, date) — one price per date per experience.
+Indexes: `(experience_id)`, `(date)`.
 
 ### Event (`events`)
 40 seeded festivals/events.
@@ -517,3 +561,4 @@ Pre-computed distances between all 69×69 wilaya pairs.
 | 013 | Stations + transport lines | Station, TransportLine, LineStop tables |
 | 014 | Review enhancements | sub_ratings, helpfulness_count, owner_response on reviews; ReviewVote table |
 | 015 | Seasonal experiences | season, start_date, end_date on experiences; season index + CHECK |
+| 016 | Phase D | discussion_threads, discussion_posts, experience_prices tables; neighborhood index on pois |

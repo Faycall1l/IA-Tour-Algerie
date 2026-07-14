@@ -95,25 +95,27 @@ All services except MinIO (standalone) run in Docker Compose on an isolated `bac
 
 ## Route Count
 
-**~97 routes** across 18 endpoint modules + health + 3 legacy.
+**~108 routes** across 20 endpoint modules + health + 3 legacy.
 
 ## Project Structure
 
 ```
 app/
 ├── api/v1/
-│   ├── endpoints/     # 18 resource modules
+│   ├── endpoints/     # 20 resource modules
 │   │   ├── admin.py          # 12 routes
 │   │   ├── auth.py           # 3 routes
 │   │   ├── bookings.py       # 4 routes
 │   │   ├── circuits.py       # 2 routes
 │   │   ├── discover.py       # 4 routes
+│   │   ├── discussions.py    # 6 routes (Q&A)
 │   │   ├── events.py         # 2 routes
 │   │   ├── experiences.py    # 7 routes
 │   │   ├── health.py         # 1 route
 │   │   ├── live.py           # 4 routes
 │   │   ├── notifications.py  # 3 routes
-│   │   ├── pois.py           # 6 routes
+│   │   ├── pois.py           # 7 routes (+neighborhoods)
+│   │   ├── price_calendar.py # 3 routes
 │   │   ├── prices.py         # 3 routes
 │   │   ├── reviews.py        # 7 routes
 │   │   ├── stays.py          # 5 routes
@@ -125,7 +127,7 @@ app/
 │   └── __init__.py
 ├── core/              # config, security (EdDSA), exceptions, i18n, logging
 ├── db/                # session (async engine with pool_timeout + SSL), base, mixins
-├── models/            # 26 SQLAlchemy ORM models (21 files)
+├── models/            # 29 SQLAlchemy ORM models (24 files)
 │   ├── poi.py              # POI
 │   ├── user.py             # User
 │   ├── wilaya.py           # Wilaya
@@ -145,12 +147,15 @@ app/
 │   ├── local_agency.py     # LocalAgency
 │   ├── wilaya_distance.py  # WilayaDistance
 │   ├── poi_experience.py   # POI↔Experience junction
-│   └── event.py            # Event
-├── schemas/           # ~90 pydantic schemas (20 files)
-│   ├── admin.py, auth.py, booking.py, circuit.py, event.py
-│   ├── experience.py, health.py, live_post.py, notification.py
-│   ├── poi.py, price_report.py, provider_profile.py, review.py
-│   ├── stay.py, transport.py, trip.py, user.py, wilaya.py
+│   ├── event.py            # Event
+│   ├── discussion.py       # DiscussionThread, DiscussionPost (Q&A)
+│   └── experience_price.py # ExperiencePrice (price calendar)
+├── schemas/           # ~97 pydantic schemas (22 files)
+│   ├── admin.py, auth.py, booking.py, circuit.py, discussion.py
+│   ├── event.py, experience.py, experience_price.py, health.py
+│   ├── live_post.py, notification.py, poi.py, price_report.py
+│   ├── provider_profile.py, review.py, stay.py, transport.py
+│   ├── trip.py, user.py, wilaya.py
 │   └── __init__.py
 ├── services/          # StorageService (MinIO), EmbeddingService (ONNX)
 │                      # VectorSearchService (Qdrant), TransitRoutingService

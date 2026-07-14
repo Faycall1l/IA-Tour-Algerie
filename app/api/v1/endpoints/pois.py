@@ -109,10 +109,28 @@ async def upload_poi_photo(
     return items[0]
 
 
+@router.get("/neighborhoods", response_model=list[str])
+async def list_neighborhoods(
+    wilaya_id: int | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    query = select(POI.neighborhood).where(
+        POI.neighborhood.isnot(None),
+        POI.neighborhood != "",
+    ).distinct().order_by(POI.neighborhood)
+
+    if wilaya_id:
+        query = query.where(POI.wilaya_id == wilaya_id)
+
+    result = await db.execute(query)
+    return [row[0] for row in result.all()]
+
+
 @router.get("", response_model=POIFeed)
 async def list_pois(
     wilaya_id: int | None = Query(None),
     category: str | None = Query(None),
+    neighborhood: str | None = Query(None),
     search: str | None = Query(None),
     sort: str | None = Query(None, pattern="^(name|created_at|rating)$"),
     page: int = Query(1, ge=1),
@@ -132,6 +150,8 @@ async def list_pois(
         query = query.where(POI.wilaya_id == wilaya_id)
     if category:
         query = query.where(POI.category == category)
+    if neighborhood:
+        query = query.where(POI.neighborhood.ilike(f"%{neighborhood}%"))
     if search:
         query = query.where(POI.name.ilike(f"%{search}%") | (POI.description.ilike(f"%{search}%")))
 

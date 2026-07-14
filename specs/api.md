@@ -1,6 +1,6 @@
 # API Layer
 
-## Route Inventory (~97 routes)
+## Route Inventory (~108 routes)
 
 ```
 # Public
@@ -16,12 +16,6 @@ GET    /api/v1/wilayas                         # List 69 wilayas
 GET    /api/v1/wilayas/{wilaya_id}             # Single wilaya
 
 # POIs
-POST   /api/v1/pois                            # Create POI (auth)
-GET    /api/v1/pois                            # List POIs (filters, sort)
-GET    /api/v1/pois/search                     # Semantic search via Qdrant
-GET    /api/v1/pois/{poi_id}                   # POI detail with average_score + total_reviews + top_reviews
-POST   /api/v1/pois/{poi_id}/photo             # Upload POI photo (admin)
-DELETE /api/v1/pois/{poi_id}                   # Delete POI (admin)
 
 # Price Reports
 POST   /api/v1/prices                          # Create price report (auth)
@@ -54,6 +48,28 @@ GET    /api/v1/users/providers/{user_id}       # Single provider detail
 # Events (read-only calendar)
 GET    /api/v1/events                          # List events (filters: wilaya, category, month)
 GET    /api/v1/events/{event_id}               # Event detail
+
+# Discussions (Phase D — Q&A per POI/experience/stay)
+POST   /api/v1/discussions                     # Create discussion thread (auth)
+GET    /api/v1/discussions                     # List threads for entity (?entity_type=&entity_id=)
+GET    /api/v1/discussions/{thread_id}         # Thread detail with all posts
+POST   /api/v1/discussions/{thread_id}/posts   # Reply to thread (auth)
+DELETE /api/v1/discussions/{thread_id}         # Delete thread (author/admin)
+DELETE /api/v1/discussions/posts/{post_id}     # Delete post (author/admin)
+
+# Price Calendar (Phase D — per-date pricing for experiences)
+GET    /api/v1/price-calendar/experiences/{experience_id}  # Calendar with min/max/available dates
+POST   /api/v1/price-calendar/experiences/{experience_id}  # Batch set prices (provider only)
+DELETE /api/v1/price-calendar/{price_id}                   # Delete price entry (provider/admin)
+
+# POIs (with neighborhood browsing)
+GET    /api/v1/pois/neighborhoods               # List distinct neighborhoods (?wilaya_id=)
+POST   /api/v1/pois                            # Create POI (auth)
+GET    /api/v1/pois                            # List POIs (filters: wilaya, category, neighborhood, search, sort)
+GET    /api/v1/pois/search                     # Semantic search via Qdrant
+GET    /api/v1/pois/{poi_id}                   # POI detail
+POST   /api/v1/pois/{poi_id}/photo             # Upload POI photo (admin)
+DELETE /api/v1/pois/{poi_id}                   # Delete POI (admin)
 
 # Experiences
 POST   /api/v1/experiences                     # Create experience (auth, provider role)

@@ -1,6 +1,8 @@
 from app.models.booking import Booking
+from app.models.discussion import DiscussionPost, DiscussionThread
 from app.models.event import Event
 from app.models.experience import Experience
+from app.models.experience_price import ExperiencePrice
 from app.models.live_post import LivePost
 from app.models.local_agency import LocalAgency
 from app.models.notification import Notification
@@ -23,8 +25,11 @@ __all__ = [
     "LocalAgency",
     "AtharTravelerProfile",
     "Booking",
+    "DiscussionPost",
+    "DiscussionThread",
     "Event",
     "Experience",
+    "ExperiencePrice",
     "LivePost",
     "Notification",
     "POI",

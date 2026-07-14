@@ -59,6 +59,9 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - **Seasonal experiences** (`015_seasonal_experiences_events.py`): Added `season`, `start_date`, `end_date` columns to `experiences`. New index on `season` + CHECK constraint. `seed_seasonal_experiences.py` adds ~400 seasonal/event-based experiences (spring/summer/autumn/winter + fixed-date events) across all 58 wilayas.
 - **Events API**: New `Event` SQLAlchemy model for existing raw `events` table (40 festivals). `GET /api/v1/events` (filter by wilaya/category/month) + `GET /api/v1/events/{id}`. Read-only calendar endpoints.
 - **Season filter on experiences**: `GET /api/v1/experiences?season=spring` filters by season.
+- **Phase D: Q&A per POI** (`016_phase_d_discussions_prices_neighborhoods.py`): Generic `discussion_threads` + `discussion_posts` tables (polymorphic entity_type/entity_id, supports POIs, experiences, stays). `POST /api/v1/discussions`, `GET /api/v1/discussions?entity_type=&entity_id=`, `GET /api/v1/discussions/{id}`, `POST .../posts`, `DELETE`. Threaded replies via `parent_id`.
+- **Phase D: Price Calendar**: `experience_prices` table (experience_id, date, price_dzd, available_spots, UNIQUE per date). `GET /api/v1/price-calendar/experiences/{id}` returns calendar with min/max/available_dates. `POST` batch set (provider), `DELETE` single entry.
+- **Phase D: Neighborhood browsing**: `GET /api/v1/pois/neighborhoods?wilaya_id=X` lists distinct neighborhoods. `GET /api/v1/pois?neighborhood=X` filters by neighborhood. New index on `pois.neighborhood`.
 
 ### Blocked
 - **Wasly.app REST API** is partner-only (B2B request required) — bus data publicly unavailable
@@ -85,9 +88,11 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 6. **⬅️ Wilaya Travel Guide**: `GET /api/v1/discover/wilayas` + `GET /api/v1/discover/wilayas/{id}/guide`.
 7. **⬅️ All 126 tests pass** — full suite green.
 8. **⬅️ Seasonal experiences**: ~400 new experiences with season/start_date/end_date. Events API (read-only calendar, 40 festivals).
-9. ⬜ Phase D: Q&A per POI, neighborhood browsing, price calendar for experiences
+9. **⬅️ Phase D**: Q&A per POI (polymorphic discussion threads), price calendar for experiences, neighborhood browsing.
 10. ⬜ More photos: migrate Wikimedia→MinIO, bulk Commons fetch for remaining historical/cultural POIs
 11. ⬜ Build user-facing frontend or mobile app
+12. ⬜ Expand price calendar to stays (entity_type pattern)
+13. ⬜ Seed real price calendar data for experiences
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
@@ -127,3 +132,10 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - `app/models/event.py`: Event model for existing events table
 - `app/schemas/event.py`: EventRead/EventFeed schemas
 - `app/api/v1/endpoints/events.py`: Events API endpoints (list + detail, read-only)
+- `alembic/versions/016_phase_d_discussions_prices_neighborhoods.py`: Phase D migration
+- `app/models/discussion.py`: DiscussionThread + DiscussionPost models (polymorphic Q&A)
+- `app/models/experience_price.py`: ExperiencePrice model (price calendar)
+- `app/schemas/discussion.py`: Discussion schemas (thread/post CRUD)
+- `app/schemas/experience_price.py`: Price calendar schemas
+- `app/api/v1/endpoints/discussions.py`: Q&A API endpoints
+- `app/api/v1/endpoints/price_calendar.py`: Price calendar API endpoints

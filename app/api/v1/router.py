@@ -9,9 +9,11 @@ from app.api.v1.endpoints import (
     events,
     experiences,
     health,
+    discussions,
     live,
     notifications,
     pois,
+    price_calendar,
     prices,
     reviews,
     stays,
@@ -25,10 +27,12 @@ router = APIRouter(prefix="/api/v1")
 router.include_router(admin.router)
 router.include_router(health.router)
 router.include_router(auth.router)
+router.include_router(discussions.router)
 router.include_router(discover.router)
 router.include_router(events.router)
 router.include_router(live.router)
 router.include_router(pois.router)
+router.include_router(price_calendar.router)
 router.include_router(prices.router)
 router.include_router(reviews.router)
 router.include_router(users.router)
