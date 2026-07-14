@@ -11,7 +11,7 @@ from app.models.poi import POI
 from app.models.review import Review
 from app.models.user import User
 from app.models.wilaya import Wilaya
-from app.schemas.poi import POICreate, POIFeed, POIRead
+from app.schemas.poi import POICreate, POIFeed, POIRead, TopReview
 from app.services.storage import StorageService
 from app.services.vector_search import VectorSearchService
 
@@ -37,12 +37,33 @@ async def _attach_ratings(db: AsyncSession, pois: list[POI]) -> list[POIRead]:
     for row in await db.execute(ratings_query):
         ratings_map[row.poi_id] = (round(float(row.avg), 1), row.cnt)
 
+    top_reviews_query = (
+        select(Review, User.display_name, User.phone)
+        .join(User, Review.user_id == User.id)
+        .where(Review.poi_id.in_(poi_ids))
+        .order_by(Review.helpfulness_count.desc(), Review.created_at.desc())
+    )
+    top_rows = (await db.execute(top_reviews_query)).all()
+    top_map: dict[uuid.UUID, list[TopReview]] = {}
+    for review, display_name, phone in top_rows:
+        name = display_name or phone
+        tr = TopReview(
+            id=review.id,
+            user_name=name,
+            overall_score=review.overall_score,
+            text=review.text,
+            created_at=review.created_at,
+            helpfulness_count=review.helpfulness_count,
+        )
+        top_map.setdefault(review.poi_id, []).append(tr)
+
     items = []
     for p in pois:
         avg, cnt = ratings_map.get(p.id, (None, 0))
         base = POIRead.model_validate(p)
         base.average_score = avg
         base.total_reviews = cnt
+        base.top_reviews = (top_map.get(p.id) or [])[:3]
         items.append(base)
     return items
 

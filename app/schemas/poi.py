@@ -17,6 +17,15 @@ class POICreate(BaseModel):
     photo_url: str | None = Field(None, max_length=500)
 
 
+class TopReview(BaseModel):
+    id: uuid.UUID
+    user_name: str
+    overall_score: float
+    text: str | None = None
+    created_at: datetime
+    helpfulness_count: int = 0
+
+
 class POIRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -55,6 +64,7 @@ class POIRead(BaseModel):
     updated_at: datetime | None = None
     average_score: float | None = None
     total_reviews: int = 0
+    top_reviews: list[TopReview] | None = None
 
 
 class POIFeed(BaseModel):
