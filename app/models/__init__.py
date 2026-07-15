@@ -1,4 +1,5 @@
 from app.models.booking import Booking
+from app.models.collection import Collection, CollectionItem
 from app.models.discussion import DiscussionPost, DiscussionThread
 from app.models.event import Event
 from app.models.experience import Experience
@@ -25,6 +26,8 @@ __all__ = [
     "LocalAgency",
     "AtharTravelerProfile",
     "Booking",
+    "Collection",
+    "CollectionItem",
     "DiscussionPost",
     "DiscussionThread",
     "Event",

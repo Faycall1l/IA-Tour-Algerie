@@ -5,6 +5,7 @@ from app.api.v1.endpoints import (
     auth,
     bookings,
     circuits,
+    collections,
     discover,
     events,
     experiences,
@@ -48,3 +49,4 @@ router.include_router(transport.router)
 router.include_router(trips.router)
 router.include_router(search.router)
 router.include_router(geojson.router)
+router.include_router(collections.router)
