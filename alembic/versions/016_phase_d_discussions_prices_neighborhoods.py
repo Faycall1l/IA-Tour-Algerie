@@ -1,4 +1,4 @@
-"""016 Phase D: discussions, price calendar, neighborhood index
+"""016 Phase D: discussions, generic price calendar, neighborhood index
 
 Revision ID: 016
 Revises: 015
@@ -46,25 +46,27 @@ def upgrade() -> None:
     op.create_index("ix_discussion_posts_thread", "discussion_posts", ["thread_id"])
     op.create_index("ix_discussion_posts_author", "discussion_posts", ["author_id"])
 
-    # Price calendar for experiences
+    # Generic price calendar (supports experiences + stays via entity_type)
     op.create_table(
-        "experience_prices",
+        "price_calendar",
         sa.Column("id", UUID(as_uuid=True), primary_key=True),
-        sa.Column("experience_id", UUID(as_uuid=True), sa.ForeignKey("experiences.id", ondelete="CASCADE"), nullable=False, index=True),
+        sa.Column("entity_type", sa.String(20), nullable=False),
+        sa.Column("entity_id", UUID(as_uuid=True), nullable=False, index=True),
         sa.Column("date", sa.Date, nullable=False),
         sa.Column("price_dzd", sa.Float, nullable=False),
         sa.Column("available_spots", sa.Integer, nullable=True),
-        sa.UniqueConstraint("experience_id", "date", name="uq_experience_price_date"),
+        sa.CheckConstraint("entity_type IN ('experience', 'stay')", name="ck_pc_entity_type"),
+        sa.UniqueConstraint("entity_type", "entity_id", "date", name="uq_price_calendar_entry"),
     )
-    op.create_index("ix_experience_prices_experience", "experience_prices", ["experience_id"])
-    op.create_index("ix_experience_prices_date", "experience_prices", ["date"])
+    op.create_index("ix_price_calendar_entity", "price_calendar", ["entity_type", "entity_id"])
+    op.create_index("ix_price_calendar_date", "price_calendar", ["date"])
 
     # Neighborhood index on pois for neighborhood browsing
     op.create_index("ix_pois_neighborhood", "pois", ["neighborhood"])
 
 
 def downgrade() -> None:
-    op.drop_table("experience_prices")
+    op.drop_table("price_calendar")
     op.drop_table("discussion_posts")
     op.drop_table("discussion_threads")
     op.drop_index("ix_pois_neighborhood", table_name="pois")

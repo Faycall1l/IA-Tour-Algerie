@@ -1,6 +1,6 @@
 from datetime import date as date_type
 
-from sqlalchemy import Date, Float, ForeignKey, Index, Integer, UniqueConstraint
+from sqlalchemy import CheckConstraint, Date, Float, Integer, String, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -8,18 +8,20 @@ from app.db.base import Base
 from app.db.mixins import UUIDPkMixin
 
 
-class ExperiencePrice(UUIDPkMixin, Base):
-    __tablename__ = "experience_prices"
+SUPPORTED_ENTITY_TYPES = ("experience", "stay")
+
+
+class PriceCalendarEntry(UUIDPkMixin, Base):
+    __tablename__ = "price_calendar"
 
     __table_args__ = (
-        UniqueConstraint("experience_id", "date", name="uq_experience_price_date"),
-        Index("ix_experience_prices_experience", "experience_id"),
-        Index("ix_experience_prices_date", "date"),
+        UniqueConstraint("entity_type", "entity_id", "date", name="uq_price_calendar_entry"),
+        CheckConstraint("entity_type IN ('experience', 'stay')", name="ck_pc_entity_type"),
     )
 
-    experience_id: Mapped[str] = mapped_column(
+    entity_type: Mapped[str] = mapped_column(String(20), nullable=False)
+    entity_id: Mapped[str] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("experiences.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )

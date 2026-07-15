@@ -36,9 +36,12 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - **Transport graph organization** (`organize_transport.py`): taxi edges into 361 named routes, SOGRAL consolidated, 187 inter-city connections added, station line lists populated. **DB seeded**: 3,795 stations + 636 transport lines. Fixed column name mismatch (`station_type` vs `type`).
 - **Missing wilaya fix** (`fix_missing_wilaya.py`): 2,501/2,502 transit nodes assigned correct wilaya via nearest-center + name matching; remaining 10 are international airports/ferries outside Algeria. **DB stations all have wilaya_id** (0 NULLs).
 - **Destination enrichment** (`enrich_wikivoyage.py`, `enrich_descriptions_auto.py`): All 69 wilayas now have French destination descriptions (16 from FR Wikivoyage, 4 EN, 49 auto-generated from OSM data). New `description`/`description_en` columns on `wilayas` table.
-- **POI photo enrichment**: 4,738 POIs have valid Commons/Wikipedia photos (9.1%):
+- **POI photo enrichment**: 8,576 POIs have Commons/Wikipedia photos (16.2%):
   - Phase 1 (`enrich_wikimedia_photos.py`): 131 original photos via Commons search
-  - Phase 2 (`enrich_photos_bulk.py` + `enrich_photos_more.py`): 4,096 via Wikidata SPARQL matching + 511 via Wikipedia API pageimage search
+  - Phase 2 (`enrich_photos_bulk.py` + `enrich_photos_more.py`): 4,096 via Wikidata SPARQL name matching + 511 via Wikipedia pageimage search
+  - Phase 3 (`enrich_photos_spatial.py`): 2,812 via Wikidata SPARQL coordinate proximity (P625+P18) — catches unnamed POIs and OSM/Wikidata name mismatches
+  - Phase 4 (`enrich_photos_remaining.py`): 81 via targeted Commons/Wikipedia search for named historical/cultural POIs
+  - Wikimedia Commons ceiling reached: remaining 44K POIs are unnamed OSM nodes (cafes, generic ruins, shops) without Wikidata counterparts or Commons images
 - **Featured attractions** (`enrich_featured_attractions.py`): 284 POIs across 62 wilayas ranked as featured/must-see based on OSM category + tag importance. New `featured_order`/`is_featured` columns on `pois`.
 - **Pricing & events** (`enrich_pricing_events.py`): All 999 stays now have real estimated pricing (800-15,000 DZD/night by type). 39,102 POIs have entry fees (0-500 DZD). **40 events/festivals** seeded in new `events` table.
 - **Comprehensive POI enrichment** (`enrich_poi_full.py`): All 52,997 POIs enriched from OSM JSON — 100% have subtype, osm_node_id, osm_type, has_parking, has_accessibility; 11,300 with name_en, 4,122 with name_ar, 930 with cuisine, 294 with operator. New columns added: `subtype`, `operator`, `has_parking`, `has_accessibility`, `name_ar`, `name_en`, `osm_node_id`, `osm_type`, `cuisine`.
@@ -62,7 +65,7 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - **Events API**: New `Event` SQLAlchemy model for existing raw `events` table (40 festivals). `GET /api/v1/events` (filter by wilaya/category/month) + `GET /api/v1/events/{id}`. Read-only calendar endpoints.
 - **Season filter on experiences**: `GET /api/v1/experiences?season=spring` filters by season.
 - **Phase D: Q&A per POI** (`016_phase_d_discussions_prices_neighborhoods.py`): Generic `discussion_threads` + `discussion_posts` tables (polymorphic entity_type/entity_id, supports POIs, experiences, stays). `POST /api/v1/discussions`, `GET /api/v1/discussions?entity_type=&entity_id=`, `GET /api/v1/discussions/{id}`, `POST .../posts`, `DELETE`. Threaded replies via `parent_id`.
-- **Phase D: Price Calendar**: `experience_prices` table (experience_id, date, price_dzd, available_spots, UNIQUE per date). `GET /api/v1/price-calendar/experiences/{id}` returns calendar with min/max/available_dates. `POST` batch set (provider), `DELETE` single entry.
+- **Phase D: Price Calendar**: Generic `price_calendar` table (entity_type + entity_id, supports experiences + stays). Routes: `GET /api/v1/price-calendar/{entity_type}/{entity_id}`, `POST` batch set, `DELETE` single entry.
 - **Phase D: Neighborhood browsing**: `GET /api/v1/pois/neighborhoods?wilaya_id=X` lists distinct neighborhoods. `GET /api/v1/pois?neighborhood=X` filters by neighborhood. New index on `pois.neighborhood`.
 
 ### Blocked
@@ -96,11 +99,11 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 6. **⬅️ Wilaya Travel Guide**: `GET /api/v1/discover/wilayas` + `GET /api/v1/discover/wilayas/{id}/guide`.
 7. **⬅️ All 126 tests pass** — full suite green.
 8. **⬅️ Seasonal experiences**: ~400 new experiences with season/start_date/end_date. Events API (read-only calendar, 40 festivals).
-9. **⬅️ Phase D**: Q&A per POI (polymorphic discussion threads), price calendar for experiences, neighborhood browsing.
-10. ⬜ More photos: migrate Wikimedia→MinIO, bulk Commons fetch for remaining historical/cultural POIs
-11. ⬜ Build user-facing frontend or mobile app
-12. ⬜ Expand price calendar to stays (entity_type pattern)
-13. ⬜ Seed real price calendar data for experiences
+9. **⬅️ Phase D**: Q&A per POI (polymorphic discussion threads), generic price calendar (experiences + stays), neighborhood browsing.
+10. **⬅️ Price calendar seed**: 90 days of pricing for 999 stays + 529 experiences, with seasonal + weekend variation.
+11. **⬅️ Photo enrichment (all phases)**: 8,576 POIs with photos (16.2%) — spatial SPARQL matching added 2,812 new photos. Wikimedia Commons ceiling reached for remaining 44K unnamed/generic POIs.
+12. ⬜ Migrate Commons URLs to MinIO when Docker is available
+13. ⬜ Build user-facing frontend or mobile app
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
@@ -132,8 +135,10 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - `scripts/data/organize_transport.py`: Taxi/SOGRAL/inter-city routes + DB seeding
 - `scripts/data/fix_missing_wilaya.py`: Assign wilaya to transit nodes via reverse geocoding
 - `scripts/data/enrich_phase_a.py`: Rankings, price level, duration, POI↔experience links
-- `scripts/data/enrich_photos_bulk.py`: Photo enrichment via Wikidata SPARQL matching
-- `scripts/data/enrich_photos_more.py`: Enhanced photo enrichment (SPARQL + Commons API)
+- `scripts/data/enrich_photos_bulk.py`: Photo enrichment via Wikidata SPARQL matching (Phase 1)
+- `scripts/data/enrich_photos_more.py`: Enhanced photo enrichment — SPARQL + Commons API (Phase 2)
+- `scripts/data/enrich_photos_spatial.py`: Spatial photo enrichment — Wikidata coordinate proximity (Phase 3, +2,812 photos)
+- `scripts/data/enrich_photos_remaining.py`: Targeted Commons/Wikipedia search for remaining named POIs (Phase 4, +81 photos)
 - `scripts/data/enrich_contacts_wikipedia.py`: Contact data + Wikipedia description extraction
 - `scripts/data/seed_seasonal_experiences.py`: ~400 seasonal/event-based experiences across 58 wilayas
 - `alembic/versions/015_seasonal_experiences_events.py`: Migration for season/start_date/end_date on experiences
@@ -142,8 +147,9 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - `app/api/v1/endpoints/events.py`: Events API endpoints (list + detail, read-only)
 - `alembic/versions/016_phase_d_discussions_prices_neighborhoods.py`: Phase D migration
 - `app/models/discussion.py`: DiscussionThread + DiscussionPost models (polymorphic Q&A)
-- `app/models/experience_price.py`: ExperiencePrice model (price calendar)
+- `app/models/price_calendar_entry.py`: PriceCalendarEntry model (generic price calendar)
 - `app/schemas/discussion.py`: Discussion schemas (thread/post CRUD)
-- `app/schemas/experience_price.py`: Price calendar schemas
+- `app/schemas/price_calendar.py`: Generic price calendar schemas
 - `app/api/v1/endpoints/discussions.py`: Q&A API endpoints
-- `app/api/v1/endpoints/price_calendar.py`: Price calendar API endpoints
+- `app/api/v1/endpoints/price_calendar.py`: Price calendar API endpoints (experiences + stays)
+- `scripts/data/seed_price_calendar.py`: Price calendar seed script

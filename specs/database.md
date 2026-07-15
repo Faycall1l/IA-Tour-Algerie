@@ -284,19 +284,21 @@ Answers within discussion threads, supports threaded replies.
 
 Indexes: `(thread_id)`, `(author_id)`.
 
-### ExperiencePrice (`experience_prices`)
-Per-date pricing calendar for experiences.
+### PriceCalendarEntry (`price_calendar`)
+Generic per-date pricing calendar for experiences and stays (polymorphic via entity_type).
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
-| experience_id | UUID | FK → experiences.id, CASCADE |
+| entity_type | String(20) | 'experience' or 'stay' |
+| entity_id | UUID | FK → experiences.id or stays.id |
 | date | Date | |
 | price_dzd | Float | |
 | available_spots | Integer | Nullable |
 
-**Constraints:** UNIQUE(experience_id, date) — one price per date per experience.
-Indexes: `(experience_id)`, `(date)`.
+**Constraints:** UNIQUE(entity_type, entity_id, date) — one price per date per entity.
+**CK:** entity_type IN ('experience', 'stay').
+Indexes: `(entity_type, entity_id)`, `(date)`.
 
 ### Event (`events`)
 40 seeded festivals/events.
@@ -561,4 +563,4 @@ Pre-computed distances between all 69×69 wilaya pairs.
 | 013 | Stations + transport lines | Station, TransportLine, LineStop tables |
 | 014 | Review enhancements | sub_ratings, helpfulness_count, owner_response on reviews; ReviewVote table |
 | 015 | Seasonal experiences | season, start_date, end_date on experiences; season index + CHECK |
-| 016 | Phase D | discussion_threads, discussion_posts, experience_prices tables; neighborhood index on pois |
+| 016 | Phase D | discussion_threads, discussion_posts, price_calendar tables; neighborhood index on pois |

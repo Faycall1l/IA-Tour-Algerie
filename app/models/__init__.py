@@ -2,7 +2,7 @@ from app.models.booking import Booking
 from app.models.discussion import DiscussionPost, DiscussionThread
 from app.models.event import Event
 from app.models.experience import Experience
-from app.models.experience_price import ExperiencePrice
+from app.models.price_calendar_entry import PriceCalendarEntry
 from app.models.live_post import LivePost
 from app.models.local_agency import LocalAgency
 from app.models.notification import Notification
@@ -29,7 +29,7 @@ __all__ = [
     "DiscussionThread",
     "Event",
     "Experience",
-    "ExperiencePrice",
+    "PriceCalendarEntry",
     "LivePost",
     "Notification",
     "POI",

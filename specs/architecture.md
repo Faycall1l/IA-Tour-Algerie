@@ -149,10 +149,10 @@ app/
 │   ├── poi_experience.py   # POI↔Experience junction
 │   ├── event.py            # Event
 │   ├── discussion.py       # DiscussionThread, DiscussionPost (Q&A)
-│   └── experience_price.py # ExperiencePrice (price calendar)
+│   └── price_calendar_entry.py # PriceCalendarEntry (generic price calendar)
 ├── schemas/           # ~97 pydantic schemas (22 files)
 │   ├── admin.py, auth.py, booking.py, circuit.py, discussion.py
-│   ├── event.py, experience.py, experience_price.py, health.py
+│   ├── event.py, experience.py, price_calendar.py, health.py
 │   ├── live_post.py, notification.py, poi.py, price_report.py
 │   ├── provider_profile.py, review.py, stay.py, transport.py
 │   ├── trip.py, user.py, wilaya.py

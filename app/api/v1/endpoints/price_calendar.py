@@ -3,92 +3,121 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.experience import Experience
-from app.models.experience_price import ExperiencePrice
+from app.models.price_calendar_entry import PriceCalendarEntry
+from app.models.stay import Stay
 from app.models.user import User
-from app.schemas.experience_price import (
-    ExperiencePriceBatchCreate,
-    ExperiencePriceCalendar,
-    ExperiencePriceCreate,
-    ExperiencePriceRead,
+from app.schemas.price_calendar import (
+    PriceCalendarBatchCreate,
+    PriceCalendarEntryCreate,
+    PriceCalendarEntryRead,
+    PriceCalendarRead,
 )
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/price-calendar", tags=["Price Calendar"])
 
 
-async def _build_price_read(ep: ExperiencePrice) -> ExperiencePriceRead:
-    return ExperiencePriceRead(
-        id=ep.id,
-        experience_id=ep.experience_id,
-        date=ep.date,
-        price_dzd=ep.price_dzd,
-        available_spots=ep.available_spots,
+async def _build_entry_read(entry: PriceCalendarEntry) -> PriceCalendarEntryRead:
+    return PriceCalendarEntryRead(
+        id=entry.id,
+        entity_type=entry.entity_type,
+        entity_id=entry.entity_id,
+        date=entry.date,
+        price_dzd=entry.price_dzd,
+        available_spots=entry.available_spots,
     )
 
 
-@router.get("/experiences/{experience_id}", response_model=ExperiencePriceCalendar)
-async def get_experience_calendar(
-    experience_id: uuid.UUID,
+ENTITY_MODEL_MAP = {
+    "experience": Experience,
+    "stay": Stay,
+}
+
+
+async def _resolve_entity(entity_type: str, entity_id: uuid.UUID, db: AsyncSession):
+    model = ENTITY_MODEL_MAP.get(entity_type)
+    if not model:
+        raise BadRequestException(message=f"Invalid entity_type '{entity_type}'. Must be 'experience' or 'stay'")
+    obj = await db.get(model, entity_id)
+    if not obj:
+        raise NotFoundException(message=f"{entity_type.title()} not found")
+    return obj
+
+
+async def _check_ownership(entity_type: str, obj, current_user: User):
+    if entity_type == "experience":
+        if obj.provider_id != current_user.id and current_user.role != "admin":
+            raise ForbiddenException(message="You can only set prices for your own experiences")
+    elif entity_type == "stay":
+        if obj.provider_id != current_user.id and current_user.role != "admin":
+            raise ForbiddenException(message="You can only set prices for your own stays")
+
+
+@router.get("/{entity_type}/{entity_id}", response_model=PriceCalendarRead)
+async def get_price_calendar(
+    entity_type: str,
+    entity_id: uuid.UUID,
     from_date: date | None = Query(None),
     to_date: date | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    exp = await db.get(Experience, experience_id)
-    if not exp:
-        raise NotFoundException(message="Experience not found")
+    await _resolve_entity(entity_type, entity_id, db)
 
-    query = select(ExperiencePrice).where(ExperiencePrice.experience_id == experience_id)
+    query = select(PriceCalendarEntry).where(
+        PriceCalendarEntry.entity_type == entity_type,
+        PriceCalendarEntry.entity_id == entity_id,
+    )
 
     if from_date:
-        query = query.where(ExperiencePrice.date >= from_date)
+        query = query.where(PriceCalendarEntry.date >= from_date)
     if to_date:
-        query = query.where(ExperiencePrice.date <= to_date)
+        query = query.where(PriceCalendarEntry.date <= to_date)
 
-    query = query.order_by(ExperiencePrice.date)
+    query = query.order_by(PriceCalendarEntry.date)
     result = await db.execute(query)
-    prices_raw = result.scalars().all()
+    entries_raw = result.scalars().all()
 
-    prices = [await _build_price_read(p) for p in prices_raw]
+    entries = [await _build_entry_read(e) for e in entries_raw]
 
-    if not prices:
-        return ExperiencePriceCalendar(
-            experience_id=experience_id,
+    if not entries:
+        return PriceCalendarRead(
+            entity_id=entity_id,
+            entity_type=entity_type,
             prices=[],
             min_price=0,
             max_price=0,
             available_dates=0,
         )
 
-    min_price = min(p.price_dzd for p in prices)
-    max_price = max(p.price_dzd for p in prices)
+    min_price = min(e.price_dzd for e in entries)
+    max_price = max(e.price_dzd for e in entries)
 
-    return ExperiencePriceCalendar(
-        experience_id=experience_id,
-        prices=prices,
+    return PriceCalendarRead(
+        entity_id=entity_id,
+        entity_type=entity_type,
+        prices=entries,
         min_price=min_price,
         max_price=max_price,
-        available_dates=len(prices),
+        available_dates=len(entries),
     )
 
 
-@router.post("/experiences/{experience_id}", response_model=list[ExperiencePriceRead], status_code=201)
-async def set_experience_prices(
-    experience_id: uuid.UUID,
-    body: ExperiencePriceBatchCreate,
+@router.post("/{entity_type}/{entity_id}", response_model=list[PriceCalendarEntryRead], status_code=201)
+async def set_price_calendar(
+    entity_type: str,
+    entity_id: uuid.UUID,
+    body: PriceCalendarBatchCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    exp = await db.get(Experience, experience_id)
-    if not exp:
-        raise NotFoundException(message="Experience not found")
-    if exp.provider_id != current_user.id and current_user.role != "admin":
-        raise ForbiddenException(message="You can only set prices for your own experiences")
+    obj = await _resolve_entity(entity_type, entity_id, db)
+    await _check_ownership(entity_type, obj, current_user)
 
     if not body.prices:
         raise BadRequestException(message="At least one price entry required")
@@ -97,35 +126,35 @@ async def set_experience_prices(
     for entry in body.prices:
         if entry.date < date.today():
             raise BadRequestException(message=f"Date {entry.date} is in the past")
-        ep = ExperiencePrice(
-            experience_id=experience_id,
+        pc = PriceCalendarEntry(
+            entity_type=entity_type,
+            entity_id=entity_id,
             date=entry.date,
             price_dzd=entry.price_dzd,
             available_spots=entry.available_spots,
         )
-        db.add(ep)
-        created.append(ep)
+        db.add(pc)
+        created.append(pc)
 
     await db.commit()
-    for ep in created:
-        await db.refresh(ep)
+    for pc in created:
+        await db.refresh(pc)
 
-    return [await _build_price_read(ep) for ep in created]
+    return [await _build_entry_read(pc) for pc in created]
 
 
 @router.delete("/{price_id}", status_code=204)
-async def delete_price(
+async def delete_price_entry(
     price_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    ep = await db.get(ExperiencePrice, price_id)
-    if not ep:
+    entry = await db.get(PriceCalendarEntry, price_id)
+    if not entry:
         raise NotFoundException(message="Price entry not found")
 
-    exp = await db.get(Experience, ep.experience_id)
-    if exp and exp.provider_id != current_user.id and current_user.role != "admin":
-        raise ForbiddenException(message="You can only delete prices for your own experiences")
+    obj = await _resolve_entity(entry.entity_type, entry.entity_id, db)
+    await _check_ownership(entry.entity_type, obj, current_user)
 
-    await db.delete(ep)
+    await db.delete(entry)
     await db.commit()
