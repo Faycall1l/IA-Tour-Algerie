@@ -8,6 +8,7 @@ from app.api.v1.endpoints import (
     discover,
     events,
     experiences,
+    geojson,
     health,
     discussions,
     live,
@@ -16,6 +17,7 @@ from app.api.v1.endpoints import (
     price_calendar,
     prices,
     reviews,
+    search,
     stays,
     transport,
     trips,
@@ -44,3 +46,5 @@ router.include_router(notifications.router)
 router.include_router(stays.router)
 router.include_router(transport.router)
 router.include_router(trips.router)
+router.include_router(search.router)
+router.include_router(geojson.router)
