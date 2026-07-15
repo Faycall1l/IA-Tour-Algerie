@@ -16,6 +16,11 @@ from app.core.error_middleware import ErrorMiddleware
 from app.core.i18n import LocaleMiddleware, load_translations
 from app.core.limiter import _rate_limit_exceeded_handler, limiter
 from app.core.logging import setup_logging
+from app.agents.travel_agent import (
+    create_itinerary_agent,
+    create_search_agent,
+    create_travel_agent,
+)
 from app.services.agent.agents.coordinator import get_coordinator
 from app.services.embeddings import EmbeddingService
 from app.services.storage import StorageService
@@ -70,6 +75,17 @@ async def lifespan(app: FastAPI):
             logger.info("Agent layer initialized (enabled=%s)", settings.agent.enabled)
         else:
             logger.warning("Agent layer enabled but failed to initialize")
+
+    # Initialize Pydantic AI travel agents
+    ak = settings.agent.openrouter_api_key
+    mn = settings.agent.openrouter_model
+    app.state.travel_agent = create_travel_agent(api_key=ak, model_name=mn)
+    app.state.itinerary_agent = create_itinerary_agent(api_key=ak, model_name=mn)
+    app.state.search_agent = create_search_agent(api_key=ak, model_name=mn)
+    if ak:
+        logger.info("Pydantic AI agents initialized with model=%s", mn)
+    else:
+        logger.warning("No OPENROUTER_API_KEY set — agent endpoints will return 503")
     _load_legacy_routers()
 
     async def _index_existing_pois():

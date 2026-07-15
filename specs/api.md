@@ -1,6 +1,6 @@
 # API Layer
 
-## Route Inventory (~108 routes)
+## Route Inventory (~120+ routes)
 
 ```
 # Public
@@ -123,6 +123,29 @@ POST   /api/v1/trips/{trip_id}/optimize/send-whatsapp  # Send brief via WhatsApp
 # Circuits (pre-seeded itineraries)
 GET    /api/v1/circuits                        # List circuits (filters)
 GET    /api/v1/circuits/{circuit_id}           # Circuit detail with all items
+
+# Search (Full-Text)
+GET    /api/v1/search                           # Unified search across POIs, stays, experiences (?q=)
+
+# GeoJSON (spatial data)
+GET    /api/v1/pois.geojson                     # All POIs as GeoJSON FeatureCollection (filters)
+GET    /api/v1/stays.geojson                    # All stays as GeoJSON
+GET    /api/v1/experiences.geojson              # All experiences as GeoJSON
+GET    /api/v1/nearby/pois                      # POIs near location (?lat=&lng=&radius_km=)
+
+# Collections (wishlists) 🔐
+GET    /api/v1/collections                      # List user's collections
+POST   /api/v1/collections                      # Create collection
+GET    /api/v1/collections/{id}                 # Collection with all items
+PUT    /api/v1/collections/{id}                 # Update name/description/is_public
+DELETE /api/v1/collections/{id}                 # Delete collection + items
+POST   /api/v1/collections/{id}/items           # Batch add items (deduplicates)
+DELETE /api/v1/collections/{id}/items/{item_id} # Remove single item
+
+# AI Agents 🔐
+POST   /api/v1/agent/chat                       # Travel assistant (20/h, asks about Algeria travel)
+POST   /api/v1/agent/plan-trip                  # Itinerary planner (10/h, returns structured TripPlan)
+POST   /api/v1/agent/search                     # Unified search via agent (30/h)
 
 # Discover
 GET    /api/v1/discover/wilayas                 # List all wilayas with summary stats (counts, highlight POI)
@@ -385,7 +408,7 @@ Stays represent bookable accommodations with:
 ## Security
 
 - **JWT EdDSA (Ed25519)** — asymmetric keys, aud/iss validation
-- **Rate limiting** — 10/min for OTP, 20/min for general endpoints
+- **Rate limiting** — 10/min for OTP, 20/min for general endpoints, 20/h agent chat, 10/h plan-trip, 30/h agent search
 - **CSRF protection** — not needed (API uses Bearer tokens, not cookies)
 - **Security headers** — `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `X-XSS-Protection: 0`
 - **Host validation** — TrustedHostMiddleware with configurable `allowed_hosts`

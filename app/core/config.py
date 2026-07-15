@@ -54,6 +54,8 @@ class VLLMSettings(BaseModel):
 class AgentSettings(BaseModel):
     enabled: bool = False
     max_iterations: int = 5
+    openrouter_api_key: str = ""
+    openrouter_model: str = "google/gemini-2.0-flash-lite"
     vllm: VLLMSettings = VLLMSettings()
 
 

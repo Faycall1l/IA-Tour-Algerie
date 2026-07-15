@@ -102,8 +102,9 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 9. **⬅️ Phase D**: Q&A per POI (polymorphic discussion threads), generic price calendar (experiences + stays), neighborhood browsing.
 10. **⬅️ Price calendar seed**: 90 days of pricing for 999 stays + 529 experiences, with seasonal + weekend variation.
 11. **⬅️ Photo enrichment (all phases)**: 8,576 POIs with photos (16.2%) — spatial SPARQL matching added 2,812 new photos. Wikimedia Commons ceiling reached for remaining 44K unnamed/generic POIs.
-12. ⬜ Migrate Commons URLs to MinIO when Docker is available
-13. ⬜ Build user-facing frontend or mobile app
+12. **⬅️ Pydantic AI travel agents** (`app/agents/`): `TravelAgentDeps` dataclass, 5 validated tools (`search_pois`, `search_stays`, `search_experiences`, `get_weather` via Open-Meteo, `get_user_collection`). Three agents — `travel_agent` (chat), `itinerary_agent` (trip planning → `TripPlan`), `search_agent` (unified search). All use OpenRouter Gemini 2.0 Flash Lite. Secure endpoints: `POST /api/v1/agent/chat` (20/h), `/plan-trip` (10/h), `/search` (30/h) — JWT auth + rate limiting. Graceful 503 when `OPENROUTER_API_KEY` not set. Configurable via `agent.openrouter_api_key` + `agent.openrouter_model`.
+13. ⬜ Migrate Commons URLs to MinIO when Docker is available
+14. ⬜ Build user-facing frontend or mobile app
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
@@ -112,7 +113,7 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls[], subtype, name_ar/name_en, is_featured, average_score, total_reviews
 - Vector search (Qdrant) configured but needs Docker running to work
 - App has trip optimizer combining POIs + transport + stays + restaurants + experiences
-- **18 endpoint modules, ~97 routes, 26 ORM models (21 files), ~90 Pydantic schemas (20 files)**
+- **24 endpoint modules, ~120+ routes, 31 ORM models (26 files), ~95 Pydantic schemas (24 files)**
 - Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `seed_seasonal_experiences.py`, `enrich_poi_descriptions.py`
 
 ## Relevant Files
@@ -153,3 +154,7 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - `app/api/v1/endpoints/discussions.py`: Q&A API endpoints
 - `app/api/v1/endpoints/price_calendar.py`: Price calendar API endpoints (experiences + stays)
 - `scripts/data/seed_price_calendar.py`: Price calendar seed script
+- `app/agents/deps.py`: TravelAgentDeps dataclass
+- `app/agents/tools.py`: 5 validated agent tools
+- `app/agents/travel_agent.py`: Agent factories + structured output models
+- `app/api/v1/endpoints/agents.py`: Agent API endpoints
