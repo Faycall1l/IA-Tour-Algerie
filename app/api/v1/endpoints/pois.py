@@ -11,7 +11,7 @@ from app.models.poi import POI
 from app.models.review import Review
 from app.models.user import User
 from app.models.wilaya import Wilaya
-from app.schemas.poi import POICreate, POIFeed, POIRead, TopReview
+from app.schemas.poi import POIBrief, POICreate, POIFeed, POIRead, TopReview
 from app.services.storage import StorageService
 from app.services.vector_search import VectorSearchService
 
@@ -217,6 +217,52 @@ async def get_poi(poi_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 
     items = await _attach_ratings(db, [poi])
     return items[0]
+
+
+@router.get("/{poi_id}/similar", response_model=list[POIBrief])
+async def similar_pois(
+    poi_id: uuid.UUID,
+    limit: int = Query(10, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+):
+    poi = await db.get(POI, poi_id)
+    if not poi:
+        raise NotFoundException(message="Point of interest not found")
+
+    cols = [
+        POI.id, POI.name, POI.category, POI.subtype, POI.wilaya_id,
+        POI.latitude, POI.longitude, POI.photo_url, POI.is_featured,
+    ]
+    # Same category + wilaya first, same wilaya only second
+    query = select(*cols).where(
+        POI.id != poi_id,
+        POI.latitude.isnot(None),
+        POI.longitude.isnot(None),
+        POI.category.in_([poi.category, "other"]),
+        POI.wilaya_id == poi.wilaya_id,
+    ).limit(limit)
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    if len(rows) < limit:
+        existing_ids = [r[0] for r in rows] + [poi_id]
+        query2 = select(*cols).where(
+            POI.id.notin_(existing_ids),
+            POI.wilaya_id == poi.wilaya_id,
+        ).limit(limit - len(rows))
+        result2 = await db.execute(query2)
+        rows.extend(result2.all())
+
+    return [
+        POIBrief(
+            id=r[0], name=r[1], category=r[2], subtype=r[3],
+            wilaya_id=r[4], latitude=float(r[5]) if r[5] else None,
+            longitude=float(r[6]) if r[6] else None,
+            photo_url=r[7], is_featured=r[8],
+        )
+        for r in rows
+    ]
 
 
 @router.delete("/{poi_id}", status_code=204)

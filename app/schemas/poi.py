@@ -67,6 +67,23 @@ class POIRead(BaseModel):
     top_reviews: list[TopReview] | None = None
 
 
+class POIBrief(BaseModel):
+    """Lightweight POI for list/similar endpoints — no reviews."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    category: str
+    subtype: str | None = None
+    wilaya_id: int
+    latitude: float | None = None
+    longitude: float | None = None
+    photo_url: str | None = None
+    is_featured: bool = False
+    average_score: float | None = None
+    total_reviews: int = 0
+
+
 class POIFeed(BaseModel):
     items: list[POIRead]
     total: int
