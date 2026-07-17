@@ -37,19 +37,19 @@ _legacy_routers: list = []
 
 def _load_legacy_routers():
     try:
-        from app.routers import admin_visa
+        from app.api.v1.endpoints import admin_visa
 
         _legacy_routers.append(admin_visa.router)
     except Exception as exc:
         logger.warning("admin_visa router unavailable: %s", exc)
     try:
-        from app.routers import whatsapp_bot
+        from app.api.v1.endpoints import whatsapp_bot
 
         _legacy_routers.append(whatsapp_bot.router)
     except Exception as exc:
         logger.warning("whatsapp_bot router unavailable: %s", exc)
     try:
-        from app.routers import studio_media
+        from app.api.v1.endpoints import studio_media
 
         _legacy_routers.append(studio_media.router)
     except Exception as exc:

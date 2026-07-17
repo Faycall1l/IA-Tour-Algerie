@@ -46,42 +46,27 @@
 athar-os-prototype/
 ├── app/
 │   ├── main.py                    # App factory, lifespan, middleware stack
-│   ├── core/
-│   │   ├── config.py              # Pydantic-settings config
-│   │   ├── security.py            # JWT EdDSA create/decode
-│   │   ├── exceptions.py          # AppError hierarchy (6 classes)
-│   │   ├── error_middleware.py    # Structured error handling
-│   │   ├── limiter.py            # Rate limiter (Redis/in-memory)
-│   │   └── dependencies.py       # Shared deps
-│   ├── db/
-│   │   ├── base.py               # SQLAlchemy Base + metadata
-│   │   ├── session.py            # Async session factory
-│   │   └── migrations/           # Alembic (async)
-│   ├── models/                   # 17 ORM models
-│   │   ├── user.py, poi.py, review.py, experience.py, booking.py
-│   │   ├── trip.py, stay.py, notification.py, live.py, price_report.py
-│   │   ├── wilaya.py, provider_profile.py, athar_traveler.py, refresh_token.py
-│   │   └── agency.py, live_post.py
-│   ├── schemas/                  # Pydantic request/response schemas
-│   ├── api/v1/endpoints/         # 80+ routes across 12+ routers
-│   │   ├── auth.py, wilayas.py, pois.py, prices.py, reviews.py
-│   │   ├── live.py, users.py, experiences.py, bookings.py
-│   │   ├── notifications.py, trips.py, admin.py, stays.py, discover.py
-│   │   └── legacy (guarded): visa.py, whatsapp.py, studio.py
-│   ├── services/                 # Business logic
-│   │   ├── storage.py            # MinIO file upload
-│   │   ├── embedding.py          # sentence-transformers (ONNX)
-│   │   ├── vector_search.py      # Qdrant collections (POIs + experiences)
-│   │   ├── twilio.py             # Verify + WhatsApp
-│   │   ├── trip_optimizer.py     # Route optimization + item enrichment
-│   │   └── trip_brief.py         # Trip summary generation
-│   └── utils/                    # Helpers
-├── migrations/                   # Alembic env + versions (10 migrations)
-├── specs/                        # Architecture / feature docs
-├── tests/                        # 60+ tests (pytest-asyncio)
-├── Dockerfile                    # Multi-stage, security hardening
-├── docker-compose.yml            # API + PG + Redis + Qdrant + MinIO
-└── pyproject.toml                # Ruff, pytest, coverage config
+│   ├── core/                      # Config, security, exceptions, deps
+│   ├── db/                        # SQLAlchemy base + session + migrations
+│   ├── models/                    # 31 ORM models
+│   ├── schemas/                   # Pydantic request/response schemas
+│   ├── api/v1/endpoints/         # 85+ routes across 16+ endpoint modules
+│   ├── services/                  # Business logic (storage, search, routing)
+│   ├── agents/                    # Pydantic AI travel agents (3 agents)
+│   ├── data/                      # Transit graph JSON checkpoints
+│   └── templates/                 # Visa Excel template
+├── docs/
+│   ├── specs/                     # Architecture / feature / API docs
+│   └── references/                # Hackathon competition files
+├── scripts/
+│   ├── data/                      # Data seeding & enrichment scripts
+│   └── cli/                       # athar-cli (terminal API explorer)
+├── locales/                       # i18n (ar, en, fr, tam)
+├── tests/                         # 155 tests (pytest-asyncio)
+├── alembic/                       # Migration versions (001→019)
+├── docker-compose.yml             # Qdrant + Redis + MinIO
+├── Dockerfile                     # Multi-stage, security hardening
+└── pyproject.toml                 # Ruff, pytest, coverage config
 ```
 
 ## Quick Start

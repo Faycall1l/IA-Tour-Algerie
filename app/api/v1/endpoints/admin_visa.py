@@ -50,7 +50,7 @@ async def process_passport(file: UploadFile = File(...)):
     if not parsed_data:
         raise HTTPException(status_code=400, detail="Failed to parse Passport MRZ data.")
 
-    template_path = "templates/official_visa_template.xlsx"
+    template_path = "app/templates/official_visa_template.xlsx"
     try:
         workbook = openpyxl.load_workbook(template_path)
         sheet = workbook.active
