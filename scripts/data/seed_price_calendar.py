@@ -9,9 +9,8 @@ import uuid
 from datetime import date, timedelta
 
 import psycopg2
-from psycopg2.extras import execute_values
 
-DB_DSN = "postgresql://athar:athar_secret@localhost:5432/athar"
+DB_DSN = "postgresql://athar:athar_pass@localhost:5432/athar_db"
 
 # ── Configuration ─────────────────────────────────────────────
 SUMMER_PEAK = (date(2026, 7, 1), date(2026, 8, 31))  # peak pricing
@@ -47,7 +46,7 @@ def generate_stay_prices(stay: dict) -> list[tuple]:
         price = price_variation(base, factor, d.weekday())
         max_spots = max(1, (stay.get("total_rooms") or 10))
         avail = int(max_spots * (0.9 if d.weekday() in WEEKEND else 0.6))
-        rows.append((sid, "stay", d, price, max(avail, 1)))
+        rows.append((uuid.uuid4(), sid, "stay", d, price, max(avail, 1)))
     return rows
 
 
@@ -67,7 +66,7 @@ def generate_experience_prices(exp: dict) -> list[tuple]:
             factor = 0.90
         price = price_variation(base, factor, d.weekday())
         avail = int(max_pax * (0.8 if d.weekday() in WEEKEND else 0.4))
-        rows.append((eid, "experience", d, price, max(avail, 1)))
+        rows.append((uuid.uuid4(), eid, "experience", d, price, max(avail, 1)))
     return rows
 
 
@@ -104,17 +103,17 @@ def main():
     cur.execute("DELETE FROM price_calendar")
     conn.commit()
 
-    # Batch insert
+    # Batch insert in chunks
     insert_sql = """
         INSERT INTO price_calendar
-            (entity_id, entity_type, date, price_dzd, available_spots)
-        VALUES %s
+            (id, entity_id, entity_type, date, price_dzd, available_spots)
+        VALUES (%s, %s::uuid, %s, %s::date, %s, %s)
     """
-    execute_values(
-        cur, insert_sql,
-        [(r[0], r[1], r[2], r[3], r[4]) for r in all_rows],
-        template="(%s::uuid, %s::text, %s::date, %s::float, %s::int)",
-    )
+    chunk_size = 1000
+    for i in range(0, len(all_rows), chunk_size):
+        chunk = all_rows[i:i + chunk_size]
+        rows_data = [(str(r[0]), str(r[1]), r[2], r[3].isoformat(), r[4], r[5]) for r in chunk]
+        cur.executemany(insert_sql, rows_data)
     conn.commit()
 
     # Verify
@@ -122,7 +121,6 @@ def main():
     for row in cur.fetchall():
         print(f"  ✅ {row[0]}: {row[1]:,} entries")
 
-    total = sum(r[1] for r in cur.fetchall())
     cur.execute("SELECT COUNT(*) FROM price_calendar")
     total = cur.fetchone()[0]
     print(f"\n🎯 Total price calendar entries: {total:,}")

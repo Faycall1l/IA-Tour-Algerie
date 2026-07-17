@@ -7,20 +7,26 @@ from app.db.mixins import TimestampMixin, UUIDPkMixin
 
 BOOKING_STATUSES = ("pending", "confirmed", "completed", "cancelled")
 
+BOOKING_ENTITY_TYPES = ("experience", "circuit")
+
 
 class Booking(UUIDPkMixin, TimestampMixin, Base):
     __tablename__ = "bookings"
 
-    __table_args__ = (CheckConstraint(f"status IN {BOOKING_STATUSES}", name="ck_booking_status"),)
+    __table_args__ = (
+        CheckConstraint(f"status IN {BOOKING_STATUSES}", name="ck_booking_status"),
+        CheckConstraint(
+            f"entity_type IN {BOOKING_ENTITY_TYPES}",
+            name="ck_booking_entity_type",
+        ),
+    )
 
     traveler_id: Mapped[str] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    experience_id: Mapped[str] = mapped_column(
-        UUID(as_uuid=True),
-        ForeignKey("experiences.id", ondelete="CASCADE"),
-        nullable=False,
-        index=True,
+    entity_type: Mapped[str] = mapped_column(String(20), default="experience")
+    entity_id: Mapped[str] = mapped_column(
+        UUID(as_uuid=True), nullable=False, index=True
     )
     status: Mapped[str] = mapped_column(String(20), default="pending")
     message: Mapped[str | None] = mapped_column(Text, nullable=True)

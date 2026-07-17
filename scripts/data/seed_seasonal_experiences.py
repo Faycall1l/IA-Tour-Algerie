@@ -11,7 +11,7 @@ from datetime import date
 import psycopg2
 from psycopg2.extras import execute_values
 
-DB_DSN = "postgresql://athar:athar_secret@localhost:5432/athar"
+DB_DSN = "postgresql://athar:athar_pass@localhost:5432/athar_db"
 
 MONTHS = {
     "jan": 1, "feb": 2, "mar": 3, "apr": 4,
@@ -82,13 +82,13 @@ SUMMER = [
     ("adventure", "Nuits berbères — Campement dans l'Aurès", 5,
      "Campement estival dans les monts de l'Aurès avec contes et musique.",
      "Batna", 3500, 24, 15, "FR", "summer", "2026-06-15", "2026-09-01"),
-    ("beach", "Journée plage + snorkeling — Les Andalouses", 31,
+    ("tour", "Journée plage + snorkeling — Les Andalouses", 31,
      "Journée sur la plage des Andalouses avec snorkeling et déjeuner poisson.",
      "Les Andalouses", 2500, 6, 20, "FR", "summer", "2026-06-01", "2026-09-30"),
-    ("beach", "Excursion en bateau — Îles Habibas", 31,
+    ("tour", "Excursion en bateau — Îles Habibas", 31,
      "Excursion en bateau vers les Îles Habibas, réserve marine protégée.",
      "Oran port", 4000, 6, 12, "FR", "summer", "2026-06-01", "2026-09-15"),
-    ("beach", "Plage de Sidi Fredj — Détente et sports nautiques", 16,
+    ("tour", "Plage de Sidi Fredj — Détente et sports nautiques", 16,
      "Journée à la plage de Sidi Fredj avec jet-ski, paddle et parachute ascensionnel.",
      "Sidi Fredj", 3000, 6, 30, "FR", "summer", "2026-06-01", "2026-09-30"),
     ("tour", "Cap Sigli — Randonnée côtière", 6,
@@ -357,10 +357,10 @@ def main():
         add(cat, title, wid, desc, meeting, price, dur, 30, "FR", season, sd, ed, cat)
 
     # Coverage
-    for template, wid, base_desc, price, dur, max_p, season in COVERAGE:
+    for cat, template, wid, base_desc, price, dur, max_p, season in COVERAGE:
         title = build_cover_title(template, wid)
         desc = f"{base_desc} de {WILAYA_NAMES.get(wid, '')}"
-        add("tour", title, wid, desc, f"{WILAYA_NAMES.get(wid, '')} centre", price, dur, max_p, "FR", season, None, None, "tour")
+        add(cat, title, wid, desc, f"{WILAYA_NAMES.get(wid, '')} centre", price, dur, max_p, "FR", season, None, None, cat)
 
     # Bulk insert
     insert_sql = """

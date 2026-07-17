@@ -23,21 +23,20 @@ def upgrade() -> None:
         sa.Column(
             "search_vector",
             TSVECTOR,
-            sa.Computed(
-                "to_tsvector('french', "
-                "coalesce(name, '') || ' ' || "
-                "coalesce(name_en, '') || ' ' || "
-                "coalesce(name_ar, '') || ' ' || "
-                "coalesce(description, '') || ' ' || "
-                "coalesce(category, '') || ' ' || "
-                "coalesce(subtype, '') || ' ' || "
-                "coalesce(commune, '') || ' ' || "
-                "coalesce(operator, '') || ' ' || "
-                "coalesce(cuisine, '') || ' ' || "
-                "coalesce(neighborhood, '')"
-                ")",
-                persisted=False,
-            ),
+sa.Computed(
+    "to_tsvector('french', "
+    "coalesce(name, '') || ' ' || "
+    "coalesce(name_en, '') || ' ' || "
+    "coalesce(name_ar, '') || ' ' || "
+    "coalesce(description, '') || ' ' || "
+    "coalesce(category, '') || ' ' || "
+    "coalesce(subtype, '') || ' ' || "
+    "coalesce(commune, '') || ' ' || "
+    "coalesce(operator, '') || ' ' || "
+    "coalesce(cuisine, '') || ' ' || "
+    "coalesce(neighborhood, '')"
+    ")",
+),
         ),
     )
     op.create_index("ix_pois_search_vector", "pois", ["search_vector"], postgresql_using="gin")
@@ -48,15 +47,14 @@ def upgrade() -> None:
         sa.Column(
             "search_vector",
             TSVECTOR,
-            sa.Computed(
-                "to_tsvector('french', "
-                "coalesce(name, '') || ' ' || "
-                "coalesce(description, '') || ' ' || "
-                "coalesce(property_type, '') || ' ' || "
-                "coalesce(address, '')"
-                ")",
-                persisted=False,
-            ),
+sa.Computed(
+    "to_tsvector('french', "
+    "coalesce(name, '') || ' ' || "
+    "coalesce(description, '') || ' ' || "
+    "coalesce(property_type, '') || ' ' || "
+    "coalesce(address, '')"
+    ")",
+),
         ),
     )
     op.create_index("ix_stays_search_vector", "stays", ["search_vector"], postgresql_using="gin")
@@ -67,14 +65,13 @@ def upgrade() -> None:
         sa.Column(
             "search_vector",
             TSVECTOR,
-            sa.Computed(
-                "to_tsvector('french', "
-                "coalesce(title, '') || ' ' || "
-                "coalesce(description, '') || ' ' || "
-                "coalesce(category, '')"
-                ")",
-                persisted=False,
-            ),
+sa.Computed(
+    "to_tsvector('french', "
+    "coalesce(title, '') || ' ' || "
+    "coalesce(description, '') || ' ' || "
+    "coalesce(category, '')"
+    ")",
+),
         ),
     )
     op.create_index("ix_experiences_search_vector", "experiences", ["search_vector"], postgresql_using="gin")

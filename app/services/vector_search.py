@@ -91,12 +91,12 @@ class VectorSearchService:
         if not self.client:
             return []
         vector = self.embedder.encode(query)
-        hits = self.client.search(
+        resp = self.client.query_points(
             collection_name=POIS_COLLECTION,
-            query_vector=vector,
+            query=vector,
             limit=limit,
         )
-        return self._extract_ids(hits, "poi_id")
+        return self._extract_ids(resp.points, "poi_id")
 
     def delete_poi(self, poi_id: uuid.UUID) -> None:
         if not self.client:
@@ -137,12 +137,12 @@ class VectorSearchService:
         if not self.client:
             return []
         vector = self.embedder.encode(query)
-        hits = self.client.search(
+        resp = self.client.query_points(
             collection_name=EXPERIENCES_COLLECTION,
-            query_vector=vector,
+            query=vector,
             limit=limit,
         )
-        return self._extract_ids(hits, "experience_id")
+        return self._extract_ids(resp.points, "experience_id")
 
     def delete_experience(self, experience_id: uuid.UUID) -> None:
         if not self.client:

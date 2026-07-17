@@ -40,7 +40,7 @@ def extract_mrz_data(ocr_text: str) -> dict:
 
 
 @router.post("/process-passport")
-async def process_passport(_file: UploadFile = File(...)):
+async def process_passport(file: UploadFile = File(...)):
     mock_ocr_result = (
         "P<DZAALGERIA<<AHMED<<<<<<<<<<<<<<<<<<<<<<<<<<\n"
         "0412345674DZA8505204M2811306<<<<<<<<<<<<<<02"

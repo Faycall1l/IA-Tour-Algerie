@@ -1,14 +1,21 @@
+"""Polymorphic bookings supporting experiences AND circuits.
+
+entity_type = 'experience' | 'circuit'
+entity_id   = UUID of the experience or circuit
+"""
+
 import logging
 import uuid
 from typing import cast
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, get_twilio
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.booking import BOOKING_STATUSES, Booking
+from app.models.circuit import Circuit
 from app.models.experience import Experience
 from app.models.notification import Notification
 from app.models.user import User
@@ -39,6 +46,25 @@ async def _notify(
     db.add(notif)
 
 
+async def _resolve_entity(
+    db: AsyncSession, entity_type: str, entity_id: uuid.UUID
+) -> tuple:
+    """Resolve an entity to (entity_obj, provider_id, title)."""
+    if entity_type == "experience":
+        obj = await db.get(Experience, entity_id)
+        if not obj:
+            raise NotFoundException(message="Experience not found")
+        if obj.status != "active":
+            raise BadRequestException(message="Experience is not available")
+        return obj, obj.provider_id, obj.title
+    elif entity_type == "circuit":
+        obj = await db.get(Circuit, entity_id)
+        if not obj or not obj.is_active:
+            raise NotFoundException(message="Circuit not found")
+        return obj, None, obj.title
+    raise BadRequestException(message=f"Unknown entity type: {entity_type}")
+
+
 @router.post("", response_model=BookingDetail, status_code=201)
 async def create_booking(
     body: BookingCreate,
@@ -46,17 +72,15 @@ async def create_booking(
     db: AsyncSession = Depends(get_db),
     twilio: TwilioService = Depends(get_twilio),
 ):
-    experience = await db.get(Experience, body.experience_id)
-    if not experience:
-        raise NotFoundException(message="Experience not found")
-    if experience.status != "active":
-        raise BadRequestException(message="Experience is not available")
-    if experience.provider_id == current_user.id:
-        raise BadRequestException(message="You cannot book your own experience")
+    entity, provider_id, title = await _resolve_entity(db, body.entity_type, body.entity_id)
+
+    if provider_id and provider_id == current_user.id:
+        raise BadRequestException(message="You cannot book your own entity")
 
     booking = Booking(
         traveler_id=current_user.id,
-        experience_id=body.experience_id,
+        entity_type=body.entity_type,
+        entity_id=body.entity_id,
         message=body.message,
         participants=body.participants,
         requested_date=body.requested_date,
@@ -64,26 +88,25 @@ async def create_booking(
     db.add(booking)
     await db.flush()
 
-    await _notify(
-        db,
-        user_id=experience.provider_id,
-        type="booking_request",
-        title="New booking request",
-        message=(
-            f"{current_user.display_name or current_user.phone} wants to join '{experience.title}'"
-        ),
-        reference_type="booking",
-        reference_id=booking.id,
-    )
+    if provider_id:
+        await _notify(
+            db,
+            user_id=provider_id,
+            type="booking_request",
+            title="New booking request",
+            message=f"{current_user.display_name or current_user.phone} wants to join '{title}'",
+            reference_type="booking",
+            reference_id=booking.id,
+        )
     await db.commit()
     await db.refresh(booking)
 
-    provider = await db.get(User, experience.provider_id)
+    provider = await db.get(User, provider_id) if provider_id else None
     if provider and twilio.whatsapp_available:
         wa_msg = (
             f"🔔 *New Booking Request*\n"
             f"{current_user.display_name or current_user.phone} wants to join "
-            f"'{experience.title}' ({body.participants} pax).\n"
+            f"'{title}' ({body.participants} pax).\n"
             f"Reply in app to confirm or cancel."
         )
         await twilio.send_whatsapp(provider.phone, wa_msg)
@@ -92,8 +115,8 @@ async def create_booking(
         booking=BookingRead.model_validate(booking),
         traveler_name=current_user.display_name or current_user.phone,
         traveler_avatar=current_user.avatar_url,
-        experience_title=experience.title,
-        provider_id=experience.provider_id,
+        booking_title=title,
+        provider_id=provider_id,
         provider_name=provider.display_name or provider.phone if provider else None,
     )
 
@@ -106,13 +129,16 @@ async def list_bookings(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    provider_exps = select(Experience.id).where(Experience.provider_id == current_user.id)
     query = select(Booking).where(
-        (Booking.traveler_id == current_user.id) | (Booking.experience_id.in_(provider_exps))
+        or_(
+            Booking.traveler_id == current_user.id,
+            Booking.entity_id.in_(
+                select(Experience.id).where(Experience.provider_id == current_user.id)
+            ),
+        )
     )
     if status:
         query = query.where(Booking.status == status)
-
     query = query.order_by(Booking.created_at.desc())
     result = await db.execute(query.offset((page - 1) * page_size).limit(page_size))
     bookings = result.scalars().all()
@@ -120,19 +146,23 @@ async def list_bookings(
     items = []
     for b in bookings:
         traveler = await db.get(User, b.traveler_id)
-        exp = await db.get(Experience, b.experience_id)
-        provider = await db.get(User, exp.provider_id) if exp else None
+        title = None
+        pid = None
+        try:
+            _, pid, title = await _resolve_entity(db, b.entity_type, b.entity_id)
+        except Exception:
+            pass
+        provider = await db.get(User, pid) if pid else None
         items.append(
             BookingDetail(
                 booking=BookingRead.model_validate(b),
                 traveler_name=traveler.display_name or traveler.phone if traveler else None,
                 traveler_avatar=traveler.avatar_url if traveler else None,
-                experience_title=exp.title if exp else None,
-                provider_id=exp.provider_id if exp else None,
+                booking_title=title,
+                provider_id=pid,
                 provider_name=provider.display_name or provider.phone if provider else None,
             )
         )
-
     return items
 
 
@@ -146,20 +176,20 @@ async def get_booking(
     if not booking:
         raise NotFoundException(message="Booking not found")
 
-    exp = await db.get(Experience, booking.experience_id)
-    if not exp:
-        raise NotFoundException(message="Associated experience not found")
-    if booking.traveler_id != current_user.id and exp.provider_id != current_user.id:
+    entity, provider_id, title = await _resolve_entity(db, booking.entity_type, booking.entity_id)
+    if booking.traveler_id != current_user.id and (
+        not provider_id or provider_id != current_user.id
+    ):
         raise ForbiddenException(message="You cannot view this booking")
 
     traveler = await db.get(User, booking.traveler_id)
-    provider = await db.get(User, exp.provider_id)
+    provider = await db.get(User, provider_id) if provider_id else None
     return BookingDetail(
         booking=BookingRead.model_validate(booking),
         traveler_name=traveler.display_name or traveler.phone if traveler else None,
         traveler_avatar=traveler.avatar_url if traveler else None,
-        experience_title=exp.title,
-        provider_id=exp.provider_id,
+        booking_title=title,
+        provider_id=provider_id,
         provider_name=provider.display_name or provider.phone if provider else None,
     )
 
@@ -176,19 +206,18 @@ async def update_booking_status(
     if not booking:
         raise NotFoundException(message="Booking not found")
 
-    exp = await db.get(Experience, booking.experience_id)
-    if not exp:
-        raise NotFoundException(message="Associated experience not found")
+    entity, provider_id, title = await _resolve_entity(db, booking.entity_type, booking.entity_id)
+    if not provider_id:
+        raise BadRequestException(message="Circuit bookings cannot be managed yet")
 
     is_traveler = booking.traveler_id == current_user.id
-    is_provider = exp.provider_id == current_user.id
+    is_provider = provider_id == current_user.id
     if not is_traveler and not is_provider:
         raise ForbiddenException(message="You cannot update this booking")
 
     old_status = booking.status
     new_status = body.status
 
-    # Business rules
     if old_status == "cancelled":
         raise BadRequestException(message="Cannot update a cancelled booking")
 
@@ -197,12 +226,9 @@ async def update_booking_status(
         "confirmed": ["completed", "cancelled"],
         "completed": [],
     }
-
     allowed = cast(list[str], valid_transitions.get(old_status, []))
     if new_status not in allowed:
         raise BadRequestException(message=f"Cannot change from '{old_status}' to '{new_status}'")
-
-    # Travelers can only cancel
     if is_traveler and new_status != "cancelled":
         raise BadRequestException(message="Travelers can only cancel bookings")
 
@@ -215,9 +241,9 @@ async def update_booking_status(
         "cancelled": "booking_cancelled",
     }
     notify_type = notification_type_map.get(new_status, "booking_cancelled")
-    notify_user = booking.traveler_id if is_provider else exp.provider_id
+    notify_user = booking.traveler_id if is_provider else provider_id
     notify_title = f"Booking {new_status}"
-    notify_message = f"Your booking for '{exp.title}' has been {new_status}"
+    notify_message = f"Your booking for '{title}' has been {new_status}"
 
     await _notify(
         db,
@@ -232,28 +258,22 @@ async def update_booking_status(
     await db.refresh(booking)
 
     traveler = await db.get(User, booking.traveler_id)
-    provider = await db.get(User, exp.provider_id)
+    provider = await db.get(User, provider_id) if provider_id else None
 
     if traveler and twilio.whatsapp_available:
-        status_emoji = {"confirmed": "✅", "completed": "🎉", "cancelled": "❌"}.get(
-            new_status, "📋"
-        )  # noqa: E501
-        wa_msg = (
-            f"{status_emoji} *Booking {new_status}*\n'{exp.title}' has been **{new_status}**.\n"
-        )
+        status_emoji = {"confirmed": "✅", "completed": "🎉", "cancelled": "❌"}.get(new_status, "📋")
+        wa_msg = f"{status_emoji} *Booking {new_status}*\n'{title}' has been **{new_status}**.\n"
         if new_status == "confirmed":
-            wa_msg += (
-                f"📅 {booking.requested_date or 'TBD'}\n"
-                f"📍 {exp.meeting_point or 'Check app for details'}"
-            )
+            wa_msg += f"📅 {booking.requested_date or 'TBD'}\n📍 Check app for details"
         elif new_status == "cancelled":
             wa_msg += "If you have questions, please contact the provider in the app."
         await twilio.send_whatsapp(traveler.phone, wa_msg)
+
     return BookingDetail(
         booking=BookingRead.model_validate(booking),
         traveler_name=traveler.display_name or traveler.phone if traveler else None,
         traveler_avatar=traveler.avatar_url if traveler else None,
-        experience_title=exp.title,
-        provider_id=exp.provider_id,
+        booking_title=title,
+        provider_id=provider_id,
         provider_name=provider.display_name or provider.phone if provider else None,
     )

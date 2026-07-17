@@ -7,7 +7,8 @@ from app.models.booking import BOOKING_STATUSES
 
 
 class BookingCreate(BaseModel):
-    experience_id: uuid.UUID
+    entity_type: str = Field("experience", pattern=r"^(experience|circuit)$")
+    entity_id: uuid.UUID
     message: str | None = Field(None, max_length=2000)
     participants: int = Field(1, ge=1, le=100)
     requested_date: date | None = None
@@ -22,7 +23,8 @@ class BookingRead(BaseModel):
 
     id: uuid.UUID
     traveler_id: uuid.UUID
-    experience_id: uuid.UUID
+    entity_type: str
+    entity_id: uuid.UUID
     status: str
     message: str | None
     participants: int
@@ -35,6 +37,6 @@ class BookingDetail(BaseModel):
     booking: BookingRead
     traveler_name: str | None
     traveler_avatar: str | None
-    experience_title: str | None
+    booking_title: str | None
     provider_id: uuid.UUID | None
     provider_name: str | None

@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_user, get_db, get_storage, get_vector_search
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.experience import EXPERIENCE_CATEGORIES, SEASONS, Experience
-from app.models.provider_profile import PROVIDER_TYPES
+from app.models.provider_profile import PROVIDER_TYPES, ProviderProfile
 from app.models.user import User
 from app.models.wilaya import Wilaya
 from app.schemas.experience import (
@@ -59,6 +59,7 @@ async def list_experiences(
     category: str | None = Query(None, pattern=f"^({'|'.join(EXPERIENCE_CATEGORIES)})$"),
     provider_id: uuid.UUID | None = Query(None),
     season: str | None = Query(None, pattern=f"^({'|'.join(SEASONS)})$"),
+    provider_type: str | None = Query(None, pattern=f"^({'|'.join(PROVIDER_TYPES)})$"),
     status: str | None = Query(None, pattern="^(active|draft|cancelled)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
@@ -72,6 +73,12 @@ async def list_experiences(
         query = query.where(Experience.category == category)
     if provider_id:
         query = query.where(Experience.provider_id == provider_id)
+    if provider_type:
+        query = (
+            query.join(User, Experience.provider_id == User.id)
+            .join(ProviderProfile, User.id == ProviderProfile.user_id)
+            .where(ProviderProfile.provider_type == provider_type)
+        )
     if season:
         query = query.where(Experience.season == season)
     if status:
