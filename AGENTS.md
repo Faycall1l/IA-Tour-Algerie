@@ -104,7 +104,6 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 11. **⬅️ Photo enrichment (all phases)**: 8,576 POIs with photos (16.2%) — spatial SPARQL matching added 2,812 new photos. Wikimedia Commons ceiling reached for remaining 44K unnamed/generic POIs.
 12. **⬅️ Pydantic AI travel agents** (`app/agents/`): `TravelAgentDeps` dataclass, 5 validated tools (`search_pois`, `search_stays`, `search_experiences`, `get_weather` via Open-Meteo, `get_user_collection`). Three agents — `travel_agent` (chat), `itinerary_agent` (trip planning → `TripPlan`), `search_agent` (unified search). All use OpenRouter Gemini 2.0 Flash Lite. Secure endpoints: `POST /api/v1/agent/chat` (20/h), `/plan-trip` (10/h), `/search` (30/h) — JWT auth + rate limiting. Graceful 503 when `OPENROUTER_API_KEY` not set. Configurable via `agent.openrouter_api_key` + `agent.openrouter_model`.
 13. ⬜ Migrate Commons URLs to MinIO when Docker is available
-14. ⬜ Build user-facing frontend or mobile app
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
