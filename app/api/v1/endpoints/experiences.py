@@ -126,6 +126,24 @@ async def search_experiences(
             if exp and exp.status == "active":
                 experiences.append(exp)
 
+    # SQL full-text search fallback when Qdrant returns nothing or is unavailable
+    if not experiences:
+        from sqlalchemy import func, text
+        from app.models.experience import Experience
+
+        tsq = func.plainto_tsquery("french", q)
+        stmt = (
+            select(Experience)
+            .where(
+                Experience.search_vector.op("@@")(tsq),
+                Experience.status == "active",
+            )
+            .order_by(func.ts_rank(Experience.search_vector, tsq).desc())
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        experiences = list(result.scalars().all())
+
     items = [ExperienceRead.model_validate(e) for e in experiences]
     total = len(items)
     return ExperienceFeed(

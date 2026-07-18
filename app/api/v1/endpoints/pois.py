@@ -196,6 +196,21 @@ async def search_pois(
             if poi:
                 pois.append(poi)
 
+    # SQL full-text search fallback when Qdrant returns nothing or is unavailable
+    if not pois:
+        from sqlalchemy import func
+        from app.models.poi import POI
+
+        tsq = func.plainto_tsquery("french", q)
+        stmt = (
+            select(POI)
+            .where(POI.search_vector.op("@@")(tsq))
+            .order_by(func.ts_rank(POI.search_vector, tsq).desc())
+            .limit(limit)
+        )
+        result = await db.execute(stmt)
+        pois = list(result.scalars().all())
+
     items = await _attach_ratings(db, pois)
     total = len(items)
     return POIFeed(
