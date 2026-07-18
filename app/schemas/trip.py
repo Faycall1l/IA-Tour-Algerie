@@ -10,6 +10,7 @@ class TripCreate(BaseModel):
     title: str | None = Field(None, max_length=200)
     start_date: str | None = None
     end_date: str | None = None
+    total_days: int | None = Field(None, ge=1, le=365)
     total_budget_dzd: float | None = Field(None, ge=0, le=10_000_000)
 
 
@@ -17,6 +18,7 @@ class TripUpdate(BaseModel):
     title: str | None = Field(None, max_length=200)
     start_date: str | None = None
     end_date: str | None = None
+    total_days: int | None = Field(None, ge=1, le=365)
     status: str | None = None
     total_budget_dzd: float | None = Field(None, ge=0, le=10_000_000)
 

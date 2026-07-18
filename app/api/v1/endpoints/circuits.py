@@ -59,14 +59,12 @@ async def adopt_circuit(
     trip = Trip(
         user_id=current_user.id,
         title=f"Trip: {circuit.title}",
-        wilaya_id=circuit.wilaya_id,
         total_days=circuit.duration_days,
     )
     db.add(trip)
     await db.flush()
 
     for item in circuit.items:
-        resolved_name = item.item_match_name
         resolved_type = "poi"
         if item.item_type in ("accommodation", "stay"):
             resolved_type = "stay"
@@ -75,15 +73,15 @@ async def adopt_circuit(
         elif item.item_type in ("transport", "travel"):
             resolved_type = "transport_note"
 
-        TripItem(
+        db.add(TripItem(
             trip_id=trip.id,
             day_number=item.day_number,
-            item_order=item.item_order,
+            sort_order=item.item_order,
             time_slot=item.time_slot,
             item_type=resolved_type,
-            item_match_name=resolved_name,
+            item_id=uuid.uuid4(),
             notes=item.notes,
-        )
+        ))
 
     await db.commit()
     return {"id": trip.id, "title": trip.title, "message": "Circuit adopted as trip"}

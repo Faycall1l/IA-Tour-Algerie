@@ -26,6 +26,7 @@ class Trip(UUIDPkMixin, TimestampMixin, Base):
     title: Mapped[str | None] = mapped_column(String(200), nullable=True)
     start_date: Mapped[str | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[str | None] = mapped_column(Date, nullable=True)
+    total_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="active")
     total_budget_dzd: Mapped[float | None] = mapped_column(Float, nullable=True)
 
