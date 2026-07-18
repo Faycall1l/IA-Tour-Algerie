@@ -10,13 +10,16 @@ Usage:
 
 import json
 import os
-from datetime import datetime
+from datetime import date, datetime
 from typing import Optional
 
 import httpx
+import psycopg2
 import typer
 from rich.console import Console
 from rich.table import Table
+
+DB_DSN = os.environ.get("DATABASE_URL", "postgresql://athar:athar_pass@localhost:5432/athar_db")
 
 app = typer.Typer(help="ATHAR OS — Algerian tourism API explorer", no_args_is_help=True)
 console = Console()
@@ -356,6 +359,147 @@ def stations(
         [("Name", "name"), ("Type", "type"), ("Wilaya", "wilaya_id"), ("Lines", "line_count")],
         items,
     )
+
+
+# ── Experience Dashboard ────────────────────────────────────────────────
+
+SEASON_NAMES = {"spring": "Printemps", "summer": "Été", "autumn": "Automne", "winter": "Hiver"}
+SEASON_DATES = {
+    "spring": (date(2026, 3, 1), date(2026, 5, 31)),
+    "summer": (date(2026, 6, 1), date(2026, 9, 30)),
+    "autumn": (date(2026, 9, 1), date(2026, 11, 30)),
+    "winter": (date(2026, 12, 1), date(2027, 2, 28)),
+}
+
+
+def _days_rem(start: date, end: date) -> str:
+    """Return coloured days-remaining string."""
+    today = date.today()
+    if today < start:
+        d = (start - today).days
+        return f"[blue]{d}j avant[/]"
+    if today > end:
+        return "[dim]Terminé[/]"
+    d = (end - today).days
+    if d <= 7:
+        return f"[red]{d}j restant[/]"
+    if d <= 30:
+        return f"[yellow]{d}j restant[/]"
+    return f"[green]{d}j restant[/]"
+
+
+@app.command()
+def exp_dashboard():
+    """Experience tracking dashboard (counts, time-left, coverage)."""
+    conn = psycopg2.connect(DB_DSN)
+    cur = conn.cursor()
+
+    # ── 1. Totals ──
+    cur.execute("SELECT COUNT(*) FROM experiences")
+    total = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM experiences WHERE season IS NULL")
+    ns = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM experiences WHERE season IS NOT NULL")
+    s = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(*) FROM experiences WHERE is_verified = true")
+    verified = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(DISTINCT source) FROM experiences WHERE source IS NOT NULL")
+    sources_n = cur.fetchone()[0]
+    cur.execute("SELECT source, COUNT(*) FROM experiences WHERE source IS NOT NULL GROUP BY source ORDER BY COUNT(*) DESC")
+    sources = cur.fetchall()
+    cur.execute("SELECT COUNT(DISTINCT wilaya_id) FROM experiences WHERE season IS NULL")
+    ns_wil = cur.fetchone()[0]
+    cur.execute("SELECT COUNT(DISTINCT wilaya_id) FROM experiences WHERE season IS NOT NULL")
+    s_wil = cur.fetchone()[0]
+
+    console.print("\n[bold cyan]═══ Experience Dashboard ═══[/]")
+    console.print(f"  Total:        {total}")
+    console.print(f"  Non-seasonal: {ns}  ({ns_wil}/69 wilayas)")
+    console.print(f"  Seasonal:     {s}  ({s_wil}/69 wilayas)")
+    console.print(f"  Verified:     {verified} / {total}")
+    console.print(f"  Sources:      {sources_n}")
+    for src, cnt in sources:
+        console.print(f"    ├─ {src}: {cnt}")
+
+    # ── 2. By season ──
+    cur.execute(
+        "SELECT season, COUNT(*) FROM experiences WHERE season IS NOT NULL GROUP BY season ORDER BY season"
+    )
+    console.print(f"\n[bold]Par saison[/]")
+    table = Table("Saison", "Compte", "Période", "Temps restant")
+    for s_name, cnt in cur.fetchall():
+        sd, ed = SEASON_DATES[s_name]
+        table.add_row(
+            SEASON_NAMES.get(s_name, s_name),
+            str(cnt),
+            f"{sd} → {ed}",
+            _days_rem(sd, ed),
+        )
+    console.print(table)
+
+    # ── 3. Top/bottom wilayas ──
+    cur.execute("""
+        SELECT w.name_fr, COUNT(e.id), COUNT(e.id) FILTER (WHERE e.season IS NULL),
+               COUNT(e.id) FILTER (WHERE e.season IS NOT NULL),
+               COUNT(e.id) FILTER (WHERE e.is_verified)
+        FROM wilayas w
+        LEFT JOIN experiences e ON e.wilaya_id = w.id
+        GROUP BY w.id, w.name_fr
+        ORDER BY COUNT(e.id) DESC
+        LIMIT 10
+    """)
+    console.print(f"\n[bold]Top 10 wilayas (by total experiences)[/]")
+    t2 = Table("Wilaya", "Total", "Non-sais.", "Saisonnier", "Vérifié")
+    for name, cnt, nsn, sn, v in cur.fetchall():
+        t2.add_row(name, str(cnt), str(nsn), str(sn), str(v))
+    console.print(t2)
+
+    cur.execute("""
+        SELECT w.name_fr, COUNT(e.id), COUNT(e.id) FILTER (WHERE e.season IS NULL),
+               COUNT(e.id) FILTER (WHERE e.season IS NOT NULL)
+        FROM wilayas w
+        LEFT JOIN experiences e ON e.wilaya_id = w.id
+        GROUP BY w.id, w.name_fr
+        ORDER BY COUNT(e.id)
+        LIMIT 5
+    """)
+    console.print(f"\n[bold]Bottom 5 wilayas (need more)[/]")
+    t3 = Table("Wilaya", "Total", "Non-sais.", "Saisonnier")
+    for name, cnt, nsn, sn in cur.fetchall():
+        t3.add_row(name, str(cnt), str(nsn), str(sn))
+    console.print(t3)
+
+    # ── 4. Seasonal expiring soon ──
+    today = date.today()
+    cur.execute("""
+        SELECT e.title, w.name_fr, e.season, e.end_date,
+               e.completion_count, e.is_verified
+        FROM experiences e
+        JOIN wilayas w ON w.id = e.wilaya_id
+        WHERE e.season IS NOT NULL AND e.end_date >= %s
+        ORDER BY e.end_date
+        LIMIT 15
+    """, (today,))
+    rows = cur.fetchall()
+    if rows:
+        console.print(f"\n[bold]Prochaines expériences saisonnières[/]")
+        t4 = Table("Titre", "Wilaya", "Saison", "Fin", "Réserv.", "Vérif.")
+        for title, wname, season, end, comp, ver in rows:
+            t4.add_row(
+                title[:40], wname, season, str(end),
+                str(comp), "[green]✓" if ver else "[dim]—"
+            )
+        console.print(t4)
+
+    # ── 5. Sources pie ──
+    console.print(f"\n[bold]Distribution par source[/]")
+    for src, cnt in sources:
+        pct = cnt / total * 100 if total else 0
+        bar = "█" * int(pct / 5) + "░" * (20 - int(pct / 5))
+        console.print(f"  {src:20s} {bar} {cnt:5d} ({pct:.0f}%)")
+
+    cur.close()
+    conn.close()
 
 
 # ── Status / Health ──────────────────────────────────────────────────────
