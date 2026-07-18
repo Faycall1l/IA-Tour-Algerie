@@ -14,7 +14,12 @@ from app.api.v1.router import router as v1_router
 from app.core.config import settings
 from app.core.error_middleware import ErrorMiddleware
 from app.core.i18n import LocaleMiddleware, load_translations
-from app.core.limiter import _rate_limit_exceeded_handler, limiter
+from app.core.limiter import (
+    METHOD_LIMITS,
+    _rate_limit_exceeded_handler,
+    check_rate_limit,
+    limiter,
+)
 from app.core.logging import setup_logging
 from app.agents.travel_agent import (
     create_itinerary_agent,
@@ -168,6 +173,27 @@ async def security_headers(request: Request, call_next):
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
     return response
+
+
+@app.middleware("http")
+async def method_based_rate_limit(request: Request, call_next):
+    """Apply rate limits per HTTP method on API routes using sliding-window counter.
+    Skipped when settings.debug is True or app.state.skip_rate_limit is set."""
+    if settings.debug or getattr(request.app.state, "skip_rate_limit", False):
+        return await call_next(request)
+    if request.url.path.startswith("/api/v1/") and request.method in METHOD_LIMITS:
+        ip = request.client.host if request.client else "unknown"
+        if not check_rate_limit(ip, request.method):
+            return JSONResponse(
+                status_code=429,
+                content={
+                    "error": "rate_limit_exceeded",
+                    "message": f"Rate limit exceeded for {request.method} requests. "
+                    f"Limit: {METHOD_LIMITS[request.method][0]} per {METHOD_LIMITS[request.method][1]}s",
+                },
+                headers={"Retry-After": "60"},
+            )
+    return await call_next(request)
 
 
 @app.exception_handler(Exception)

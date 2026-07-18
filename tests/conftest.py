@@ -143,6 +143,7 @@ class _MockTwilio:
 @pytest_asyncio.fixture
 async def client() -> AsyncIterator[AsyncClient]:
     app.dependency_overrides[get_db] = override_get_db
+    app.state.skip_rate_limit = True
 
     from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 

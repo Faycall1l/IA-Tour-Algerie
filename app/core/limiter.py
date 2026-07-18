@@ -1,4 +1,6 @@
 import logging
+import time
+from collections import defaultdict
 
 import redis
 from slowapi import Limiter, _rate_limit_exceeded_handler
@@ -41,4 +43,44 @@ if redis_uri:
 else:
     logger.info("Rate limiter uses in-memory storage")
 
-__all__ = ["limiter", "_rate_limit_exceeded_handler"]
+
+# ── In-memory sliding-window rate limiter for CRUD endpoints ──
+
+
+class SlidingWindowCounter:
+    """Per-IP, per-method sliding window rate counter."""
+
+    def __init__(self) -> None:
+        self._buckets: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+
+    def check(self, key: str, limit: int, window: int = 60) -> bool:
+        now = time.time()
+        bucket = self._buckets[key]
+        cutoff = now - window
+        bucket[key] = [t for t in bucket.get(key, []) if t > cutoff]
+        timestamps = bucket[key]
+        if len(timestamps) >= limit:
+            return False
+        timestamps.append(now)
+        return True
+
+
+_counter = SlidingWindowCounter()
+
+# (method, path_prefix) → (limit, window_seconds)
+METHOD_LIMITS: dict[str, tuple[int, int]] = {
+    "GET": (60, 60),
+    "POST": (20, 60),
+    "PUT": (20, 60),
+    "PATCH": (20, 60),
+    "DELETE": (10, 60),
+}
+
+
+def check_rate_limit(ip: str, method: str) -> bool:
+    """Return True if request is within limit, False if rate-limited."""
+    limit, window = METHOD_LIMITS.get(method, (60, 60))
+    return _counter.check(f"{ip}:{method}", limit, window)
+
+
+__all__ = ["limiter", "_rate_limit_exceeded_handler", "check_rate_limit", "METHOD_LIMITS"]
