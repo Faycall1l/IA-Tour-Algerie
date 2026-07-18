@@ -28,6 +28,7 @@ from app.agents.travel_agent import (
 )
 from app.services.agent.agents.coordinator import get_coordinator
 from app.services.embeddings import EmbeddingService
+from app.services.response_cache import ResponseCache
 from app.services.storage import StorageService
 from app.services.transit_routing import TransitRoutingService
 from app.services.transport import TransportService
@@ -73,6 +74,7 @@ async def lifespan(app: FastAPI):
     app.state.trip_optimizer = TripOptimizer(transit_routing=app.state.transit_routing)
     app.state.trip_brief_generator = TripBriefGenerator(transport_service=app.state.transport)
     app.state.twilio = TwilioService()
+    app.state.response_cache = ResponseCache(ttl=300)
     if settings.agent.enabled:
         coordinator = get_coordinator()
         app.state.coordinator_agent = coordinator
@@ -172,6 +174,37 @@ async def security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "0"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    return response
+
+
+@app.middleware("http")
+async def cache_get_responses(request: Request, call_next):
+    """Cache GET responses for read-heavy list endpoints (300s TTL).
+    Skips authenticated requests, search endpoints, and non-200 responses."""
+    cache = getattr(request.app.state, "response_cache", None)
+    if (
+        cache is None
+        or request.method != "GET"
+        or request.headers.get("Authorization")
+        or not request.url.path.startswith("/api/v1/")
+        or "search" in request.url.path
+    ):
+        return await call_next(request)
+
+    cached = await cache.get(request.method, str(request.url.path), str(request.url.query))
+    if cached:
+        from fastapi.responses import Response as FastResponse
+        body, status, headers = cached
+        return FastResponse(content=body, status_code=status, media_type="application/json", headers=headers)
+
+    response = await call_next(request)
+    if response.status_code == 200:
+        chunks = [chunk async for chunk in response.body_iterator]
+        body_bytes = b"".join(chunks)
+        from fastapi.responses import Response as FastResponse
+        await cache.set(request.method, str(request.url.path), str(request.url.query), body_bytes.decode(), response.status_code, dict(response.headers))
+        return FastResponse(content=body_bytes, status_code=response.status_code, media_type=response.media_type, headers=dict(response.headers))
+
     return response
 
 
