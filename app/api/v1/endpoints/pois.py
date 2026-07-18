@@ -11,7 +11,7 @@ from app.models.poi import POI
 from app.models.review import Review
 from app.models.user import User
 from app.models.wilaya import Wilaya
-from app.schemas.poi import POIBrief, POICreate, POIFeed, POIRead, TopReview
+from app.schemas.poi import POIBrief, POICreate, POIFeed, POIRead, POIUpdate, TopReview
 from app.services.storage import StorageService
 from app.services.vector_search import VectorSearchService
 
@@ -229,6 +229,34 @@ async def get_poi(poi_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     poi = await db.get(POI, poi_id)
     if not poi:
         raise NotFoundException(message="Point of interest not found")
+
+    items = await _attach_ratings(db, [poi])
+    return items[0]
+
+
+@router.patch("/{poi_id}", response_model=POIRead)
+async def update_poi(
+    poi_id: uuid.UUID,
+    body: POIUpdate,
+    _current_user: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+    vector_search: VectorSearchService = Depends(get_vector_search),
+):
+    poi = await db.get(POI, poi_id)
+    if not poi:
+        raise NotFoundException(message="Point of interest not found")
+
+    updates = body.model_dump(exclude_unset=True)
+    if not updates:
+        items = await _attach_ratings(db, [poi])
+        return items[0]
+
+    for field, value in updates.items():
+        setattr(poi, field, value)
+
+    await db.commit()
+    await db.refresh(poi)
+    vector_search.index_poi(poi)
 
     items = await _attach_ratings(db, [poi])
     return items[0]

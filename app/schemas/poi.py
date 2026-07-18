@@ -17,6 +17,26 @@ class POICreate(BaseModel):
     photo_url: str | None = Field(None, max_length=500)
 
 
+class POIUpdate(BaseModel):
+    name: str | None = Field(None, min_length=1, max_length=200)
+    category: str | None = Field(None, pattern=f"^({'|'.join(POI_CATEGORIES)})$")
+    latitude: float | None = None
+    longitude: float | None = None
+    description: str | None = Field(None, max_length=2000)
+    entry_fee_dzd: float | None = Field(None, ge=0, le=10_000_000)
+    photo_url: str | None = Field(None, max_length=500)
+    name_ar: str | None = Field(None, max_length=200)
+    name_en: str | None = Field(None, max_length=200)
+    phone: str | None = Field(None, max_length=50)
+    website: str | None = Field(None, max_length=500)
+    opening_hours: str | None = Field(None, max_length=500)
+    cuisine: str | None = Field(None, max_length=100)
+    operator: str | None = Field(None, max_length=200)
+    has_parking: bool | None = None
+    has_accessibility: bool | None = None
+    neighborhood: str | None = Field(None, max_length=200)
+
+
 class TopReview(BaseModel):
     id: uuid.UUID
     user_name: str
