@@ -12,7 +12,7 @@ class ExperienceCreate(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     category: str = Field(..., pattern=f"^({'|'.join(EXPERIENCE_CATEGORIES)})$")
     description: str | None = Field(None, max_length=5000)
-    wilaya_id: int = Field(..., ge=1, le=58)
+    wilaya_id: int = Field(..., ge=1, le=69)
     meeting_point: str | None = Field(None, max_length=500)
     meeting_point_lat: float | None = None
     meeting_point_lng: float | None = None
@@ -26,6 +26,8 @@ class ExperienceCreate(BaseModel):
     season: str | None = Field(None, pattern=SEASON_PATTERN)
     start_date: date | None = None
     end_date: date | None = None
+    source: str | None = Field(None, max_length=100)
+    source_url: str | None = Field(None, max_length=500)
 
 
 class ExperienceUpdate(BaseModel):
@@ -45,6 +47,9 @@ class ExperienceUpdate(BaseModel):
     season: str | None = Field(None, pattern=SEASON_PATTERN)
     start_date: date | None = None
     end_date: date | None = None
+    source: str | None = Field(None, max_length=100)
+    source_url: str | None = Field(None, max_length=500)
+    is_verified: bool | None = None
 
 
 class ExperienceRead(BaseModel):
@@ -70,6 +75,10 @@ class ExperienceRead(BaseModel):
     season: str | None
     start_date: date | None
     end_date: date | None
+    source: str | None
+    source_url: str | None
+    is_verified: bool
+    completion_count: int
     created_at: datetime
     updated_at: datetime | None
 

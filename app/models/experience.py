@@ -1,6 +1,7 @@
 from datetime import date as date_type
 
-from sqlalchemy import ARRAY, CheckConstraint, Date, Float, ForeignKey, Index, Integer, String, Text
+import sqlalchemy as sa
+from sqlalchemy import ARRAY, Boolean, CheckConstraint, Date, Float, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -61,3 +62,8 @@ class Experience(UUIDPkMixin, TimestampMixin, Base):
     season: Mapped[str | None] = mapped_column(String(10), nullable=True)
     start_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
     end_date: Mapped[date_type | None] = mapped_column(Date, nullable=True)
+
+    source: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    is_verified: Mapped[bool] = mapped_column(sa.Boolean, default=False)
+    completion_count: Mapped[int] = mapped_column(sa.Integer, default=0)
