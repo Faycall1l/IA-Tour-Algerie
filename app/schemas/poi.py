@@ -67,6 +67,7 @@ class POIRead(BaseModel):
     website: str | None = None
     phone: str | None = None
     opening_hours: str | None = None
+    opening_hours_slots: dict | None = None
     operator: str | None = None
     cuisine: str | None = None
     has_parking: bool | None = None

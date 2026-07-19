@@ -51,6 +51,7 @@ class POI(UUIDPkMixin, TimestampMixin, Base):
     website: Mapped[str | None] = mapped_column(String(300), nullable=True)
     phone: Mapped[str | None] = mapped_column(String(50), nullable=True)
     opening_hours: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    opening_hours_slots: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     operator: Mapped[str | None] = mapped_column(String(200), nullable=True)
     cuisine: Mapped[str | None] = mapped_column(String(200), nullable=True)
     has_parking: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
