@@ -82,3 +82,26 @@ class ProviderAdminFeed(BaseModel):
     total_pages: int
     has_prev: bool
     has_next: bool
+
+
+class WilayaCount(BaseModel):
+    wilaya_id: int
+    count: int
+
+
+class CategoryCount(BaseModel):
+    category: str
+    count: int
+
+
+class StatsDashboard(BaseModel):
+    total_pois: int
+    total_stays: int
+    total_experiences: int
+    total_events: int
+    total_users: int
+    total_reviews: int
+    total_bookings: int
+    total_trips: int
+    pois_per_wilaya: list[WilayaCount]
+    pois_per_category: list[CategoryCount]

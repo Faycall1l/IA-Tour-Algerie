@@ -21,14 +21,75 @@ from app.schemas.admin import (
     PriceReportAdminRead,
     ProviderAdminFeed,
     ProviderProfileAdminRead,
+    StatsDashboard,
     UserAdminFeed,
     UserAdminRead,
+    WilayaCount,
+    CategoryCount,
 )
 from app.schemas.user import UserRead
 from app.services.vector_search import VectorSearchService
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/admin", tags=["Admin"])
+
+
+# ── Dashboard Stats ────────────────────────────────────────────────
+
+
+@router.get("/stats", response_model=StatsDashboard)
+async def dashboard_stats(
+    _current_user: User = Depends(get_current_admin),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.booking import Booking
+    from app.models.event import Event
+    from app.models.experience import Experience
+    from app.models.poi import POI
+    from app.models.review import Review
+    from app.models.stay import Stay
+    from app.models.trip import Trip
+    from app.models.user import User
+
+    total_pois = (await db.execute(select(func.count(POI.id)))).scalar() or 0
+    total_stays = (await db.execute(select(func.count(Stay.id)))).scalar() or 0
+    total_experiences = (await db.execute(select(func.count(Experience.id)))).scalar() or 0
+    total_events = (await db.execute(select(func.count(Event.id)))).scalar() or 0
+    total_users = (await db.execute(select(func.count(User.id)))).scalar() or 0
+    total_reviews = (await db.execute(select(func.count(Review.id)))).scalar() or 0
+    total_bookings = (await db.execute(select(func.count(Booking.id)))).scalar() or 0
+    total_trips = (await db.execute(select(func.count(Trip.id)))).scalar() or 0
+
+    wilaya_rows = (
+        await db.execute(
+            select(POI.wilaya_id, func.count(POI.id).label("cnt"))
+            .group_by(POI.wilaya_id)
+            .order_by(POI.wilaya_id)
+        )
+    ).all()
+    pois_per_wilaya = [WilayaCount(wilaya_id=r[0], count=r[1]) for r in wilaya_rows]
+
+    category_rows = (
+        await db.execute(
+            select(POI.category, func.count(POI.id).label("cnt"))
+            .group_by(POI.category)
+            .order_by(func.count(POI.id).desc())
+        )
+    ).all()
+    pois_per_category = [CategoryCount(category=r[0], count=r[1]) for r in category_rows]
+
+    return StatsDashboard(
+        total_pois=total_pois,
+        total_stays=total_stays,
+        total_experiences=total_experiences,
+        total_events=total_events,
+        total_users=total_users,
+        total_reviews=total_reviews,
+        total_bookings=total_bookings,
+        total_trips=total_trips,
+        pois_per_wilaya=pois_per_wilaya,
+        pois_per_category=pois_per_category,
+    )
 
 
 # ── Price Reports ──────────────────────────────────────────────────
