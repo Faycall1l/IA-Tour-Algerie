@@ -76,12 +76,18 @@ class TripRead(BaseModel):
     end_date: str | None
     status: str
     total_budget_dzd: float | None
+    share_token: str | None = None
     created_at: datetime
     updated_at: datetime | None
 
     days: list[DayPlan] = []
     budget_spent: float = 0
     budget_remaining: float | None = None
+
+
+class TripShareResponse(BaseModel):
+    share_token: str
+    share_url: str
 
 
 class TripFeed(BaseModel):

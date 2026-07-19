@@ -27,6 +27,7 @@ from app.schemas.trip import (
     TripItemRead,
     TripItemUpdate,
     TripRead,
+    TripShareResponse,
     TripUpdate,
     TripWhatsAppResponse,
 )
@@ -307,6 +308,43 @@ async def delete_trip_item(
 
     await db.delete(item)
     await db.commit()
+
+    return await _build_trip_read(db, trip, optimizer)
+
+
+# ── Sharing ────────────────────────────────────────────────────
+
+
+@router.post("/{trip_id}/share", response_model=TripShareResponse)
+async def share_trip(
+    trip_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    trip = await db.get(Trip, trip_id)
+    if not trip or trip.user_id != current_user.id:
+        raise NotFoundException(message="Trip not found")
+
+    if not trip.share_token:
+        import secrets
+        trip.share_token = secrets.token_urlsafe(32)
+        await db.commit()
+        await db.refresh(trip)
+
+    base_url = "https://athar.app/trip"
+    return TripShareResponse(share_token=trip.share_token, share_url=f"{base_url}/{trip.share_token}")
+
+
+@router.get("/shared/{share_token}", response_model=TripRead)
+async def get_shared_trip(
+    share_token: str,
+    db: AsyncSession = Depends(get_db),
+    optimizer: TripOptimizer = Depends(get_trip_optimizer),
+):
+    result = await db.execute(select(Trip).where(Trip.share_token == share_token))
+    trip = result.scalar_one_or_none()
+    if not trip:
+        raise NotFoundException(message="Trip not found")
 
     return await _build_trip_read(db, trip, optimizer)
 
