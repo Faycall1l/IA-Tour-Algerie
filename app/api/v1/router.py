@@ -25,6 +25,7 @@ from app.api.v1.endpoints import (
     transport,
     trips,
     users,
+    visits,
     wilayas,
 )
 
@@ -54,3 +55,4 @@ router.include_router(search.router)
 router.include_router(geojson.router)
 router.include_router(collections.router)
 router.include_router(favorites.router)
+router.include_router(visits.router)
