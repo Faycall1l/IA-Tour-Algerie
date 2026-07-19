@@ -41,6 +41,14 @@ async def get_current_admin(
     return current_user
 
 
+async def get_provider_or_admin(
+    current_user: User = Depends(get_current_user),
+) -> User:
+    if current_user.role not in ("admin", "provider"):
+        raise ForbiddenException(message="Admin or provider access required")
+    return current_user
+
+
 async def get_storage(request: Request) -> StorageService:
     return request.app.state.storage
 

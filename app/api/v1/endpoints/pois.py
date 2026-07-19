@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user, get_db, get_storage, get_vector_search
+from app.api.deps import get_current_admin, get_current_user, get_db, get_provider_or_admin, get_storage, get_vector_search
 from app.core.exceptions import NotFoundException
 from app.models.poi import POI
 from app.models.review import Review
@@ -292,7 +292,7 @@ async def get_poi(poi_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
 async def update_poi(
     poi_id: uuid.UUID,
     body: POIUpdate,
-    _current_user: User = Depends(get_current_admin),
+    _current_user: User = Depends(get_provider_or_admin),
     db: AsyncSession = Depends(get_db),
     vector_search: VectorSearchService = Depends(get_vector_search),
 ):
@@ -365,7 +365,7 @@ async def similar_pois(
 @router.delete("/{poi_id}", status_code=204)
 async def delete_poi(
     poi_id: uuid.UUID,
-    _current_user: User = Depends(get_current_admin),
+    _current_user: User = Depends(get_provider_or_admin),
     db: AsyncSession = Depends(get_db),
     vector_search: VectorSearchService = Depends(get_vector_search),
 ):

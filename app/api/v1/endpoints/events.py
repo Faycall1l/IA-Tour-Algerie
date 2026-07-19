@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user, get_db
+from app.api.deps import get_current_user, get_db, get_provider_or_admin
 from app.core.exceptions import NotFoundException
 from app.models.event import Event
 from app.models.user import User
@@ -64,7 +64,7 @@ async def get_event(event_id: str, db: AsyncSession = Depends(get_db)):
 @router.post("", response_model=EventRead, status_code=201)
 async def create_event(
     body: EventCreate,
-    _current_user: User = Depends(get_current_admin),
+    _current_user: User = Depends(get_provider_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     wilaya = await db.get(Wilaya, body.wilaya_id)
@@ -82,7 +82,7 @@ async def create_event(
 async def update_event(
     event_id: str,
     body: EventUpdate,
-    _current_user: User = Depends(get_current_admin),
+    _current_user: User = Depends(get_provider_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     event = await db.get(Event, UUID(event_id))
@@ -104,7 +104,7 @@ async def update_event(
 @router.delete("/{event_id}", status_code=204)
 async def delete_event(
     event_id: str,
-    _current_user: User = Depends(get_current_admin),
+    _current_user: User = Depends(get_provider_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
     event = await db.get(Event, UUID(event_id))
