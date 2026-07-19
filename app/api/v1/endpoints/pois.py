@@ -1,4 +1,5 @@
 import logging
+import math
 import uuid
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
@@ -175,6 +176,59 @@ async def list_pois(
         has_prev=page > 1,
         has_next=page < total_pages,
     )
+
+
+@router.get("/nearby", response_model=list[POIBrief])
+async def nearby_pois(
+    lat: float = Query(..., ge=-90, le=90),
+    lng: float = Query(..., ge=-180, le=180),
+    radius_km: float = Query(5, ge=0.1, le=100),
+    limit: int = Query(20, ge=1, le=50),
+    category: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.poi import POI
+
+    deg = radius_km / 111.0
+    query = select(
+        POI.id, POI.name, POI.category, POI.subtype,
+        POI.wilaya_id, POI.latitude, POI.longitude,
+        POI.photo_url, POI.is_featured,
+    ).where(
+        POI.latitude.isnot(None),
+        POI.longitude.isnot(None),
+        POI.latitude.between(lat - deg, lat + deg),
+        POI.longitude.between(lng - deg, lng + deg),
+    )
+    if category:
+        query = query.where(POI.category == category)
+
+    result = await db.execute(query)
+    rows = result.all()
+
+    def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
+        R = 6371.0
+        dlat = math.radians(lat2 - lat1)
+        dlng = math.radians(lng2 - lng1)
+        a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng / 2) ** 2
+        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    items = []
+    for r in rows:
+        dist = _haversine_km(lat, lng, float(r.latitude), float(r.longitude))
+        if dist <= radius_km:
+            items.append((dist, r))
+
+    items.sort(key=lambda x: x[0])
+    return [
+        POIBrief(
+            id=r.id, name=r.name, category=r.category, subtype=r.subtype,
+            wilaya_id=r.wilaya_id, latitude=float(r.latitude) if r.latitude else None,
+            longitude=float(r.longitude) if r.longitude else None,
+            photo_url=r.photo_url, is_featured=r.is_featured,
+        )
+        for _, r in items[:limit]
+    ]
 
 
 @router.get("/search", response_model=POIFeed)
