@@ -1,11 +1,24 @@
 import uuid
-from datetime import datetime
 
 from pydantic import BaseModel, Field
 
 
+class SuggestItem(BaseModel):
+    entity_type: str
+    entity_id: uuid.UUID
+    name: str
+    category: str | None = None
+    wilaya_id: int | None = None
+    photo_url: str | None = None
+
+
+class SuggestFeed(BaseModel):
+    query: str
+    items: list[SuggestItem]
+
+
 class SearchResult(BaseModel):
-    entity_type: str  # "poi", "stay", "experience"
+    entity_type: str
     entity_id: uuid.UUID
     name: str
     name_en: str | None = None
@@ -19,7 +32,7 @@ class SearchResult(BaseModel):
     longitude: float | None = None
     photo_url: str | None = None
     price_dzd: float | None = Field(None, alias="price")
-    rank: float | None = None  # ts_rank score
+    rank: float | None = None
 
 
 class SearchFeed(BaseModel):
