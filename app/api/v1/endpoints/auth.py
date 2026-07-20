@@ -15,9 +15,11 @@ from app.core.security import (
     decode_token,
 )
 from app.db.session import get_db
+from app.models.provider_profile import ProviderProfile
 from app.models.refresh_token import RefreshToken
 from app.models.user import User
 from app.schemas.auth import OTPRequest, OTPSendResponse, OTPVerify, TokenRefresh
+from app.schemas.provider import ProviderRegisterRequest, ProviderRegisterResponse
 from app.schemas.user import TokenResponse, UserRead
 from app.services.twilio import TwilioService
 
@@ -138,3 +140,43 @@ async def _get_or_create_user(db: AsyncSession, phone: str) -> User:
         db.add(user)
         await db.flush()
     return user
+
+
+@router.post("/register-provider", response_model=ProviderRegisterResponse)
+@limiter.limit("5/minute")
+async def register_provider(
+    body: ProviderRegisterRequest,
+    request: Request,  # noqa: ARG001 — required by slowapi
+    db: AsyncSession = Depends(get_db),
+):
+    existing = await db.execute(select(User).where(User.phone == body.phone))
+    if existing.scalar_one_or_none():
+        raise BadRequestException(message="Phone already registered")
+
+    user = User(phone=body.phone, role="provider")
+    db.add(user)
+    await db.flush()
+
+    profile = ProviderProfile(
+        user_id=user.id,
+        provider_type=body.provider_type,
+        company_name=body.company_name,
+        property_name=body.property_name,
+        property_type=body.property_type,
+        website=body.website,
+        experience_years=body.experience_years,
+        team_size=body.team_size,
+    )
+    db.add(profile)
+    await db.commit()
+    await db.refresh(profile)
+
+    return ProviderRegisterResponse(
+        user_id=user.id,
+        profile_id=profile.id,
+        phone=user.phone,
+        provider_type=profile.provider_type,
+        company_name=profile.company_name,
+        property_name=profile.property_name,
+        website=profile.website,
+    )
