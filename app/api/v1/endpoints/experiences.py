@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db, get_storage, get_vector_search
+from app.api.deps import get_current_user, get_current_user_optional, get_db, get_storage, get_vector_search
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.experience import EXPERIENCE_CATEGORIES, SEASONS, Experience
 from app.models.provider_profile import PROVIDER_TYPES, ProviderProfile
@@ -158,18 +158,47 @@ async def search_experiences(
 
 
 @router.get("/{experience_id}", response_model=ExperienceDetail)
-async def get_experience(experience_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_experience(
+    experience_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional),
+):
     experience = await db.get(Experience, experience_id)
     if not experience:
         raise NotFoundException(message="Experience not found")
 
     provider = await db.get(User, experience.provider_id)
-    return ExperienceDetail(
+    result = ExperienceDetail(
         experience=ExperienceRead.model_validate(experience),
         provider_name=provider.display_name or provider.phone if provider else None,
         provider_avatar=provider.avatar_url if provider else None,
         provider_role=provider.role if provider else None,
     )
+
+    if current_user:
+        from app.models.favorite import Favorite
+        from app.models.visit import Visit
+        from sqlalchemy import select
+
+        fav = await db.execute(
+            select(Favorite).where(
+                Favorite.user_id == current_user.id,
+                Favorite.entity_type == "experience",
+                Favorite.entity_id == experience_id,
+            )
+        )
+        result.is_favorited = fav.scalar_one_or_none() is not None
+
+        vis = await db.execute(
+            select(Visit).where(
+                Visit.user_id == current_user.id,
+                Visit.entity_type == "experience",
+                Visit.entity_id == experience_id,
+            )
+        )
+        result.has_visited = vis.scalar_one_or_none() is not None
+
+    return result
 
 
 @router.put("/{experience_id}", response_model=ExperienceRead)

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_db
+from app.api.deps import get_current_user, get_current_user_optional, get_db
 from app.core.exceptions import ForbiddenException, NotFoundException
 from app.models.stay import Stay
 from app.models.user import User
@@ -93,6 +93,7 @@ async def list_stays(
 async def get_stay(
     stay_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional),
 ):
     stay = await db.get(Stay, stay_id)
     if not stay or not stay.is_active:
@@ -102,6 +103,30 @@ async def get_stay(
     read = StayRead.model_validate(stay)
     read.provider_name = user.display_name if user else None
     read.provider_avatar = user.avatar_url if user else None
+
+    if current_user:
+        from app.models.favorite import Favorite
+        from app.models.visit import Visit
+        from sqlalchemy import select
+
+        fav = await db.execute(
+            select(Favorite).where(
+                Favorite.user_id == current_user.id,
+                Favorite.entity_type == "stay",
+                Favorite.entity_id == stay_id,
+            )
+        )
+        read.is_favorited = fav.scalar_one_or_none() is not None
+
+        vis = await db.execute(
+            select(Visit).where(
+                Visit.user_id == current_user.id,
+                Visit.entity_type == "stay",
+                Visit.entity_id == stay_id,
+            )
+        )
+        read.has_visited = vis.scalar_one_or_none() is not None
+
     return read
 
 
