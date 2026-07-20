@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     favorites,
     geojson,
     preferences,
+    recommendations,
     health,
     discussions,
     live,
@@ -57,4 +58,5 @@ router.include_router(geojson.router)
 router.include_router(collections.router)
 router.include_router(favorites.router)
 router.include_router(preferences.router)
+router.include_router(recommendations.router)
 router.include_router(visits.router)
