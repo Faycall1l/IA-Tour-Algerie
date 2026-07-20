@@ -7,9 +7,11 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_admin, get_db, get_vector_search
+from app.core.config import settings
 from app.core.exceptions import NotFoundException
 from app.models.experience import Experience
 from app.models.live_post import LivePost
+from app.models.poi import POI
 from app.models.price_report import PriceReport
 from app.models.provider_profile import PROVIDER_TYPES, ProviderProfile
 from app.models.review import Review
@@ -375,3 +377,69 @@ async def admin_delete_experience(
     vector_search.delete_experience(experience_id)
 
     return AdminActionResponse(message="Experience deleted")
+
+
+# ── Data Verification ──
+
+
+@router.get("/verify/poi/{poi_id}", response_model=AdminActionResponse)
+async def verify_poi_quality(
+    poi_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    _current_user: User = Depends(get_current_admin),
+):
+    poi = await db.get(POI, poi_id)
+    if not poi:
+        raise NotFoundException(message="POI not found")
+
+    try:
+        from app.agents.verification import create_verification_agent, verify_poi_dry_run
+
+        agent = create_verification_agent(
+            api_key=settings.agent.openrouter_api_key or "",
+            model_name=settings.agent.openrouter_model or "",
+        )
+
+        if agent:
+            # LLM-based verification
+            result = await agent.run(
+                f"name: {poi.name}\ncategory: {poi.category}\ndescription: {poi.description}\n"
+                f"osm_tags: {poi.osm_tags}\nlat: {poi.latitude}\nlng: {poi.longitude}"
+            )
+        else:
+            # Dry-run with rule-based checks
+            result = await verify_poi_dry_run(
+                poi_id=str(poi.id),
+                name=poi.name,
+                category=poi.category,
+                description=poi.description,
+                osm_tags=poi.osm_tags,
+            )
+
+        return AdminActionResponse(
+            message=f"Verification complete: score={result.score}/5, "
+                    f"issues={len(result.issues)}, missing={result.missing_fields}"
+        )
+    except Exception as exc:
+        logger.warning("Verification failed for POI %s: %s", poi_id, exc)
+        return AdminActionResponse(message=f"Verification error: {exc}")
+
+
+@router.get("/verify/stats", response_model=AdminActionResponse)
+async def get_verification_stats(
+    db: AsyncSession = Depends(get_db),
+    _current_user: User = Depends(get_current_admin),
+):
+    total = (await db.execute(select(func.count()).select_from(POI))).scalar() or 0
+    with_phone = (await db.execute(select(func.count()).where(POI.phone.isnot(None)))).scalar() or 0
+    with_website = (await db.execute(select(func.count()).where(POI.website.isnot(None)))).scalar() or 0
+    with_hours = (await db.execute(select(func.count()).where(POI.opening_hours.isnot(None)))).scalar() or 0
+    short_desc = (await db.execute(
+        select(func.count()).where(POI.description.isnot(None), func.length(POI.description) < 80)
+    )).scalar() or 0
+
+    return AdminActionResponse(
+        message=f"POI data quality stats: {total} total, {with_phone} with phone, "
+                f"{with_website} with website, {with_hours} with hours, "
+                f"{short_desc} with short descriptions"
+    )
