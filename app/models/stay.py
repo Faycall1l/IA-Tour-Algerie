@@ -1,7 +1,7 @@
 import uuid
 
-from sqlalchemy import ARRAY, Boolean, CheckConstraint, Float, ForeignKey, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import ARRAY, Boolean, CheckConstraint, Computed, Float, ForeignKey, Integer, String, Text
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -47,4 +47,7 @@ class Stay(UUIDPkMixin, TimestampMixin, Base):
     check_out_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     max_guests: Mapped[int | None] = mapped_column(Integer, nullable=True)
     total_rooms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('french', coalesce(name, '') || ' ' || coalesce(description, '') || ' ' || coalesce(property_type, '') || ' ' || coalesce(address, ''))"), nullable=True
+    )
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

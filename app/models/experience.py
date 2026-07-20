@@ -1,8 +1,8 @@
 from datetime import date as date_type
 
 import sqlalchemy as sa
-from sqlalchemy import ARRAY, Boolean, CheckConstraint, Date, Float, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import ARRAY, Boolean, CheckConstraint, Computed, Date, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -65,5 +65,8 @@ class Experience(UUIDPkMixin, TimestampMixin, Base):
 
     source: Mapped[str | None] = mapped_column(String(100), nullable=True)
     source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('french', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(category, ''))"), nullable=True
+    )
     is_verified: Mapped[bool] = mapped_column(sa.Boolean, default=False)
     completion_count: Mapped[int] = mapped_column(sa.Integer, default=0)

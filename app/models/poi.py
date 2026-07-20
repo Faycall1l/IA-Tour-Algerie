@@ -1,5 +1,5 @@
-from sqlalchemy import ARRAY, BigInteger, Boolean, CheckConstraint, Float, ForeignKey, Index, Integer, String, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import ARRAY, BigInteger, Boolean, CheckConstraint, Computed, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy.dialects.postgresql import JSONB, TSVECTOR
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -68,5 +68,8 @@ class POI(UUIDPkMixin, TimestampMixin, Base):
     suggested_duration_min: Mapped[int | None] = mapped_column(Integer, nullable=True)
     neighborhood: Mapped[str | None] = mapped_column(String(200), nullable=True)
     award: Mapped[str | None] = mapped_column(String(200), nullable=True)
+    search_vector: Mapped[str | None] = mapped_column(
+        TSVECTOR, Computed("to_tsvector('french', coalesce(name, '') || ' ' || coalesce(name_en, '') || ' ' || coalesce(name_ar, '') || ' ' || coalesce(description, '') || ' ' || coalesce(category, '') || ' ' || coalesce(subtype, '') || ' ' || coalesce(commune, '') || ' ' || coalesce(operator, '') || ' ' || coalesce(cuisine, '') || ' ' || coalesce(neighborhood, ''))"), nullable=True
+    )
     getting_there: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     trip_type_counts: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
