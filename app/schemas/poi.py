@@ -86,6 +86,8 @@ class POIRead(BaseModel):
     average_score: float | None = None
     total_reviews: int = 0
     top_reviews: list[TopReview] | None = None
+    is_favorited: bool = False
+    has_visited: bool = False
 
 
 class POIBrief(BaseModel):

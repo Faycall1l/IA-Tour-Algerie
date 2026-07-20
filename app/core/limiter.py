@@ -53,16 +53,16 @@ class SlidingWindowCounter:
     def __init__(self) -> None:
         self._buckets: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
 
-    def check(self, key: str, limit: int, window: int = 60) -> bool:
+    def check(self, key: str, limit: int, window: int = 60) -> tuple[bool, int]:
         now = time.time()
         bucket = self._buckets[key]
         cutoff = now - window
         bucket[key] = [t for t in bucket.get(key, []) if t > cutoff]
         timestamps = bucket[key]
         if len(timestamps) >= limit:
-            return False
+            return False, max(0, limit - len(timestamps))
         timestamps.append(now)
-        return True
+        return True, max(0, limit - len(timestamps) - 1)
 
 
 _counter = SlidingWindowCounter()
@@ -77,10 +77,11 @@ METHOD_LIMITS: dict[str, tuple[int, int]] = {
 }
 
 
-def check_rate_limit(ip: str, method: str) -> bool:
-    """Return True if request is within limit, False if rate-limited."""
+def check_rate_limit(ip: str, method: str) -> tuple[bool, int, int]:
+    """Return (allowed, limit, remaining)."""
     limit, window = METHOD_LIMITS.get(method, (60, 60))
-    return _counter.check(f"{ip}:{method}", limit, window)
+    allowed, remaining = _counter.check(f"{ip}:{method}", limit, window)
+    return allowed, limit, remaining
 
 
 __all__ = ["limiter", "_rate_limit_exceeded_handler", "check_rate_limit", "METHOD_LIMITS"]

@@ -216,16 +216,25 @@ async def method_based_rate_limit(request: Request, call_next):
         return await call_next(request)
     if request.url.path.startswith("/api/v1/") and request.method in METHOD_LIMITS:
         ip = request.client.host if request.client else "unknown"
-        if not check_rate_limit(ip, request.method):
-            return JSONResponse(
+        allowed, limit, remaining = check_rate_limit(ip, request.method)
+        response = await call_next(request)
+        response.headers["X-RateLimit-Limit"] = str(limit)
+        response.headers["X-RateLimit-Remaining"] = str(remaining)
+        if not allowed:
+            response = JSONResponse(
                 status_code=429,
                 content={
                     "error": "rate_limit_exceeded",
                     "message": f"Rate limit exceeded for {request.method} requests. "
-                    f"Limit: {METHOD_LIMITS[request.method][0]} per {METHOD_LIMITS[request.method][1]}s",
+                    f"Limit: {limit} per {METHOD_LIMITS[request.method][1]}s",
                 },
-                headers={"Retry-After": "60"},
+                headers={
+                    "Retry-After": "60",
+                    "X-RateLimit-Limit": str(limit),
+                    "X-RateLimit-Remaining": "0",
+                },
             )
+        return response
     return await call_next(request)
 
 

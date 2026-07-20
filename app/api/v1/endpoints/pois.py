@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_admin, get_current_user, get_db, get_provider_or_admin, get_storage, get_vector_search
+from app.api.deps import get_current_admin, get_current_user, get_current_user_optional, get_db, get_provider_or_admin, get_storage, get_vector_search
 from app.core.exceptions import NotFoundException
 from app.models.poi import POI
 from app.models.review import Review
@@ -279,13 +279,40 @@ async def search_pois(
 
 
 @router.get("/{poi_id}", response_model=POIRead)
-async def get_poi(poi_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+async def get_poi(
+    poi_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user_optional),
+):
     poi = await db.get(POI, poi_id)
     if not poi:
         raise NotFoundException(message="Point of interest not found")
 
     items = await _attach_ratings(db, [poi])
-    return items[0]
+    result = items[0]
+
+    if current_user:
+        from app.models.favorite import Favorite
+        from app.models.visit import Visit
+        fav = await db.execute(
+            select(Favorite).where(
+                Favorite.user_id == current_user.id,
+                Favorite.entity_type == "poi",
+                Favorite.entity_id == poi_id,
+            )
+        )
+        result.is_favorited = fav.scalar_one_or_none() is not None
+
+        vis = await db.execute(
+            select(Visit).where(
+                Visit.user_id == current_user.id,
+                Visit.entity_type == "poi",
+                Visit.entity_id == poi_id,
+            )
+        )
+        result.has_visited = vis.scalar_one_or_none() is not None
+
+    return result
 
 
 @router.patch("/{poi_id}", response_model=POIRead)
