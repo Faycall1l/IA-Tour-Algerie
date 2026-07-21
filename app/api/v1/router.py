@@ -24,6 +24,7 @@ from app.api.v1.endpoints import (
     reviews,
     search,
     stays,
+    suggestions,
     transport,
     trips,
     users,
@@ -52,6 +53,7 @@ router.include_router(circuits.router)
 router.include_router(notifications.router)
 router.include_router(stays.router)
 router.include_router(transport.router)
+router.include_router(suggestions.router)
 router.include_router(trips.router)
 router.include_router(search.router)
 router.include_router(geojson.router)
