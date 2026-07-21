@@ -91,7 +91,7 @@ class POIRead(BaseModel):
 
 
 class POIBrief(BaseModel):
-    """Lightweight POI for list/similar endpoints — no reviews."""
+    """Lightweight POI for list/similar/nearby endpoints — no reviews."""
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
@@ -103,6 +103,7 @@ class POIBrief(BaseModel):
     longitude: float | None = None
     photo_url: str | None = None
     is_featured: bool = False
+    distance_km: float | None = None
     average_score: float | None = None
     total_reviews: int = 0
 

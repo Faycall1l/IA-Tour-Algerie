@@ -226,8 +226,9 @@ async def nearby_pois(
             wilaya_id=r.wilaya_id, latitude=float(r.latitude) if r.latitude else None,
             longitude=float(r.longitude) if r.longitude else None,
             photo_url=r.photo_url, is_featured=r.is_featured,
+            distance_km=round(dist, 2),
         )
-        for _, r in items[:limit]
+        for dist, r in items[:limit]
     ]
 
 
