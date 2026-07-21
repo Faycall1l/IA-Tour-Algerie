@@ -396,8 +396,9 @@ async def verify_poi_quality(
         from app.agents.verification import create_verification_agent, verify_poi_dry_run
 
         agent = create_verification_agent(
-            api_key=settings.agent.openrouter_api_key or "",
-            model_name=settings.agent.openrouter_model or "",
+            base_url=settings.agent.vllm.base_url or "",
+            api_key=settings.agent.vllm.api_key or "",
+            model_name=settings.agent.vllm.model or "",
         )
 
         if agent:

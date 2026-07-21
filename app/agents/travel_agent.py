@@ -11,7 +11,8 @@ Agent instances are created at app startup via the factory functions.
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
-from pydantic_ai.providers.openrouter import OpenRouterProvider
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.deps import TravelAgentDeps
 from app.agents.tools import (
@@ -143,31 +144,33 @@ SEARCH_INSTRUCTIONS = (
 
 def _register_search_tools(agent: Agent) -> None:
     """Register all search/discovery tools on an agent."""
-    agent.tool(search_pois, takes_ctx=True)
-    agent.tool(search_stays, takes_ctx=True)
-    agent.tool(search_experiences, takes_ctx=True)
-    agent.tool(get_weather, takes_ctx=True)
-    agent.tool(get_wilaya_guide, takes_ctx=True)
-    agent.tool(find_events, takes_ctx=True)
+    agent.tool(search_pois)
+    agent.tool(search_stays)
+    agent.tool(search_experiences)
+    agent.tool(get_weather)
+    agent.tool(get_wilaya_guide)
+    agent.tool(find_events)
 
 
 def _register_all_tools(agent: Agent) -> None:
     """Register every tool including transport routing."""
     _register_search_tools(agent)
-    agent.tool(get_transport_route, takes_ctx=True)
+    agent.tool(get_transport_route)
 
 
-def create_travel_agent(api_key: str = "", model_name: str = "") -> Agent | None:
-    """Create the main travel planning agent.
+def _make_model(base_url: str, api_key: str, model_name: str) -> OpenAIChatModel:
+    return OpenAIChatModel(
+        model_name,
+        provider=OpenAIProvider(base_url=base_url, api_key=api_key),
+    )
 
-    Returns None if no API key is configured (graceful degradation).
-    """
+
+def create_travel_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+    """Create the main travel planning agent."""
     if not api_key:
         return None
-    model = f"openrouter:{model_name}" if model_name else "openrouter:google/gemini-2.0-flash-lite"
     agent = Agent[TravelAgentDeps, TravelSearchResult](
-        model=model,
-        provider=OpenRouterProvider(api_key=api_key),
+        model=_make_model(base_url, api_key, model_name),
         output_type=TravelSearchResult,
         instructions=AGENT_INSTRUCTIONS,
         model_settings={"temperature": 0.3, "max_tokens": 2048},
@@ -176,17 +179,12 @@ def create_travel_agent(api_key: str = "", model_name: str = "") -> Agent | None
     return agent
 
 
-def create_itinerary_agent(api_key: str = "", model_name: str = "") -> Agent | None:
-    """Create the itinerary planning agent.
-
-    Returns None if no API key is configured (graceful degradation).
-    """
+def create_itinerary_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+    """Create the itinerary planning agent."""
     if not api_key:
         return None
-    model = f"openrouter:{model_name}" if model_name else "openrouter:google/gemini-2.0-flash-lite"
     agent = Agent[TravelAgentDeps, TripPlan](
-        model=model,
-        provider=OpenRouterProvider(api_key=api_key),
+        model=_make_model(base_url, api_key, model_name),
         output_type=TripPlan,
         instructions=ITINERARY_INSTRUCTIONS,
         model_settings={"temperature": 0.5, "max_tokens": 4096},
@@ -195,17 +193,12 @@ def create_itinerary_agent(api_key: str = "", model_name: str = "") -> Agent | N
     return agent
 
 
-def create_search_agent(api_key: str = "", model_name: str = "") -> Agent | None:
-    """Create the search assistant agent.
-
-    Returns None if no API key is configured (graceful degradation).
-    """
+def create_search_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+    """Create the search assistant agent."""
     if not api_key:
         return None
-    model = f"openrouter:{model_name}" if model_name else "openrouter:google/gemini-2.0-flash-lite"
     agent = Agent[TravelAgentDeps, TravelSearchResult](
-        model=model,
-        provider=OpenRouterProvider(api_key=api_key),
+        model=_make_model(base_url, api_key, model_name),
         output_type=TravelSearchResult,
         instructions=SEARCH_INSTRUCTIONS,
         model_settings={"temperature": 0.2, "max_tokens": 1024},

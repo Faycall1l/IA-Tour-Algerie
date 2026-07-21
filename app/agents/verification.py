@@ -9,7 +9,8 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
-from pydantic_ai.providers.openrouter import OpenRouterProvider
+from pydantic_ai.models.openai import OpenAIChatModel
+from pydantic_ai.providers.openai import OpenAIProvider
 
 logger = logging.getLogger(__name__)
 
@@ -61,18 +62,20 @@ class VerificationDeps:
     pass
 
 
-def create_verification_agent(api_key: str = "", model_name: str = "") -> Agent | None:
+def create_verification_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
     """Create the POI data verification agent.
 
     Returns None if no API key is configured (graceful degradation).
     """
     if not api_key:
-        logger.info("No OPENROUTER_API_KEY set — verification agent runs in dry-run mode")
+        logger.info("No API key set — verification agent runs in dry-run mode")
         return None
-    model = f"openrouter:{model_name}" if model_name else "openrouter:google/gemini-2.0-flash-lite"
+    openai_model = OpenAIChatModel(
+        model_name,
+        provider=OpenAIProvider(base_url=base_url, api_key=api_key),
+    )
     agent = Agent[VerificationDeps, VerificationResult](
-        model=model,
-        provider=OpenRouterProvider(api_key=api_key),
+        model=openai_model,
         output_type=VerificationResult,
         instructions=VERIFY_INSTRUCTIONS,
         model_settings={"temperature": 0.1, "max_tokens": 1024},

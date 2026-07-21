@@ -83,16 +83,17 @@ async def lifespan(app: FastAPI):
         else:
             logger.warning("Agent layer enabled but failed to initialize")
 
-    # Initialize Pydantic AI travel agents
-    ak = settings.agent.openrouter_api_key
-    mn = settings.agent.openrouter_model
-    app.state.travel_agent = create_travel_agent(api_key=ak, model_name=mn)
-    app.state.itinerary_agent = create_itinerary_agent(api_key=ak, model_name=mn)
-    app.state.search_agent = create_search_agent(api_key=ak, model_name=mn)
+    # Initialize Pydantic AI travel agents (vLLM)
+    bu = settings.agent.vllm.base_url
+    ak = settings.agent.vllm.api_key
+    mn = settings.agent.vllm.model
+    app.state.travel_agent = create_travel_agent(base_url=bu, api_key=ak, model_name=mn)
+    app.state.itinerary_agent = create_itinerary_agent(base_url=bu, api_key=ak, model_name=mn)
+    app.state.search_agent = create_search_agent(base_url=bu, api_key=ak, model_name=mn)
     if ak:
-        logger.info("Pydantic AI agents initialized with model=%s", mn)
+        logger.info("Pydantic AI agents initialized: %s @ %s", mn, bu)
     else:
-        logger.warning("No OPENROUTER_API_KEY set — agent endpoints will return 503")
+        logger.warning("No vLLM API key set — agent endpoints will return 503")
     _load_legacy_routers()
 
     async def _index_existing_pois():
