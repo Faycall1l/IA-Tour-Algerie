@@ -26,6 +26,7 @@ _AGENT_ENDPOINTS = {
 def _mock_run_result(data_obj):
     """Create a mock Agent.run() return value."""
     m = MagicMock()
+    m.output = data_obj
     m.data = data_obj
     return m
 
@@ -58,7 +59,7 @@ class TestChatEndpoint:
             headers=auth_headers,
         )
         assert resp.status_code == 503
-        assert "OPENROUTER_API_KEY" in resp.json()["detail"]
+        assert "VLLM" in resp.json()["detail"] or "OPENROUTER" in resp.json()["detail"]
 
     async def test_422_on_empty_message(self, client: AsyncClient, auth_headers: dict[str, str]):
         resp = await client.post(

@@ -1,9 +1,13 @@
 class TestAgentLLM:
     def test_get_llm_disabled_by_default(self):
+        from unittest.mock import patch
         from app.services.agent.llm import get_llm
 
-        llm = get_llm()
-        assert llm is None
+        with patch("app.services.agent.llm.settings") as mock_settings:
+            mock_settings.agent.vllm.api_key = ""
+            mock_settings.agent.vllm.base_url = ""
+            llm = get_llm()
+            assert llm is None
 
 
 class TestAgentMiddleware:
@@ -347,17 +351,25 @@ class TestAgentSchemas:
 
 class TestAgentLLMFallback:
     def test_get_fallback_disabled_by_default(self):
+        from unittest.mock import patch
         from app.services.agent.llm import get_llm
 
-        fallback = get_llm(fallback=True)
-        assert fallback is None
+        with patch("app.services.agent.llm.settings") as mock_settings:
+            mock_settings.agent.vllm.api_key = ""
+            mock_settings.agent.vllm.base_url = ""
+            fallback = get_llm(fallback=True)
+            assert fallback is None
 
     def test_reset_llm(self):
+        from unittest.mock import patch
         from app.services.agent.llm import get_llm, reset_llm
 
-        reset_llm()
-        assert get_llm() is None
-        assert get_llm(fallback=True) is None
+        with patch("app.services.agent.llm.settings") as mock_settings:
+            mock_settings.agent.vllm.api_key = ""
+            mock_settings.agent.vllm.base_url = ""
+            reset_llm()
+            assert get_llm() is None
+            assert get_llm(fallback=True) is None
 
 
 class TestToolEdgeCases:
@@ -496,19 +508,31 @@ class TestCheckpointMiddleware:
 
 class TestAgentSubagents:
     def test_trip_optimizer_agent_disabled_when_no_llm(self):
+        from unittest.mock import patch
         from app.services.agent.agents.trip_optimizer import get_trip_optimizer_agent
 
-        agent = get_trip_optimizer_agent()
-        assert agent is None
+        with patch("app.services.agent.llm.settings") as mock_settings:
+            mock_settings.agent.vllm.api_key = ""
+            mock_settings.agent.vllm.base_url = ""
+            agent = get_trip_optimizer_agent()
+            assert agent is None
 
     def test_trip_brief_agent_disabled_when_no_llm(self):
+        from unittest.mock import patch
         from app.services.agent.agents.trip_brief import get_trip_brief_agent
 
-        agent = get_trip_brief_agent()
-        assert agent is None
+        with patch("app.services.agent.llm.settings") as mock_settings:
+            mock_settings.agent.vllm.api_key = ""
+            mock_settings.agent.vllm.base_url = ""
+            agent = get_trip_brief_agent()
+            assert agent is None
 
     def test_coordinator_disabled_when_no_llm(self):
+        from unittest.mock import patch
         from app.services.agent.agents.coordinator import get_coordinator
 
-        coordinator = get_coordinator()
-        assert coordinator is None
+        with patch("app.services.agent.llm.settings") as mock_settings:
+            mock_settings.agent.vllm.api_key = ""
+            mock_settings.agent.vllm.base_url = ""
+            coordinator = get_coordinator()
+            assert coordinator is None

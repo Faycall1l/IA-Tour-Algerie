@@ -67,7 +67,7 @@ def _get_agent(request: Request, name: str):
     if agent is None:
         raise HTTPException(
             status_code=503,
-            detail="Agents are not available — set OPENROUTER_API_KEY environment variable",
+            detail="Agents are not available — configure AGENT__VLLM settings in .env",
         )
     return agent
 
@@ -95,7 +95,7 @@ async def agent_chat(
     deps = _make_deps(current_user, db, request)
     result = await agent.run(body.message, deps=deps)
     return AgentChatResponse(
-        reply=result.data.summary if hasattr(result.data, 'summary') else str(result.data),
+        reply=result.output.summary if hasattr(result.output, 'summary') else str(result.output),
     )
 
 
@@ -117,7 +117,7 @@ async def agent_plan_trip(
     if body.interests.strip():
         prompt += f"\nInterests: {body.interests}"
     result = await agent.run(prompt, deps=deps)
-    return TripPlanResponse(plan=result.data)
+    return TripPlanResponse(plan=result.output)
 
 
 @router.post("/search", response_model=AgentSearchResponse)
@@ -132,13 +132,14 @@ async def agent_search(
     agent = _get_agent(request, "search_agent")
     deps = _make_deps(current_user, db, request)
     result = await agent.run(body.query, deps=deps)
-    if hasattr(result.data, 'pois') and hasattr(result.data, 'stays') and hasattr(result.data, 'experiences'):
+    data = result.output
+    if hasattr(data, 'pois') and hasattr(data, 'stays') and hasattr(data, 'experiences'):
         items = []
-        for p in result.data.pois:
+        for p in data.pois:
             items.append({"type": "poi", **p})
-        for s in result.data.stays:
+        for s in data.stays:
             items.append({"type": "stay", **s})
-        for e in result.data.experiences:
+        for e in data.experiences:
             items.append({"type": "experience", **e})
         return AgentSearchResponse(results=items, total=len(items))
     return AgentSearchResponse()
