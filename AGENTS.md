@@ -2,6 +2,7 @@
 Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, agencies) on top of the existing transit graph, enabling complete tourist itinerary planning across all 58 wilayas.
 
 ## Constraints & Preferences
+- **NEVER seed with fictional/synthetic data.** Every record in the database must come from a real, verifiable source (OSM, Wikidata, official operators, user contributions). Fake names, invented descriptions, generated phone numbers, etc. are strictly prohibited. If real data is unavailable for a table, leave it empty and note it as a gap.
 - Use real/trusted sources — OSM Overpass API for POI extraction, Wikidata for enrichment, official operator data where available
 - All POI data must be geolocated with wilaya_id for routing integration
 - POIs should connect to the transit graph via walking edges from nearest transport nodes
