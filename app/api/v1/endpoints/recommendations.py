@@ -7,6 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db, get_vector_search
+from app.models.artisan import Artisan
 from app.models.experience import Experience
 from app.models.favorite import Favorite
 from app.models.poi import POI
@@ -14,6 +15,7 @@ from app.models.preference import UserPreference
 from app.models.stay import Stay
 from app.models.user import User
 from app.schemas.experience import ExperienceRead
+from app.schemas.artisan import ArtisanRead
 from app.schemas.poi import POIBrief, POIRead
 from app.schemas.stay import StayRead
 from app.services.vector_search import VectorSearchService
@@ -146,3 +148,39 @@ async def recommend_stays(
     query = query.order_by(Stay.price_per_night_dzd.asc()).limit(limit)
     result = await db.execute(query)
     return [StayRead.model_validate(s) for s in result.scalars().all()]
+
+
+@router.get("/artisans", response_model=list[ArtisanRead])
+async def recommend_artisans(
+    wilaya_id: int | None = Query(None),
+    craft_type: str | None = Query(None),
+    limit: int = Query(10, ge=1, le=50),
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    pref = await _get_user_preferences(current_user, db)
+    fav_categories = await _get_user_category_history(current_user, db)
+
+    query = select(Artisan)
+
+    if wilaya_id:
+        query = query.where(Artisan.wilaya_id == wilaya_id)
+
+    if craft_type:
+        query = query.where(Artisan.craft_type == craft_type)
+    elif pref and pref.preferred_categories:
+        craft_map = {
+            "market": ["pottery", "carpet_weaving", "textile", "basket_weaving", "embroidery"],
+            "cultural": ["calligraphy", "tilework", "stone_carving"],
+            "historical": ["metalwork", "copper_work", "leather_work", "woodwork"],
+            "museum": ["jewelry", "glasswork"],
+        }
+        matching_crafts = []
+        for cat in pref.preferred_categories:
+            matching_crafts.extend(craft_map.get(cat, []))
+        if matching_crafts:
+            query = query.where(Artisan.craft_type.in_(list(set(matching_crafts))))
+
+    query = query.order_by(Artisan.is_verified.desc(), Artisan.years_experience.desc().nullslast()).limit(limit)
+    result = await db.execute(query)
+    return [ArtisanRead.model_validate(a) for a in result.scalars().all()]

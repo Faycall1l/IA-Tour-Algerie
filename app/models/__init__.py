@@ -1,3 +1,4 @@
+from app.models.artisan import Artisan
 from app.models.booking import Booking
 from app.models.collection import Collection, CollectionItem
 from app.models.discussion import DiscussionPost, DiscussionThread
@@ -23,6 +24,7 @@ from app.models.wilaya import Wilaya
 from app.models.wilaya_distance import WilayaDistance
 
 __all__ = [
+    "Artisan",
     "User",
     "Wilaya",
     "LocalAgency",

@@ -16,6 +16,8 @@ from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.deps import TravelAgentDeps
 from app.agents.tools import (
+    ArtisanSearchOutput,
+    ArtisanSearchParams,
     EventSearchOutput,
     EventSearchParams,
     ExperienceSearchOutput,
@@ -34,6 +36,7 @@ from app.agents.tools import (
     get_transport_route,
     get_weather,
     get_wilaya_guide,
+    search_artisans,
     search_experiences,
     search_pois,
     search_stays,
@@ -79,6 +82,7 @@ AGENT_INSTRUCTIONS = (
     "\n- Search points of interest (historical sites, museums, beaches, mountains, parks, etc.)"
     "\n- Find accommodations (hotels, guesthouses, hostels) with pricing"
     "\n- Discover tours, activities, and cultural experiences"
+    "\n- Find local artisans and craftspeople (pottery, weaving, jewelry, leatherwork, etc.)"
     "\n- Get a curated wilaya travel guide with featured attractions per category"
     "\n- Find transport options (bus, taxi, train, plane) between two wilayas"
     "\n- Search cultural events and festivals by wilaya, category, and month"
@@ -92,9 +96,10 @@ AGENT_INSTRUCTIONS = (
     "\n4. Use `get_transport_route` when the user asks how to get between two wilayas"
     "\n5. Use `find_events` when the user asks about festivals, events, or seasonal activities"
     "\n6. Use `get_weather` when the user asks about weather or when planning outdoor activities"
-    "\n7. Combine multiple tools to give comprehensive answers"
-    "\n8. If a tool returns no results, say so honestly and suggest alternatives"
-    "\n9. Always mention wilaya names when citing places"
+    "\n7. Use `search_artisans` when the user asks about local crafts, workshops, or buying souvenirs"
+    "\n8. Combine multiple tools to give comprehensive answers"
+    "\n9. If a tool returns no results, say so honestly and suggest alternatives"
+    "\n10. Always mention wilaya names when citing places"
 
     "\n\nRESPONSE STYLE:"
     "\n- Be concise but informative"
@@ -147,6 +152,7 @@ def _register_search_tools(agent: Agent) -> None:
     agent.tool(search_pois)
     agent.tool(search_stays)
     agent.tool(search_experiences)
+    agent.tool(search_artisans)
     agent.tool(get_weather)
     agent.tool(get_wilaya_guide)
     agent.tool(find_events)

@@ -270,6 +270,82 @@ async def search_experiences(ctx: RunContext[TravelAgentDeps], params: Experienc
     )
 
 
+# ── Artisan Search ──
+
+class ArtisanSearchParams(BaseModel):
+    query: str = Field(..., min_length=1, max_length=200, description="Search query for artisan name/craft")
+    wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by wilaya ID")
+    craft_type: str | None = Field(None, description="Filter by craft type (pottery, carpet_weaving, jewelry, etc.)")
+    limit: int = Field(10, ge=1, le=50, description="Max results to return")
+
+
+class ArtisanSearchResult(BaseModel):
+    id: str
+    name: str
+    craft_type: str
+    wilaya_id: int
+    description: str | None = None
+    latitude: float | None = None
+    longitude: float | None = None
+    years_experience: int | None = None
+    accepts_visitors: bool = True
+    is_verified: bool = False
+
+
+class ArtisanSearchOutput(BaseModel):
+    results: list[ArtisanSearchResult]
+    total: int
+
+
+async def search_artisans(ctx: RunContext[TravelAgentDeps], params: ArtisanSearchParams) -> ArtisanSearchOutput:
+    """Search artisans/craftspeople by name, craft type, and wilaya.
+
+    Returns artisans with their workshop details.
+    """
+    q = params.query.strip()
+    conditions = ["(name ILIKE :q OR craft_type ILIKE :q OR description ILIKE :q)"]
+    bind = {"q": f"%{q}%"}
+
+    if params.wilaya_id is not None:
+        conditions.append("wilaya_id = :wilaya_id")
+        bind["wilaya_id"] = params.wilaya_id
+    if params.craft_type is not None:
+        conditions.append("craft_type = :craft_type")
+        bind["craft_type"] = params.craft_type
+
+    where = " AND ".join(conditions)
+
+    count_sql = f"SELECT COUNT(*) FROM artisans WHERE {where}"
+    result = await ctx.deps.db.execute(text(count_sql), bind)
+    total = result.scalar() or 0
+
+    sql = f"""
+        SELECT id, name, craft_type, wilaya_id, description,
+               latitude, longitude, years_experience, accepts_visitors, is_verified
+        FROM artisans
+        WHERE {where}
+        ORDER BY is_verified DESC, years_experience DESC NULLS LAST
+        LIMIT :limit
+    """
+    bind["limit"] = params.limit
+    result = await ctx.deps.db.execute(text(sql), bind)
+    rows = result.all()
+
+    return ArtisanSearchOutput(
+        total=total,
+        results=[
+            ArtisanSearchResult(
+                id=str(r[0]), name=r[1], craft_type=r[2],
+                wilaya_id=r[3], description=r[4],
+                latitude=r[5], longitude=r[6],
+                years_experience=r[7], accepts_visitors=r[8] or True,
+                is_verified=r[9] or False,
+            )
+            for r in rows
+        ],
+    )
+
+
 # ── Weather ──
 
 class WeatherParams(BaseModel):

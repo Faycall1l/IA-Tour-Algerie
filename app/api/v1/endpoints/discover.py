@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db
 from app.core.exceptions import NotFoundException
+from app.models.artisan import Artisan
 from app.models.experience import Experience
 from app.models.poi import POI
 from app.models.review import Review
@@ -83,12 +84,30 @@ class DiscoverStay(BaseModel):
     provider_avatar: str | None
 
 
+class DiscoverArtisan(BaseModel):
+    id: uuid.UUID
+    name: str
+    craft_type: str
+    description: str | None
+    latitude: float | None
+    longitude: float | None
+    address: str | None
+    commune: str | None
+    photos: list[str] | None
+    years_experience: int | None
+    specializations: list[str] | None
+    accepts_visitors: bool
+    is_verified: bool
+    user_name: str | None = None
+
+
 class DiscoverResponse(BaseModel):
     wilaya_id: int
     wilaya_name: str
     pois: list[DiscoverPOI]
     experiences: list[DiscoverExperience]
     stays: list[DiscoverStay]
+    artisans: list[DiscoverArtisan]
 
 
 class WilayaSummary(BaseModel):
@@ -99,6 +118,7 @@ class WilayaSummary(BaseModel):
     total_featured: int = 0
     total_experiences: int = 0
     total_stays: int = 0
+    total_artisans: int = 0
     top_categories: list[str] = []
     highlight_poi: str | None = None
     highlight_poi_photo: str | None = None
@@ -221,6 +241,10 @@ async def list_wilayas(
             )
         )
 
+        artisan_count = await db.scalar(
+            select(func.count(Artisan.id)).where(Artisan.wilaya_id == w.id)
+        )
+
         summaries.append(WilayaSummary(
             id=w.id,
             name=_wilaya_name(w),
@@ -229,6 +253,7 @@ async def list_wilayas(
             total_featured=featured_count,
             total_experiences=exp_count or 0,
             total_stays=stay_count or 0,
+            total_artisans=artisan_count or 0,
             top_categories=top_cats,
             highlight_poi=highlight_poi,
             highlight_poi_photo=highlight_photo,
@@ -359,12 +384,50 @@ async def discover_wilaya(
         for s in stay_rows
     ]
 
+    # Artisans
+    artisan_rows = (
+        (await db.execute(
+            select(Artisan).where(Artisan.wilaya_id == wilaya_id).order_by(Artisan.name)
+        ))
+        .scalars()
+        .all()
+    )
+
+    artisan_user_ids = {a.user_id for a in artisan_rows}
+    artisan_users = (
+        (await db.execute(select(User).where(User.id.in_(artisan_user_ids)))).scalars().all()
+        if artisan_user_ids
+        else []
+    )
+    artisan_user_map = {u.id: u for u in artisan_users}
+
+    artisans = [
+        DiscoverArtisan(
+            id=a.id,
+            name=a.name,
+            craft_type=a.craft_type,
+            description=a.description,
+            latitude=a.latitude,
+            longitude=a.longitude,
+            address=a.address,
+            commune=a.commune,
+            photos=a.photos,
+            years_experience=a.years_experience,
+            specializations=a.specializations,
+            accepts_visitors=a.accepts_visitors,
+            is_verified=a.is_verified,
+            user_name=_display_name(artisan_user_map, a.user_id),
+        )
+        for a in artisan_rows
+    ]
+
     return DiscoverResponse(
         wilaya_id=wilaya_id,
         wilaya_name=wilaya.name_en,
         pois=pois,
         experiences=experiences,
         stays=stays,
+        artisans=artisans,
     )
 @router.get("/wilayas/{wilaya_id}/guide", response_model=GuideResponse)
 async def wilaya_guide(

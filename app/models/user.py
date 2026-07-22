@@ -4,7 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPkMixin
 
-USER_ROLES = ("traveler", "guide", "agency", "hotel", "admin")
+USER_ROLES = ("traveler", "guide", "agency", "hotel", "admin", "artisan")
 
 
 class User(UUIDPkMixin, TimestampMixin, Base):
