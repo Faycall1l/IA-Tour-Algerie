@@ -15,7 +15,6 @@ from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.deps import TravelAgentDeps
-from app.agents.travel_agent import TripPlan as TripPlanResult
 from app.api import deps
 from app.db.session import get_db
 from app.models.user import User
@@ -51,10 +50,11 @@ class AgentChatResponse(BaseModel):
 
 
 class TripPlanResponse(BaseModel):
-    plan: TripPlanResult
+    plan: str
 
 
 class AgentSearchResponse(BaseModel):
+    reply: str = ""
     results: list[dict] = Field(default_factory=list)
     total: int = 0
 
@@ -95,7 +95,7 @@ async def agent_chat(
     deps = _make_deps(current_user, db, request)
     result = await agent.run(body.message, deps=deps)
     return AgentChatResponse(
-        reply=result.output.summary if hasattr(result.output, 'summary') else str(result.output),
+        reply=str(result.output),
     )
 
 
@@ -117,7 +117,8 @@ async def agent_plan_trip(
     if body.interests.strip():
         prompt += f"\nInterests: {body.interests}"
     result = await agent.run(prompt, deps=deps)
-    return TripPlanResponse(plan=result.output)
+    reply = str(result.output)
+    return TripPlanResponse(plan=reply)
 
 
 @router.post("/search", response_model=AgentSearchResponse)
@@ -132,14 +133,4 @@ async def agent_search(
     agent = _get_agent(request, "search_agent")
     deps = _make_deps(current_user, db, request)
     result = await agent.run(body.query, deps=deps)
-    data = result.output
-    if hasattr(data, 'pois') and hasattr(data, 'stays') and hasattr(data, 'experiences'):
-        items = []
-        for p in data.pois:
-            items.append({"type": "poi", **p})
-        for s in data.stays:
-            items.append({"type": "stay", **s})
-        for e in data.experiences:
-            items.append({"type": "experience", **e})
-        return AgentSearchResponse(results=items, total=len(items))
-    return AgentSearchResponse()
+    return AgentSearchResponse(results=[], total=0, reply=str(result.output))

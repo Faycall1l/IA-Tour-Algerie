@@ -169,9 +169,8 @@ def create_travel_agent(base_url: str = "", api_key: str = "", model_name: str =
     """Create the main travel planning agent."""
     if not api_key:
         return None
-    agent = Agent[TravelAgentDeps, TravelSearchResult](
+    agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
-        output_type=TravelSearchResult,
         instructions=AGENT_INSTRUCTIONS,
         model_settings={"temperature": 0.3, "max_tokens": 2048},
     )
@@ -183,9 +182,8 @@ def create_itinerary_agent(base_url: str = "", api_key: str = "", model_name: st
     """Create the itinerary planning agent."""
     if not api_key:
         return None
-    agent = Agent[TravelAgentDeps, TripPlan](
+    agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
-        output_type=TripPlan,
         instructions=ITINERARY_INSTRUCTIONS,
         model_settings={"temperature": 0.5, "max_tokens": 4096},
     )
@@ -197,9 +195,8 @@ def create_search_agent(base_url: str = "", api_key: str = "", model_name: str =
     """Create the search assistant agent."""
     if not api_key:
         return None
-    agent = Agent[TravelAgentDeps, TravelSearchResult](
+    agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
-        output_type=TravelSearchResult,
         instructions=SEARCH_INSTRUCTIONS,
         model_settings={"temperature": 0.2, "max_tokens": 1024},
     )

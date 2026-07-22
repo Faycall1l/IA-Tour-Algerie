@@ -4,15 +4,13 @@ Tests cover:
 - Auth required (401)
 - Graceful 503 when no API key configured
 - Validation errors (422)
-- Happy path with mocked agents
+- Happy path with mocked agents (now return plain text strings)
 """
 
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from httpx import AsyncClient
-
-from app.agents.travel_agent import ItineraryDay, TripPlan
 
 pytestmark = pytest.mark.asyncio
 
@@ -39,8 +37,11 @@ def _make_mock_agent(data_obj):
 
 
 def _inject_mock(client: AsyncClient, name: str, agent):
-    """Inject a mock agent onto app.state."""
-    client._transport.app.state.__setattr__(name, agent)
+    """Inject a mock agent into app.state for the duration of the test."""
+    from app.main import app
+    original = getattr(app.state, name, None)
+    setattr(app.state, name, agent)
+    return original
 
 
 # ── Chat endpoint tests ──
@@ -49,7 +50,10 @@ class TestChatEndpoint:
     ENDPOINT = _AGENT_ENDPOINTS["chat"]
 
     async def test_requires_auth(self, client: AsyncClient):
-        resp = await client.post(self.ENDPOINT, json={"message": "hello"})
+        resp = await client.post(
+            self.ENDPOINT,
+            json={"message": "hello"},
+        )
         assert resp.status_code == 401
 
     async def test_503_when_no_agent(self, client: AsyncClient, auth_headers: dict[str, str]):
@@ -74,12 +78,9 @@ class TestChatEndpoint:
         assert resp.status_code == 422
 
     async def test_success(self, client: AsyncClient, auth_headers: dict[str, str]):
-        mock_data = MagicMock()
-        mock_data.summary = "Algiers has the Great Mosque, built in 2019."
-        mock_data.pois = []
-        mock_data.stays = []
-        mock_data.experiences = []
-        _inject_mock(client, "travel_agent", _make_mock_agent(mock_data))
+        _inject_mock(client, "travel_agent", _make_mock_agent(
+            "Algiers has the Great Mosque, built in 2019."
+        ))
 
         resp = await client.post(
             self.ENDPOINT,
@@ -92,12 +93,9 @@ class TestChatEndpoint:
         assert "Great Mosque" in data["reply"]
 
     async def test_success_with_wilaya_filter(self, client: AsyncClient, auth_headers: dict[str, str]):
-        mock_data = MagicMock()
-        mock_data.summary = "Oran has a beautiful coastline."
-        mock_data.pois = []
-        mock_data.stays = []
-        mock_data.experiences = []
-        _inject_mock(client, "travel_agent", _make_mock_agent(mock_data))
+        _inject_mock(client, "travel_agent", _make_mock_agent(
+            "Oran has a beautiful coastline."
+        ))
 
         resp = await client.post(
             self.ENDPOINT,
@@ -145,26 +143,12 @@ class TestPlanTripEndpoint:
         assert resp.status_code == 422
 
     async def test_success(self, client: AsyncClient, auth_headers: dict[str, str]):
-        plan = TripPlan(
-            destination="Algiers",
-            duration_days=3,
-            budget_level="mid-range",
-            estimated_budget_dzd=25000.0,
-            tips=["Visit the Kasbah", "Try couscous"],
-            key_attractions=["Grande Mosquée", "Kasbah"],
-            itinerary=[
-                ItineraryDay(
-                    day=1,
-                    date="2026-07-16",
-                    morning="Visit the Kasbah",
-                    afternoon="Lunch in the Casbah",
-                    evening="Dinner at El Djenina",
-                    meals=[],
-                    accommodation="Hotel El Aurassi",
-                )
-            ],
-        )
-        _inject_mock(client, "itinerary_agent", _make_mock_agent(plan))
+        _inject_mock(client, "itinerary_agent", _make_mock_agent(
+            "3-day trip to Algiers (mid-range, ~25,000 DZD).\n"
+            "Day 1: Visit the Kasbah, Lunch at El Djenina.\n"
+            "Day 2: Grande Mosquée, Bardo Museum.\n"
+            "Day 3: Sidi Fredj, Seafood dinner."
+        ))
 
         resp = await client.post(
             self.ENDPOINT,
@@ -174,11 +158,9 @@ class TestPlanTripEndpoint:
         assert resp.status_code == 200
         data = resp.json()
         assert "plan" in data
-        assert data["plan"]["destination"] == "Algiers"
-        assert data["plan"]["duration_days"] == 3
-        assert len(data["plan"]["itinerary"]) == 1
-        assert "Visit the Kasbah" in data["plan"]["itinerary"][0]["morning"]
-        assert "El Djenina" in data["plan"]["itinerary"][0]["evening"]
+        assert isinstance(data["plan"], str)
+        assert "Algiers" in data["plan"]
+        assert "Kasbah" in data["plan"]
 
 
 # ── Search endpoint tests ──
@@ -210,15 +192,9 @@ class TestSearchEndpoint:
         assert resp.status_code == 422
 
     async def test_success(self, client: AsyncClient, auth_headers: dict[str, str]):
-        mock_poi = {"id": "1", "name": "Sablettes Beach", "category": "beach", "wilaya_id": 31}
-        mock_stay = {"id": "2", "name": "Hotel Oran", "property_type": "hotel", "wilaya_id": 31, "price_per_night_dzd": 5000}
-        mock_exp = {"id": "3", "title": "Oran Walking Tour", "category": "tour", "wilaya_id": 31}
-        mock_data = MagicMock()
-        mock_data.summary = "Found beaches and hotels in Oran."
-        mock_data.pois = [mock_poi]
-        mock_data.stays = [mock_stay]
-        mock_data.experiences = [mock_exp]
-        _inject_mock(client, "search_agent", _make_mock_agent(mock_data))
+        _inject_mock(client, "search_agent", _make_mock_agent(
+            "Found Sablettes Beach and Hotel Oran in Oran."
+        ))
 
         resp = await client.post(
             self.ENDPOINT,
@@ -227,17 +203,13 @@ class TestSearchEndpoint:
         )
         assert resp.status_code == 200
         data = resp.json()
-        assert data["total"] == 3
-        types = {item["type"] for item in data["results"]}
-        assert types == {"poi", "stay", "experience"}
+        assert "reply" in data
+        assert "Oran" in data["reply"]
 
     async def test_empty_results(self, client: AsyncClient, auth_headers: dict[str, str]):
-        mock_data = MagicMock()
-        mock_data.summary = "Nothing found."
-        mock_data.pois = []
-        mock_data.stays = []
-        mock_data.experiences = []
-        _inject_mock(client, "search_agent", _make_mock_agent(mock_data))
+        _inject_mock(client, "search_agent", _make_mock_agent(
+            "No results found for 'zzzzzxyznonexistent'."
+        ))
 
         resp = await client.post(
             self.ENDPOINT,
@@ -245,6 +217,4 @@ class TestSearchEndpoint:
             headers=auth_headers,
         )
         assert resp.status_code == 200
-        assert resp.json()["total"] == 0
-
-
+        assert "reply" in resp.json()
