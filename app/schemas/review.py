@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class SubRatings(BaseModel):
@@ -10,10 +10,19 @@ class SubRatings(BaseModel):
 
 
 class ReviewCreate(BaseModel):
-    poi_id: uuid.UUID
+    poi_id: uuid.UUID | None = None
+    experience_id: uuid.UUID | None = None
+    stay_id: uuid.UUID | None = None
     overall_score: float = Field(..., ge=1, le=5)
     text: str | None = Field(None, max_length=2000)
     sub_ratings: SubRatings | None = None
+
+    @model_validator(mode="after")
+    def check_exactly_one_entity(self) -> "ReviewCreate":
+        count = sum(x is not None for x in [self.poi_id, self.experience_id, self.stay_id])
+        if count != 1:
+            raise ValueError("Exactly one of poi_id, experience_id, or stay_id must be provided")
+        return self
 
 
 class ReviewUpdate(BaseModel):
@@ -28,7 +37,9 @@ class ReviewRead(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
     user_name: str
-    poi_id: uuid.UUID
+    poi_id: uuid.UUID | None = None
+    experience_id: uuid.UUID | None = None
+    stay_id: uuid.UUID | None = None
     overall_score: float
     text: str | None
     is_verified: bool

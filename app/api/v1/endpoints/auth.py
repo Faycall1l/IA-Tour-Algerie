@@ -153,7 +153,7 @@ async def register_provider(
     if existing.scalar_one_or_none():
         raise BadRequestException(message="Phone already registered")
 
-    user = User(phone=body.phone, role="provider")
+    user = User(phone=body.phone, role=body.provider_type)
     db.add(user)
     await db.flush()
 

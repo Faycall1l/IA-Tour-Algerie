@@ -65,8 +65,8 @@ async def get_current_admin(
 async def get_provider_or_admin(
     current_user: User = Depends(get_current_user),
 ) -> User:
-    if current_user.role not in ("admin", "provider"):
-        raise ForbiddenException(message="Admin or provider access required")
+    if current_user.role not in ("admin", "guide", "agency", "hotel"):
+        raise ForbiddenException(message="Provider access required")
     return current_user
 
 

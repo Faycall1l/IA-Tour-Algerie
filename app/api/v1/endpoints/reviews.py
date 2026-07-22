@@ -8,8 +8,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
 from app.core.exceptions import ConflictException, ForbiddenException, NotFoundException
+from app.models.experience import Experience
 from app.models.poi import POI
 from app.models.review import Review, ReviewVote
+from app.models.stay import Stay
 from app.models.user import User
 from app.schemas.review import (
     OwnerResponseCreate,
@@ -42,6 +44,8 @@ async def _build_review_read(review: Review, user_name: str) -> ReviewRead:
         user_id=review.user_id,
         user_name=user_name,
         poi_id=review.poi_id,
+        experience_id=review.experience_id,
+        stay_id=review.stay_id,
         overall_score=review.overall_score,
         text=review.text,
         is_verified=review.is_verified,
@@ -54,28 +58,53 @@ async def _build_review_read(review: Review, user_name: str) -> ReviewRead:
     )
 
 
+async def _get_entity_owner_id(review: Review, db: AsyncSession) -> uuid.UUID | None:
+    """Return the provider_id (owner) of the reviewed entity."""
+    if review.experience_id:
+        exp = await db.get(Experience, review.experience_id)
+        return exp.provider_id if exp else None
+    if review.stay_id:
+        stay = await db.get(Stay, review.stay_id)
+        return stay.provider_id if stay else None
+    return None
+
+
 @router.post("", response_model=ReviewRead, status_code=201)
 async def create_review(
     body: ReviewCreate,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    poi = await db.get(POI, body.poi_id)
-    if not poi:
-        raise NotFoundException(message="Point of interest not found")
-
-    existing = await db.execute(
-        select(Review).where(
-            Review.user_id == current_user.id,
-            Review.poi_id == body.poi_id,
+    if body.poi_id:
+        poi = await db.get(POI, body.poi_id)
+        if not poi:
+            raise NotFoundException(message="Point of interest not found")
+        existing = await db.execute(
+            select(Review).where(Review.user_id == current_user.id, Review.poi_id == body.poi_id)
         )
-    )
+    elif body.experience_id:
+        exp = await db.get(Experience, body.experience_id)
+        if not exp:
+            raise NotFoundException(message="Experience not found")
+        existing = await db.execute(
+            select(Review).where(Review.user_id == current_user.id, Review.experience_id == body.experience_id)
+        )
+    else:
+        stay = await db.get(Stay, body.stay_id)
+        if not stay:
+            raise NotFoundException(message="Stay not found")
+        existing = await db.execute(
+            select(Review).where(Review.user_id == current_user.id, Review.stay_id == body.stay_id)
+        )
+
     if existing.scalar_one_or_none():
-        raise ConflictException(message="You already reviewed this POI")
+        raise ConflictException(message="You already reviewed this entity")
 
     review = Review(
         user_id=current_user.id,
         poi_id=body.poi_id,
+        experience_id=body.experience_id,
+        stay_id=body.stay_id,
         overall_score=body.overall_score,
         text=body.text,
         sub_ratings=body.sub_ratings.model_dump() if body.sub_ratings else None,
@@ -84,10 +113,7 @@ async def create_review(
     await db.commit()
     await db.refresh(review)
 
-    return await _build_review_read(
-        review,
-        current_user.display_name or current_user.phone,
-    )
+    return await _build_review_read(review, current_user.display_name or current_user.phone)
 
 
 @router.put("/{review_id}", response_model=ReviewRead)
@@ -120,20 +146,41 @@ async def update_review(
 
 @router.get("", response_model=ReviewFeed)
 async def list_reviews(
-    poi_id: uuid.UUID = Query(...),
+    poi_id: uuid.UUID | None = Query(None),
+    experience_id: uuid.UUID | None = Query(None),
+    stay_id: uuid.UUID | None = Query(None),
     sort: str = Query("recent", pattern="^(recent|highest|lowest|helpful)$"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=50),
     db: AsyncSession = Depends(get_db),
 ):
-    poi = await db.get(POI, poi_id)
-    if not poi:
-        raise NotFoundException(message="Point of interest not found")
+    entity_count = sum(x is not None for x in [poi_id, experience_id, stay_id])
+    if entity_count != 1:
+        raise NotFoundException(message="Exactly one of poi_id, experience_id, or stay_id must be provided")
+
+    if poi_id:
+        poi = await db.get(POI, poi_id)
+        if not poi:
+            raise NotFoundException(message="Point of interest not found")
+        where_clause = Review.poi_id == poi_id
+        count_where = Review.poi_id == poi_id
+    elif experience_id:
+        exp = await db.get(Experience, experience_id)
+        if not exp:
+            raise NotFoundException(message="Experience not found")
+        where_clause = Review.experience_id == experience_id
+        count_where = Review.experience_id == experience_id
+    else:
+        stay = await db.get(Stay, stay_id)
+        if not stay:
+            raise NotFoundException(message="Stay not found")
+        where_clause = Review.stay_id == stay_id
+        count_where = Review.stay_id == stay_id
 
     review_query = (
         select(Review, User.display_name, User.phone)
         .join(User, Review.user_id == User.id)
-        .where(Review.poi_id == poi_id)
+        .where(where_clause)
     )
 
     if sort == "highest":
@@ -146,7 +193,7 @@ async def list_reviews(
         review_query = review_query.order_by(Review.created_at.desc())
 
     count_query = select(func.count()).select_from(
-        select(Review).where(Review.poi_id == poi_id).subquery()
+        select(Review).where(count_where).subquery()
     )
     total = (await db.execute(count_query)).scalar() or 0
 
@@ -251,12 +298,14 @@ async def respond_to_review(
     if not review:
         raise NotFoundException(message="Review not found")
 
-    poi = await db.get(POI, review.poi_id)
-    if not poi:
-        raise NotFoundException(message="POI not found")
+    is_admin = current_user.role == "admin"
 
-    if current_user.role != "admin":
-        raise ForbiddenException(message="Only admins can respond to reviews")
+    if not is_admin:
+        owner_id = await _get_entity_owner_id(review, db)
+        if owner_id is None:
+            raise ForbiddenException(message="Only admins can respond to POI reviews")
+        if owner_id != current_user.id:
+            raise ForbiddenException(message="You can only respond to reviews on your own listings")
 
     review.owner_response = body.response
     review.response_created_at = func.now()
