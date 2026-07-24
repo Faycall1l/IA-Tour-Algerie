@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """
-Enrich POIs with fun facts from Wikidata + Wikipedia.
+Enrich POIs with REAL fun facts from Wikidata + Wikipedia + OSM tags.
 
-Strategy:
-1. Featured POIs with historic_civilization → Wikidata SPARQL for year built, UNESCO status, etc.
-2. Named POIs → Wikipedia search for interesting facts from article intros
-3. Remaining → Tag-based fun facts from OSM data (highest peak, oldest mosque, etc.)
+Only adds facts that are specific, verifiable, and unique to each POI.
+NO templates, NO generic descriptions. If no real fact exists, the POI stays empty.
 
-Usage: python scripts/data/enrich_fun_facts.py [--limit N] [--featured-only]
+Sources (in priority order):
+1. Wikidata — year built, UNESCO status, height, architect, population, etc.
+2. Wikipedia — real sentences from articles with specific facts
+3. OSM tags — ONLY when they contain real data (height, material, cuisine, elevation, start_date)
+
+Usage:
+  python scripts/data/enrich_fun_facts.py [--limit N] [--featured-only] [--resume]
 """
 
 import json
 import re
 import sys
 import time
-from pathlib import Path
+from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import requests
 from sqlalchemy import create_engine, text
@@ -23,165 +27,255 @@ DB_URL = "postgresql://athar:athar_pass@localhost:5432/athar_db"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
 
-# Fun fact templates per category
-CATEGORY_FACTS = {
-    "historical": [
-        "This site dates back to the {period} period of Algerian history.",
-        "Historical records mention this location as early as the {century} century.",
-    ],
-    "natural": [
-        "This natural landmark is one of Algeria's hidden gems, visited by few tourists.",
-        "The surrounding area is home to diverse wildlife unique to North Africa.",
-    ],
-    "religious": [
-        "This religious site reflects Algeria's rich spiritual heritage spanning centuries.",
-        "The architecture blends local traditions with broader Islamic design principles.",
-    ],
-    "museum": [
-        "This museum preserves artifacts spanning thousands of years of Algerian history.",
-        "The collection includes rare items not found in any other museum in the region.",
-    ],
-    "beach": [
-        "This coastline stretches along the Mediterranean, offering crystal-clear waters.",
-        "The beach is considered one of the finest along Algeria's 1,600 km coastline.",
-    ],
-    "mountain": [
-        "This peak is part of the Tell Atlas or Saharan Atlas mountain ranges.",
-        "The summit offers panoramic views across multiple Algerian wilayas.",
-    ],
-    "park": [
-        "This green space serves as a vital urban oasis in the heart of the city.",
-        "The park is a popular gathering spot for families during weekends and holidays.",
-    ],
-    "market": [
-        "This souk has been a center of trade and commerce for generations.",
-        "Traditional crafts and local produce make this market a cultural experience.",
-    ],
-    "cultural": [
-        "This site reflects the rich cultural tapestry of Algeria's diverse communities.",
-        "Here, centuries of cultural exchange have left a unique imprint on local traditions.",
-        "This cultural landmark stands as a testament to Algeria's artistic heritage.",
-        "Local artisans have maintained traditional crafts at this site for generations.",
-        "The area around this site is known for its vibrant cultural life and community gatherings.",
-    ],
-    "restaurant": [
-        "This eatery serves traditional Algerian cuisine passed down through family recipes.",
-        "From couscous to chorba, this is where locals come for authentic Algerian flavors.",
-    ],
-    "cafe": [
-        "Cafés like this are the social heart of Algerian neighborhoods, where stories are shared over mint tea.",
-        "Traditional Algerian coffee culture thrives at spots like this one.",
-    ],
-    "other": [
-        "This spot is one of Algeria's many hidden treasures waiting to be explored.",
-        "A notable point of interest in the region, reflecting local character and history.",
-    ],
+WILAYA_NAMES = {
+    1: "Adrar", 2: "Chlef", 3: "Laghouat", 4: "Oum El Bouaghi", 5: "Batna",
+    6: "Béjaïa", 7: "Biskra", 8: "Béchar", 9: "Blida", 10: "Bouira",
+    11: "Tamanrasset", 12: "Tébessa", 13: "Tlemcen", 14: "Tiaret",
+    15: "Tizi Ouzou", 16: "Alger", 17: "Djelfa", 18: "Jijel", 19: "Sétif",
+    20: "Saïda", 21: "Skikda", 22: "Sidi Bel Abbès", 23: "Annaba",
+    24: "Guelma", 25: "Constantine", 26: "Médéa", 27: "Mostaganem",
+    28: "M'sila", 29: "Mascara", 30: "Ouargla", 31: "Oran",
+    32: "El Bayadh", 33: "Illizi", 34: "Bordj Bou Arréridj", 35: "Boumerdès",
+    36: "El Tarf", 37: "Tindouf", 38: "Tissemsilt", 39: "El Oued",
+    40: "Khenchela", 41: "Souk Ahras", 42: "Tipaza", 43: "Mila",
+    44: "Aïn Defla", 45: "Naâma", 46: "Aïn Témouchent", 47: "Ghardaïa",
+    48: "Relizane", 49: "El M'Ghair", 50: "El Meniaa", 51: "Ouled Djellal",
+    52: "Bordj Badji Mokhtar", 53: "Béni Abbès", 54: "Timimoun",
+    55: "Touggourt", 56: "Djanet", 57: "In Salah", 58: "In Guezzam",
 }
 
-# Civilization-based facts
-CIVILIZATION_FACTS = {
-    "Roman": "Built during the Roman Empire, this site was part of the province of Mauretania Caesariensis.",
-    "Ottoman": "Constructed during the Ottoman period, reflecting centuries of Mediterranean trade influence.",
-    "French Colonial": "Built during the French colonial era, this structure witnessed Algeria's struggle for independence.",
-    "Berber": "This site reflects the ancient Amazigh (Berber) civilization that shaped North Africa.",
-    "Islamic": "This Islamic monument showcases the architectural traditions of the Maghreb.",
-    "Phoenician": "Founded by Phoenician traders, this location predates the Roman conquest by centuries.",
-    "Numidian": "Built during the Numidian kingdom era, before the Roman annexation of North Africa.",
-    "Almohad": "Constructed under the Almohad dynasty, which united North Africa from Morocco to Libya.",
-    "Zirid": "Built during the Zirid period, when Berber dynasties ruled much of the Maghreb.",
-    "Hafsid": "From the Hafsid era, when Tunis-based rulers controlled much of eastern Algeria.",
-}
+ALGERIA_KEYWORDS = [
+    "algeria", "algerian", "algérie", "algérien", "algérienne",
+    "oran", "constantine", "algiers", "annaba", "tlemcen", "batna",
+    "béjaïa", "setif", "sétif", "blida", "tizi ouzou", "djelfa",
+    "biskra", "ghardaïa", "tlemcen", "tipaza", "timgad", "djemila",
+    "ghardaia", "mzab", "sahara", "atlas", "kabyle", "kabylie",
+    "m'zab", "hoggar", "tassili", "aures", "chelif", "oued",
+    "wilaya", "commune", "daira", "baladiya",
+]
+
+HEADERS = {"User-Agent": "ATHAR-Tourism/1.0 (https://athar-os.com)"}
+
+# Session for connection pooling
+_session = requests.Session()
+_session.headers.update(HEADERS)
 
 
-def fetch_wikidata_batch(names: list[str]) -> dict[str, dict]:
-    """Batch search Wikidata for multiple entities by name via wbsearchentities API (fast)."""
-    results = {}
-    for name in names:
-        if not name or len(name) < 4:
-            continue
-        try:
-            r = requests.get(
+def _is_algeria_context(text: str) -> bool:
+    lower = text.lower()
+    if any(kw in lower for kw in ALGERIA_KEYWORDS):
+        return True
+    non_algeria = ["morocco", "maroc", "marrakech", "casablanca", "fez", "tunisia", "tunisie"]
+    if any(kw in lower for kw in non_algeria):
+        return False
+    return False
+
+
+def is_real_name(name: str) -> bool:
+    if not name or len(name) < 3:
+        return False
+    generic = [
+        "non nommé", "unnamed", "unknown", "archaeological site", "peak",
+        "mountain", "spring", "well", "ruins", "building", "structure",
+        "monument", "memorial", "mosque", "church", "fort", "tomb",
+        "refuge", "la mairie", "sbiat", "ain ferhat", "issoghla",
+    ]
+    lower = name.lower().strip()
+    if lower in generic:
+        return False
+    for g in generic:
+        if lower.startswith(g) and len(lower) < len(g) + 5:
+            return False
+    return True
+
+
+def _search_wikidata_entity(search_name: str) -> dict | None:
+    try:
+        r = _session.get(
+            WIKIDATA_API,
+            params={
+                "action": "wbsearchentities",
+                "search": search_name,
+                "language": "en",
+                "type": "item",
+                "limit": 3,
+                "format": "json",
+            },
+            timeout=8,
+        )
+        if r.status_code != 200:
+            return None
+        results = r.json().get("search", [])
+        if not results:
+            return None
+
+        for sr in results[:2]:
+            entity_id = sr["id"]
+            r2 = _session.get(
                 WIKIDATA_API,
                 params={
-                    "action": "wbsearchentities",
-                    "search": name,
-                    "language": "en",
-                    "type": "item",
-                    "limit": 1,
+                    "action": "wbgetentities",
+                    "ids": entity_id,
+                    "props": "claims|labels|descriptions",
+                    "languages": "en|fr|ar",
                     "format": "json",
                 },
-                headers={"User-Agent": "ATHAR-Tourism/1.0"},
                 timeout=8,
             )
-            if r.status_code == 200:
-                search_results = r.json().get("search", [])
-                if search_results:
-                    entity_id = search_results[0]["id"]
-                    r2 = requests.get(
-                        WIKIDATA_API,
-                        params={
-                            "action": "wbgetentities",
-                            "ids": entity_id,
-                            "props": "claims",
-                            "format": "json",
-                        },
-                        headers={"User-Agent": "ATHAR-Tourism/1.0"},
-                        timeout=8,
-                    )
-                    if r2.status_code == 200:
-                        claims = r2.json().get("entities", {}).get(entity_id, {}).get("claims", {})
-                        fact = _extract_fact_from_claims(claims)
-                        if fact:
-                            results[name] = {"fact": fact, "source": "wikidata"}
-        except Exception:
-            pass
-        time.sleep(0.3)
-    return results
+            if r2.status_code != 200:
+                continue
+            entity = r2.json().get("entities", {}).get(entity_id, {})
+            claims = entity.get("claims", {})
+            desc = entity.get("descriptions", {}).get("en", {}).get("value", "")
+            label = entity.get("labels", {}).get("en", {}).get("value", "")
+
+            in_algeria = False
+            p17 = claims.get("P17")
+            if p17:
+                try:
+                    country_qid = p17[0]["mainsnak"]["datavalue"]["value"]["id"]
+                    if country_qid == "Q262":
+                        in_algeria = True
+                except (KeyError, IndexError):
+                    pass
+
+            if not in_algeria and _is_algeria_context(desc + " " + label):
+                in_algeria = True
+
+            if in_algeria:
+                return {"entity_id": entity_id, "claims": claims, "desc": desc, "label": label}
+
+    except Exception:
+        pass
+    return None
 
 
-def _extract_fact_from_claims(claims: dict) -> str | None:
-    """Extract a fun fact from Wikidata claims dict."""
-    inception = claims.get("P571")
-    if inception:
-        try:
-            val = inception[0]["mainsnak"]["datavalue"]["value"]["time"]
-            year = val.lstrip("+").split("-")[0]
-            if year.isdigit() and int(year) > 0:
-                return f"This site was established around {year}, spanning over {2026 - int(year)} years of history."
-        except (KeyError, IndexError):
-            pass
-
+def _extract_fact_from_claims(claims: dict, poi_name: str) -> str | None:
+    # UNESCO World Heritage (P1411)
     unesco = claims.get("P1411")
     if unesco:
         try:
             qid = unesco[0]["mainsnak"]["datavalue"]["value"]["id"]
-            return f"This site is a UNESCO World Heritage site (Q{qid.replace('Q','')}), recognized for its outstanding universal value."
+            year = ""
+            qualifiers = unesco[0].get("qualifiers", {})
+            start = qualifiers.get("P580")
+            if start:
+                val = start[0]["datavalue"]["value"]["time"]
+                year = val.lstrip("+").split("-")[0]
+            if year:
+                return f"UNESCO World Heritage Site since {year}."
+            return f"UNESCO World Heritage Site ({qid})."
         except (KeyError, IndexError):
-            return "This site is listed as a UNESCO World Heritage site."
+            return "UNESCO World Heritage Site."
+
+    inception = claims.get("P571")
+    year = None
+    if inception:
+        try:
+            val = inception[0]["mainsnak"]["datavalue"]["value"]["time"]
+            year_str = val.lstrip("+").split("-")[0]
+            if year_str.isdigit() and int(year_str) > 0:
+                year = int(year_str)
+        except (KeyError, IndexError):
+            pass
 
     height = claims.get("P2048")
     if height:
         try:
-            val = height[0]["mainsnak"]["datavalue"]["value"]["amount"]
-            return f"Standing at {val} meters, this is a notable structure in the region."
+            h = height[0]["mainsnak"]["datavalue"]["value"]["amount"]
+            unit = height[0]["mainsnak"]["datavalue"]["value"].get("unit", "")
+            if "meter" in unit or "11571" in unit:
+                fact = f"Stands {h} meters tall"
+                if year:
+                    fact += f", built in {year}"
+                return fact + "."
         except (KeyError, IndexError):
             pass
 
     architect = claims.get("P84")
     if architect:
         try:
-            qid = architect[0]["mainsnak"]["datavalue"]["value"]["id"]
-            return f"This structure was designed by a notable architect (Wikidata: {qid})."
+            arch_id = architect[0]["mainsnak"]["datavalue"]["value"].get("id", "")
+            r = _session.get(
+                WIKIDATA_API,
+                params={"action": "wbgetentities", "ids": arch_id, "props": "labels",
+                        "languages": "en", "format": "json"},
+                timeout=5,
+            )
+            if r.status_code == 200:
+                label = r.json().get("entities", {}).get(arch_id, {}).get("labels", {}).get("en", {}).get("value", "")
+                if label:
+                    fact = f"Designed by architect {label}"
+                    if year:
+                        fact += f" in {year}"
+                    return fact + "."
+        except Exception:
+            pass
+
+    creator = claims.get("P112")
+    if creator:
+        try:
+            creator_id = creator[0]["mainsnak"]["datavalue"]["value"].get("id", "")
+            r = _session.get(
+                WIKIDATA_API,
+                params={"action": "wbgetentities", "ids": creator_id, "props": "labels",
+                        "languages": "en", "format": "json"},
+                timeout=5,
+            )
+            if r.status_code == 200:
+                label = r.json().get("entities", {}).get(creator_id, {}).get("labels", {}).get("en", {}).get("value", "")
+                if label:
+                    fact = f"Founded by {label}"
+                    if year:
+                        fact += f" in {year}"
+                    return fact + "."
+        except Exception:
+            pass
+
+    # Elevation (P2044) — for natural features
+    elevation = claims.get("P2044")
+    if elevation:
+        try:
+            ele = elevation[0]["mainsnak"]["datavalue"]["value"]["amount"]
+            ele_str = str(ele).lstrip("+")
+            return f"Located at {ele_str} meters above sea level."
         except (KeyError, IndexError):
             pass
+
+    # Population (P1082) — only for settlements
+    population = claims.get("P1082")
+    instance_of = claims.get("P31")
+    is_settlement = False
+    if instance_of:
+        try:
+            for claim in instance_of[:5]:
+                qid = claim["mainsnak"]["datavalue"]["value"]["id"]
+                if qid in ("Q515", "Q3957", "Q532", "Q317557", "Q2099524", "Q15284", "Q486972"):
+                    is_settlement = True
+                    break
+        except (KeyError, IndexError):
+            pass
+    if population and is_settlement:
+        try:
+            pop = int(population[0]["mainsnak"]["datavalue"]["value"]["amount"])
+            if pop > 0:
+                return f"Home to {pop:,} people according to the last census."
+        except (KeyError, IndexError, ValueError):
+            pass
+
+    if year and year > 100:
+        age = 2026 - year
+        if age > 500:
+            return f"Dates back to {year} — over {age} years of history."
+        elif age > 200:
+            return f"Built in {year}."
 
     return None
 
 
-def fetch_wikipedia_extract(title: str, sentences: int = 3) -> str | None:
-    """Get the first few sentences of a Wikipedia article."""
+def _fetch_wikipedia_extract(title: str, sentences: int = 4) -> str | None:
     try:
-        r = requests.get(
+        r = _session.get(
             WIKIPEDIA_API,
             params={
                 "action": "query",
@@ -192,231 +286,279 @@ def fetch_wikipedia_extract(title: str, sentences: int = 3) -> str | None:
                 "exsentences": sentences,
                 "format": "json",
             },
-            headers={"User-Agent": "ATHAR-Tourism/1.0"},
             timeout=10,
         )
         if r.status_code == 200:
             pages = r.json().get("query", {}).get("pages", {})
             for page in pages.values():
                 extract = page.get("extract", "")
-                if extract:
+                if extract and len(extract) > 50:
                     return extract.strip()
     except Exception:
         pass
     return None
 
 
-def search_wikipedia(query: str) -> str | None:
-    """Search Wikipedia for a page and return its extract."""
+def search_wikipedia(query: str, expected_name: str = "") -> str | None:
     try:
-        r = requests.get(
+        r = _session.get(
             WIKIPEDIA_API,
             params={
                 "action": "query",
                 "list": "search",
                 "srsearch": query,
-                "srlimit": 1,
+                "srlimit": 3,
                 "format": "json",
             },
-            headers={"User-Agent": "ATHAR-Tourism/1.0"},
             timeout=10,
         )
         if r.status_code == 200:
             results = r.json().get("query", {}).get("search", [])
-            if results:
-                title = results[0]["title"]
-                return fetch_wikipedia_extract(title)
+            for result in results:
+                title = result["title"]
+                snippet = result.get("snippet", "")
+                if not _is_algeria_context(snippet + " " + title):
+                    continue
+                if expected_name:
+                    title_lower = title.lower()
+                    name_lower = expected_name.lower()
+                    name_words = [w for w in name_lower.split() if len(w) > 2]
+                    if name_words and not any(w in title_lower for w in name_words[:2]):
+                        continue
+                return _fetch_wikipedia_extract(title)
     except Exception:
         pass
     return None
 
 
-def extract_fun_fact_from_wikipedia(wikipedia_text: str) -> str | None:
-    """Extract a single fun fact sentence from Wikipedia text."""
+def extract_fun_fact_from_wikipedia(wikipedia_text: str, poi_name: str = "") -> str | None:
     if not wikipedia_text:
         return None
 
-    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', wikipedia_text) if len(s.strip()) > 30]
+    sentences = [s.strip() for s in re.split(r'(?<=[.!?])\s+', wikipedia_text)]
 
-    interesting_keywords = [
+    specific_keywords = [
         "built", "constructed", "founded", "established", "oldest", "largest", "first",
-        "centuries", "history", "heritage", "listed", "UNESCO", "ancient", "medieval",
-        "remains", "ruins", "discovered", "archaeological", "monument", "mosque",
-        "cathedral", "fortress", "palace", "tomb", "amphitheater", "bath",
-        "population", "altitude", "highest", "deepest", "longest", "tallest",
+        "UNESCO", "ancient", "medieval", "remains", "ruins",
+        "discovered", "archaeological", "monument", "mosque", "cathedral",
+        "fortress", "palace", "tomb", "amphitheater", "bath", "population",
+        "altitude", "highest", "deepest", "longest", "tallest", "meters",
+        "century", "centuries", "dynasty", "roman", "phoenician", "berber",
+        "ottoman", "colonial", "independence", "war", "battle", "siege",
+        "spring", "cave", "gorge", "canyon", "harbor", "port", "lighthouse",
+        "bridge", "aqueduct", "library", "university", "market", "souk",
     ]
 
     for sentence in sentences:
         lower = sentence.lower()
-        if any(kw.lower() in lower for kw in interesting_keywords):
-            cleaned = re.sub(r'\[.*?\]', '', sentence)
-            cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-            if 50 < len(cleaned) < 300:
-                return cleaned
-
-    if sentences:
-        cleaned = re.sub(r'\[.*?\]', '', sentences[0])
+        if not any(kw in lower for kw in specific_keywords):
+            continue
+        has_number = bool(re.search(r'\d{3,}', sentence))
+        if not has_number:
+            continue
+        cleaned = re.sub(r'\[.*?\]', '', sentence)
         cleaned = re.sub(r'\s+', ' ', cleaned).strip()
-        if 50 < len(cleaned) < 300:
+        if 40 < len(cleaned) < 300:
             return cleaned
 
     return None
 
 
-def generate_fun_fact_from_tags(poi_name: str, category: str, osm_tags: dict) -> str | None:
-    """Generate a fun fact from OSM tags."""
+def generate_fun_fact_from_tags(osm_tags: dict) -> str | None:
     if not osm_tags:
         return None
-
     tags = osm_tags if isinstance(osm_tags, dict) else {}
 
     year = tags.get("start_date") or tags.get("built") or tags.get("year")
     if year:
-        return f"This site was established around {year}, making it a piece of living history."
+        try:
+            y = int(str(year)[:4])
+            if y > 100 and y < 2030:
+                age = 2026 - y
+                if age > 50:
+                    return f"Established in {y}, this site is over {age} years old."
+        except (ValueError, TypeError):
+            pass
 
     height = tags.get("height") or tags.get("building:height")
     if height:
-        return f"Standing at {height} meters, this is a notable structure in the area."
+        try:
+            h = float(str(height).replace("m", "").strip())
+            if h > 5:
+                return f"Stands {h} meters tall."
+        except (ValueError, TypeError):
+            pass
+
+    elevation = tags.get("ele")
+    if elevation:
+        try:
+            e = float(str(elevation).replace("m", "").strip())
+            if e > 10:
+                return f"Located at {e} meters above sea level."
+        except (ValueError, TypeError):
+            pass
 
     material = tags.get("material") or tags.get("building:material")
-    if material:
-        return f"Built primarily from {material}, reflecting local construction traditions."
+    if material and len(str(material)) > 2:
+        return f"Built primarily from {material}."
 
     architect = tags.get("architect")
-    if architect:
-        return f"Designed by {architect}, this structure is an architectural highlight."
+    if architect and len(str(architect)) > 3:
+        return f"Designed by {architect}."
 
     cuisine = tags.get("cuisine")
-    if cuisine:
-        return f"This spot specializes in {cuisine} cuisine, a taste of local Algerian flavors."
-
-    tourism = tags.get("tourism")
-    if tourism == "museum":
-        return "This museum preserves cultural heritage for future generations to explore."
-
-    natural = tags.get("natural")
-    if natural == "peak":
-        elevation = tags.get("ele")
-        if elevation:
-            return f"Rising to {elevation} meters above sea level, this peak dominates the local landscape."
-        return "This natural landmark is one of Algeria's geological treasures."
-
-    if natural == "spring":
-        return "Natural springs like this have been valued for their therapeutic properties for centuries."
-
-    historic = tags.get("historic")
-    if historic:
-        return f"This historic {historic} site stands as a testament to Algeria's layered past."
+    if cuisine and len(str(cuisine)) > 2:
+        return f"Specializes in {cuisine} cuisine."
 
     return None
 
 
-def main():
-    limit = 500
-    featured_only = False
-    fast_mode = False
+def enrich_poi(poi: dict) -> tuple[int, str | None, str | None]:
+    """Try to find a real fun fact for a POI. Returns (poi_id, fact, source)."""
+    poi_id = poi["id"]
+    name = poi["name"]
+    name_en = poi.get("name_en") or name
+    wilaya_id = poi.get("wilaya_id")
+    wilaya_name = WILAYA_NAMES.get(wilaya_id, "")
+    osm_tags = poi.get("osm_tags") or {}
+    if isinstance(osm_tags, str):
+        try:
+            osm_tags = json.loads(osm_tags)
+        except (json.JSONDecodeError, TypeError):
+            osm_tags = {}
 
-    for i, arg in enumerate(sys.argv[1:]):
-        if arg == "--limit" and i + 1 < len(sys.argv):
-            limit = int(sys.argv[i + 2])
+    search_name = name_en if any(c.isascii() and c.isalpha() for c in str(name_en)) else name
+    search_name = str(search_name).strip()
+    if not is_real_name(search_name):
+        return poi_id, None, None
+
+    # 1. Wikidata
+    wd = _search_wikidata_entity(search_name)
+    if wd:
+        fact = _extract_fact_from_claims(wd["claims"], search_name)
+        if fact:
+            return poi_id, fact, f"wikidata:{wd['entity_id']}"
+
+    if name != name_en and is_real_name(name) and any(c.isascii() and c.isalpha() for c in str(name)):
+        wd2 = _search_wikidata_entity(name)
+        if wd2:
+            fact = _extract_fact_from_claims(wd2["claims"], name)
+            if fact:
+                return poi_id, fact, f"wikidata:{wd2['entity_id']}"
+
+    # 2. Wikipedia
+    wiki_text = search_wikipedia(f"{search_name} {wilaya_name} Algeria", expected_name=search_name)
+    if not wiki_text:
+        wiki_text = search_wikipedia(f"{search_name} Algeria", expected_name=search_name)
+    if wiki_text:
+        fact = extract_fun_fact_from_wikipedia(wiki_text, search_name)
+        if fact:
+            lower = fact.lower()
+            if "morocco" not in lower and "maroc" not in lower and "tunisia" not in lower and "tunisie" not in lower:
+                return poi_id, fact, "wikipedia"
+
+    # 3. OSM tags
+    if osm_tags:
+        fact = generate_fun_fact_from_tags(osm_tags)
+        if fact:
+            return poi_id, fact, "osm_tags"
+
+    return poi_id, None, None
+
+
+def main():
+    limit = 5000
+    featured_only = False
+    resume = False
+
+    args = sys.argv[1:]
+    for i, arg in enumerate(args):
+        if arg == "--limit" and i + 1 < len(args):
+            limit = int(args[i + 1])
         if arg == "--featured-only":
             featured_only = True
-        if arg == "--fast":
-            fast_mode = True
+        if arg == "--resume":
+            resume = True
 
     engine = create_engine(DB_URL)
 
     query = """
-        SELECT id, name, category, subtype, wilaya_id, historic_civilization,
-               osm_tags, description, is_featured
+        SELECT id, name, name_en, category, subtype, wilaya_id,
+               historic_civilization, osm_tags, is_featured
         FROM pois
         WHERE fun_fact IS NULL
           AND latitude IS NOT NULL
           AND name IS NOT NULL AND LENGTH(name) > 3
+          AND name NOT LIKE '%non nommé%'
+          AND name NOT LIKE '%Unnamed%'
+          AND name NOT LIKE '%unknown%'
     """
     if featured_only:
         query += " AND is_featured = true"
-    query += f" ORDER BY is_featured DESC, name LIMIT {limit}"
+    query += """
+        ORDER BY is_featured DESC,
+                 category IN ('historical','cultural','museum','religious') DESC,
+                 name
+        LIMIT :limit
+    """
 
     with engine.connect() as conn:
-        rows = conn.execute(text(query))
+        rows = conn.execute(text(query), {"limit": limit})
         pois = [dict(r._mapping) for r in rows]
 
     print(f"POIs to enrich: {len(pois)}")
 
-    BATCH_SIZE = 50
     enriched = 0
     skipped = 0
     wiki_hits = 0
     wikidata_hits = 0
     tag_hits = 0
-    template_hits = 0
+    errors = 0
+    start_time = time.time()
 
-    for batch_start in range(0, len(pois), BATCH_SIZE):
-        batch = pois[batch_start:batch_start + BATCH_SIZE]
+    # Process with ThreadPoolExecutor — 4 workers to avoid hammering APIs
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        futures = {executor.submit(enrich_poi, poi): poi for poi in pois}
 
-        names_for_wikidata = []
-        if not fast_mode:
-            names_for_wikidata = [
-                p["name"] for p in batch
-                if p["name"] and any(c.isascii() and c.isalpha() for c in p["name"]) and len(p["name"]) > 4
-            ]
-        wikidata_facts = fetch_wikidata_batch(names_for_wikidata) if names_for_wikidata else {}
+        for i, future in enumerate(as_completed(futures)):
+            try:
+                poi_id, fact, source = future.result()
+                if fact and source:
+                    with engine.connect() as conn:
+                        conn.execute(
+                            text("UPDATE pois SET fun_fact = :fact, fun_fact_source = :source WHERE id = :id"),
+                            {"fact": fact, "source": source, "id": poi_id},
+                        )
+                        conn.commit()
+                    enriched += 1
+                    if "wikidata" in source:
+                        wikidata_hits += 1
+                    elif source == "wikipedia":
+                        wiki_hits += 1
+                    elif source == "osm_tags":
+                        tag_hits += 1
+                    poi_name = futures[future]["name"][:35]
+                    print(f"  [{enriched}] {poi_name} → {fact[:55]}... ({source})")
+                else:
+                    skipped += 1
+            except Exception as e:
+                errors += 1
 
-        for poi in batch:
-            name = poi["name"]
-            category = poi["category"]
-            civilization = poi.get("historic_civilization")
-            osm_tags = poi.get("osm_tags") or {}
+            done = i + 1
+            if done % 100 == 0:
+                elapsed = time.time() - start_time
+                rate = done / elapsed if elapsed > 0 else 0
+                print(f"\n  === Progress: {done}/{len(pois)} ({rate:.1f} POIs/sec, enriched: {enriched}, skipped: {skipped}) ===\n")
 
-            fun_fact = None
-            source = None
-
-            if name in wikidata_facts:
-                fun_fact = wikidata_facts[name]["fact"]
-                source = "wikidata"
-                wikidata_hits += 1
-
-            if not fun_fact and civilization:
-                fact = CIVILIZATION_FACTS.get(civilization)
-                if fact:
-                    fun_fact = fact
-                    source = "historic_data"
-                    template_hits += 1
-
-            if not fun_fact and osm_tags:
-                fun_fact = generate_fun_fact_from_tags(name, category, osm_tags)
-                if fun_fact:
-                    source = "osm_tags"
-                    tag_hits += 1
-
-            if not fun_fact and category in CATEGORY_FACTS and name:
-                templates = CATEGORY_FACTS[category]
-                fun_fact = templates[hash(name) % len(templates)]
-                source = "category_template"
-                template_hits += 1
-
-            if fun_fact and source:
-                with engine.connect() as conn:
-                    conn.execute(
-                        text("UPDATE pois SET fun_fact = :fact, fun_fact_source = :source WHERE id = :id"),
-                        {"fact": fun_fact, "source": source, "id": poi["id"]},
-                    )
-                    conn.commit()
-                enriched += 1
-            else:
-                skipped += 1
-
-        print(f"  Progress: {min(batch_start + BATCH_SIZE, len(pois))}/{len(pois)} (enriched: {enriched}, wikidata: {wikidata_hits}, wiki: {wiki_hits})")
-
-    print(f"\n=== SUMMARY ===")
+    elapsed = time.time() - start_time
+    print(f"\n=== SUMMARY ({elapsed:.0f}s) ===")
     print(f"Total POIs processed: {len(pois)}")
     print(f"Enriched: {enriched}")
     print(f"  Wikidata: {wikidata_hits}")
     print(f"  Wikipedia: {wiki_hits}")
     print(f"  OSM tags: {tag_hits}")
-    print(f"  Category templates: {template_hits}")
-    print(f"Skipped: {skipped}")
+    print(f"Skipped (no real fact found): {skipped}")
+    print(f"Errors: {errors}")
 
     engine.dispose()
 

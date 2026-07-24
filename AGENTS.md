@@ -65,11 +65,13 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
   - **Results**: Oran 9 POIs (4.1km), Tlemcen 10 POIs (2.3km), Algiers 10 POIs (3.2km), Blida 9 POIs (0.8km), Batna 9 POIs (5.5km), Constantine 7 POIs (1.2km)
 - **Trip optimizer wired to POI graph** (`trip_optimizer.py`): `optimize_day()` now uses POIGraphService for walking times between POIs (falls back to haversine). `detect_gaps()` also uses POI graph. `suggest_fillers()` now uses cluster-based recommendations.
 - **POI durations recalibrated** for realistic walking tours: historical 30min (was 90), museum 45min (was 120), natural 45min (was 180), mountain 90min (was 240), park 30min, cafe 15min, restaurant 30min, market 20min, other 20min.
-- **Fun facts enrichment** (`enrich_fun_facts.py`): 583 POIs with fun facts from 3 sources:
-  - Wikidata SPARQL: year built, UNESCO status, architect (16 POIs)
-  - OSM tags: height, material, cuisine, historic type (304 POIs)
-  - Category templates: "one of Algeria's hidden gems", "preserves cultural heritage" (263 POIs)
-  - New DB columns: `fun_fact` (Text), `fun_fact_source` (String(200)) — migration 031
+- **Fun facts enrichment** (`enrich_fun_facts.py` + `enrich_fun_facts_genai.py`): 218 POIs with fun facts:
+  - 20 hand-curated facts for major landmarks (Timgad, Casbah, Fort Santa Cruz, Notre-Dame, Tassili, Chréa, Tlemcen, El Kala, Belezma, Ougarta, Cap Figalo, Mausoleum of Mauretania, Mechouar, Béjaïa, Martyrs' Memorial, Tipaza, Draâ Chréa)
+  - 198 AI-generated facts via vLLM Gemma 4 — museums, archaeological sites, natural landmarks, cultural attractions with rich descriptions
+  - AI facts marked with `fun_fact_source = 'ai:vllm'` to distinguish from hand-curated
+  - NO templates, NO generic descriptions — if no real fact exists, POI stays empty
+  - DB columns: `fun_fact` (Text), `fun_fact_source` (String(200)) — migration 031
+  - Coverage: 218/52,997 POIs (0.4%) — only POIs with verifiable facts or rich OSM descriptions
 - **Southern access enrichment**: 30 airport↔city transfer edges, 8 missing flight routes, 4 new SOGRAL bus stations, 18 SOGRAL edges connecting southern resorts
 - **Schedule data cleanup**: 10,914 fields promoted nested→top-level, 208 conflicts resolved, 9,160 default schedules added — all 15,204 edges have 100% consistent schedule data
 - **Domestic Airlines flights**: 2 new airport nodes (Adrar/Touat, Tiaret) added + 12 flight edges for Air Algérie subsidiary's southern routes
@@ -136,16 +138,16 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 2. ⬜ **Add operator contacts for remaining wilaya taxi unions** — currently only national operators seeded; wilaya-level taxi phone numbers needed
 3. ⬜ **Migrate Commons URLs to MinIO** — copy Wikimedia Commons photos to local MinIO bucket for self-hosted serving
 4. ⬜ **Frontend** — the API is complete with ~120+ routes; needs a mobile/web frontend to be actually usable
-5. ⬜ **More fun facts for remaining POIs** — 583/52,997 POIs have fun facts (1.1%); expand via GenAI (vLLM Gemma 4) for richer tourist experiences
+5. ⬜ **More fun facts for remaining POIs** — 218/52,997 POIs have real fun facts; coverage limited by POIs with rich OSM descriptions or English names. Consider French Wikipedia for additional coverage
 6. ⬜ **Improve tour diversity** — current optimizer picks same-category clusters (e.g., all archaeological sites); add category diversity scoring to mix museums, natural, cultural POIs in one tour
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
 - **All Docker services running** via Colima: Qdrant (localhost:6333, 52,997 POI vectors + 3,150 experience vectors), Redis (localhost:6379), MinIO (localhost:9000, bucket athar-uploads)
 - **DB**: external PostgreSQL (`athar_db`), not Dockerized. Alembic head: `031` (add_poi_fun_fact table)
-- **Data counts**: 52,997 POIs (all 69 wilayas), 999 stays, 529 experiences, 40 events, ~4,329 stations, 855 transport lines, 16 transport operators, 155+ API endpoints, 32 endpoint modules
+- **Data counts**: 52,997 POIs (all 69 wilayas), 999 stays, 529 experiences, 40 events, ~4,329 stations, 855 transport lines, 20 transport operators, 155+ API endpoints, 32 endpoint modules, 218 POIs with fun facts (20 hand-curated + 198 AI-generated)
 - **POI graph**: 34,787 tourism POIs, 535,237 walking edges, singleton POIGraphService — 10 POIs in Tlemcen, 9 in Oran/Blida/Batna, 10 in Algiers, 7 in Constantine, 6 in Bejaia/Ghardaia/Tizi Ouzou
-- POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls (100% coverage via Commons + placeholders), subtype, name_ar/name_en, is_featured, average_score, total_reviews, distance_km (nearby), fun_fact
+- POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls (100% coverage via Commons + placeholders), subtype, name_ar/name_en, is_featured, average_score, total_reviews, distance_km (nearby), fun_fact (218 POIs with real/AI-generated facts)
 - **Description quality**: 100% coverage. 52,582 now rich (OSM tag-expanded), 18,799 short (<80 chars) due to minimal tag data (1-2 tags max) — template ceiling reached
 - **Photo quality**: 16.2% real (Commons/Wikipedia), 83.8% placeholders (placehold.co). Placehold.co URLs are colored by category
 - **Contact data gap**: 96% missing phone, 99% missing website, 94% missing opening_hours — data fundamentally absent from public sources. Solved by user-contributed suggestions pipeline
@@ -170,6 +172,8 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - `scripts/data/enrich_photos_bulk.py`, `enrich_photos_more.py`, `enrich_photos_spatial.py`, `enrich_photos_remaining.py`
 - `scripts/data/enrich_contacts_wikipedia.py`, `enrich_contacts_overpass.py`, `enrich_wikidata_bulk.py`
 - `scripts/data/enrich_descriptions_expanded.py`: OSM tag-based description expansion (52,582 enriched)
+- `scripts/data/enrich_fun_facts.py`: Real fun facts from Wikidata SPARQL + Wikipedia + OSM tags (20 POIs enriched)
+- `scripts/data/enrich_fun_facts_genai.py`: GenAI fun facts via vLLM Gemma 4 (198 POIs enriched, source='ai:vllm')
 - `scripts/data/enrich_placeholders.py`: Category-colored placeholder photos (100% coverage)
 - `scripts/data/verify_data_quality.py`: Data quality verification
 - `scripts/data/extract_osm_pois.py`, `extract_more_bus_routes.py`, `add_walking_edges.py`, `organize_transport.py`, `fix_missing_wilaya.py`, `compute_poi_accessibility.py`, `import_geoalgeria.py`
