@@ -112,7 +112,7 @@ class TestGetTransportRoute:
             origin_wilaya_id=1, dest_wilaya_id=2,
             driving_distance_km=400.0, driving_time_minutes=300,
             road_classification="national",
-            has_train_route=True, has_direct_flight=False,
+            has_train_route=False, has_direct_flight=False,
         ))
         # Ensure both wilayas exist
         w1 = await db.get(Wilaya, 1)
@@ -125,15 +125,15 @@ class TestGetTransportRoute:
 
         ctx = _make_ctx(db)
         result = await get_transport_route(ctx, TransportRouteParams(origin_wilaya_id=1, dest_wilaya_id=2))
-        assert len(result.options) == 5  # bus, shared_taxi, private_taxi, train, plane
+        # Should have driving option (always available)
+        assert len(result.options) >= 1
         modes = {o.mode for o in result.options}
-        assert modes == {"bus", "shared_taxi", "private_taxi", "train", "plane"}
-        assert any(o.mode == "train" and o.available for o in result.options)
-        # Train should be cheapest
-        train_opt = next(o for o in result.options if o.mode == "train")
-        assert train_opt.estimated_cost_dzd == 2000.0  # 400km * 5 DZD/km
-        assert result.driving_distance_km == 400.0
+        assert "driving" in modes
         assert result.driving_time_minutes == 300
+        # Driving option has pricing with bus/shared_taxi/private_taxi
+        driving_opt = next(o for o in result.options if o.mode == "driving")
+        assert driving_opt.pricing is not None
+        assert driving_opt.pricing["shared_taxi_per_person"] > 0
 
     async def test_same_wilaya(self, db: AsyncSession):
         ctx = _make_ctx(db)

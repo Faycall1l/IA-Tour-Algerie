@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_transit_routing
 from app.models.wilaya_distance import WilayaDistance
+from app.services.multimodal_router import MultiModalRouter
 from app.services.transit_routing import TransitRoutingService
 from app.services.transport import TransportService
 
@@ -22,35 +23,72 @@ async def get_transport_route(
     dest_wilaya_id: int,
     db: AsyncSession = Depends(get_db),
 ) -> dict:
-    route = await _transport_service.get_route(db, origin_wilaya_id, dest_wilaya_id)
-    if route is None:
-        return {"error": "No route found"}
-    result = {
+    """Get multi-modal transport options between two wilayas.
+
+    Returns driving estimates plus real train, bus, and flight options
+    with schedules, pricing, and operator contacts when available.
+    """
+    # Multi-modal options
+    router_instance = MultiModalRouter()
+    options = await router_instance.get_inter_wilaya_options(
+        db, origin_wilaya_id, dest_wilaya_id
+    )
+
+    if not options:
+        # Fallback to legacy flat estimates
+        route = await _transport_service.get_route(db, origin_wilaya_id, dest_wilaya_id)
+        if route is None:
+            return {"error": "No route found"}
+        return {
+            "origin_wilaya_id": origin_wilaya_id,
+            "dest_wilaya_id": dest_wilaya_id,
+            "driving_distance_km": route.driving_distance_km,
+            "driving_time_minutes": route.driving_time_minutes,
+            "travel_time_label": route.travel_time_label(),
+            "road_classification": route.road_classification,
+            "has_train_route": route.has_train_route,
+            "has_direct_flight": route.has_direct_flight,
+            "estimated_costs_dzd": {
+                "bus": route.estimate_bus_cost(),
+                "shared_taxi": route.estimate_shared_taxi_cost(),
+                "shared_taxi_per_person": route.estimate_shared_taxi_cost_per_person(),
+                "private_taxi": route.estimate_private_taxi_cost(),
+            },
+            "options": [],
+        }
+
+    result_options = []
+    driving_dist = None
+    driving_time = None
+    for opt in options:
+        opt_dict = {
+            "mode": opt.mode,
+            "line_name": opt.line_name,
+            "operator": opt.operator,
+            "cost_dzd": opt.cost_dzd,
+            "duration_min": opt.duration_min,
+            "schedule": opt.schedule,
+            "pricing": opt.pricing,
+            "transfers": opt.transfers,
+            "contacts": [
+                {"name": c.name, "mode": c.mode, "phone": c.phone,
+                 "website": c.website, "email": c.email}
+                for c in opt.contacts
+            ],
+        }
+        result_options.append(opt_dict)
+        if opt.mode == "driving":
+            driving_time = opt.duration_min
+            if opt.pricing:
+                driving_dist = opt.pricing.get("private_taxi", 0) / 20.0
+
+    return {
         "origin_wilaya_id": origin_wilaya_id,
         "dest_wilaya_id": dest_wilaya_id,
-        "driving_distance_km": route.driving_distance_km,
-        "driving_time_minutes": route.driving_time_minutes,
-        "travel_time_label": route.travel_time_label(),
-        "road_classification": route.road_classification,
-        "has_train_route": route.has_train_route,
-        "has_direct_flight": route.has_direct_flight,
-        "estimated_costs_dzd": {
-            "bus": route.estimate_bus_cost(),
-            "shared_taxi": route.estimate_shared_taxi_cost(),
-            "shared_taxi_per_person": route.estimate_shared_taxi_cost_per_person(),
-            "private_taxi": route.estimate_private_taxi_cost(),
-        },
+        "driving_distance_km": driving_dist,
+        "driving_time_minutes": driving_time,
+        "options": result_options,
     }
-    train = route.estimate_train_cost()
-    if train is not None:
-        result["estimated_costs_dzd"]["train"] = train
-    plane = route.estimate_plane_cost()
-    if plane is not None:
-        result["estimated_costs_dzd"]["plane"] = plane
-    ferry = route.estimate_ferry_cost()
-    if ferry is not None:
-        result["estimated_costs_dzd"]["ferry"] = ferry
-    return result
 
 
 @router.get("/routes/from/{origin_wilaya_id}")
@@ -147,3 +185,35 @@ async def poi_access(
     """Get public transit access info for a POI: nearest stations + routing."""
     result = await routing.poi_access(db, poi_id, lat, lng, name)
     return result.model_dump(mode="json")
+
+
+# ── Transport operators ──────────────────────────────────────────────
+
+@router.get("/operators")
+async def list_operators(
+    db: AsyncSession = Depends(get_db),
+    mode: str | None = Query(None, description="Filter by mode: train, flight, bus, taxi, tram, cablecar"),
+) -> list:
+    """List transport operators with contact information."""
+    from sqlalchemy import text as sa_text
+    conditions = ["is_active = TRUE"]
+    bind: dict = {}
+    if mode:
+        conditions.append("mode = :mode")
+        bind["mode"] = mode
+    where = " AND ".join(conditions)
+    rows = await db.execute(
+        sa_text(f"SELECT name, name_ar, mode, phone, website, email, "
+                f"headquarters_wilaya_id, description, coverage_type "
+                f"FROM transport_operators WHERE {where} ORDER BY mode, name"),
+        bind,
+    )
+    return [
+        {
+            "name": r[0], "name_ar": r[1], "mode": r[2],
+            "phone": r[3], "website": r[4], "email": r[5],
+            "headquarters_wilaya_id": r[6], "description": r[7],
+            "coverage_type": r[8],
+        }
+        for r in rows.all()
+    ]

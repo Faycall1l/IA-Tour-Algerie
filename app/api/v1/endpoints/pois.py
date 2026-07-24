@@ -403,3 +403,91 @@ async def delete_poi(
     await db.delete(poi)
     await db.commit()
     vector_search.delete_poi(poi_id)
+
+
+@router.get("/tour/optimize")
+async def optimize_poi_tour(
+    wilaya_id: int = Query(..., ge=1, le=69),
+    budget_hours: float = Query(8.0, ge=1.0, le=16.0),
+    categories: str | None = Query(None, description="Comma-separated categories"),
+    max_pois: int = Query(15, ge=3, le=30),
+    start_poi_id: str | None = Query(None),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.poi_graph import POIGraphService
+
+    cat_list = [c.strip() for c in categories.split(",")] if categories else None
+    service = POIGraphService()
+    result = await service.optimize_tour(
+        db, wilaya_id, budget_hours, cat_list, max_pois, start_poi_id,
+    )
+    if not result:
+        return {"message": "No POIs found for this wilaya", "stops": []}
+
+    return {
+        "wilaya_id": result.wilaya_id,
+        "budget_hours": result.budget_hours,
+        "total_pois": result.total_pois,
+        "total_walk_min": result.total_walk_min,
+        "total_visit_min": result.total_visit_min,
+        "total_time_min": result.total_time_min,
+        "walking_distance_km": result.walking_distance_km,
+        "stops": [
+            {
+                "poi_id": s.poi_id,
+                "poi_name": s.poi_name,
+                "category": s.category,
+                "latitude": s.latitude,
+                "longitude": s.longitude,
+                "duration_min": s.duration_min,
+                "walk_from_prev_min": s.walk_from_prev_min,
+                "cumulative_time_min": s.cumulative_time_min,
+                "fun_fact": s.fun_fact,
+            }
+            for s in result.stops
+        ],
+    }
+
+
+@router.get("/tour/clusters")
+async def poi_clusters(
+    wilaya_id: int = Query(..., ge=1, le=69),
+    radius_m: float = Query(1000.0, ge=200.0, le=5000.0),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.poi_graph import POIGraphService
+
+    service = POIGraphService()
+    clusters = await service.cluster_pois(db, wilaya_id, radius_m)
+    return {
+        "wilaya_id": wilaya_id,
+        "radius_m": radius_m,
+        "clusters": [
+            {
+                "cluster_id": c.cluster_id,
+                "poi_count": len(c.pois),
+                "center_lat": round(c.center_lat, 4),
+                "center_lon": round(c.center_lon, 4),
+                "radius_m": round(c.radius_m, 0),
+                "walkable": c.walkable,
+                "pois": [
+                    {"id": p.id, "name": p.name, "category": p.category}
+                    for p in c.pois[:5]
+                ],
+            }
+            for c in clusters[:10]
+        ],
+    }
+
+
+@router.get("/tour/hubs")
+async def hub_pois(
+    wilaya_id: int = Query(..., ge=1, le=69),
+    top_n: int = Query(10, ge=3, le=30),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.services.poi_graph import POIGraphService
+
+    service = POIGraphService()
+    hubs = await service.hub_pois(db, wilaya_id, top_n)
+    return {"wilaya_id": wilaya_id, "hub_pois": hubs}

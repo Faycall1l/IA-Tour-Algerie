@@ -73,3 +73,5 @@ class POI(UUIDPkMixin, TimestampMixin, Base):
     )
     getting_there: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     trip_type_counts: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    fun_fact: Mapped[str | None] = mapped_column(Text, nullable=True)
+    fun_fact_source: Mapped[str | None] = mapped_column(String(200), nullable=True)

@@ -918,18 +918,31 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
     )
 
 
-# ── Transport Route ──
+# ── Multi-Modal Transport Route ──
 
 class TransportRouteParams(BaseModel):
     origin_wilaya_id: int = Field(..., ge=1, le=58, description="Departure wilaya ID")
     dest_wilaya_id: int = Field(..., ge=1, le=58, description="Destination wilaya ID")
 
 
+class OperatorContactInfo(BaseModel):
+    name: str
+    mode: str
+    phone: str | None = None
+    website: str | None = None
+    email: str | None = None
+
+
 class TransportModeOption(BaseModel):
     mode: str
-    estimated_cost_dzd: float | None = None
-    estimated_time_minutes: int | None = None
-    time_label: str | None = None
+    line_name: str | None = None
+    operator: str | None = None
+    cost_dzd: float | None = None
+    duration_min: int | None = None
+    schedule: dict | None = None
+    pricing: dict | None = None
+    contacts: list[OperatorContactInfo] = []
+    transfers: int = 0
     available: bool = True
 
 
@@ -945,22 +958,24 @@ class TransportRouteResult(BaseModel):
 
 
 async def get_transport_route(ctx: RunContext[TravelAgentDeps], params: TransportRouteParams) -> TransportRouteResult:
-    """Get transport options between two Algerian wilayas.
+    """Get multi-modal transport options between two Algerian wilayas.
 
-    Returns cost + time estimates for bus, shared taxi, private taxi, train, and plane.
-    Includes actual wilaya names for the origin and destination.
+    Returns driving, train (direct + multi-hop), SOGRAL bus, and flight options
+    with real schedules, pricing, and operator contacts. Uses actual SNTF line data
+    and multi-hop routing through hub cities (Algiers, Constantine, Oran).
     """
-    from app.services.transport import TransportService
+    from app.services.multimodal_router import MultiModalRouter
 
-    # Look up wilaya names
     names = await _lookup_wilaya_names(ctx, [params.origin_wilaya_id, params.dest_wilaya_id])
     o_name = names.get(params.origin_wilaya_id, f"Wilaya {params.origin_wilaya_id}")
     d_name = names.get(params.dest_wilaya_id, f"Wilaya {params.dest_wilaya_id}")
 
-    svc = TransportService()
-    route = await svc.get_route(ctx.deps.db, params.origin_wilaya_id, params.dest_wilaya_id)
+    router = MultiModalRouter()
+    route_options = await router.get_inter_wilaya_options(
+        ctx.deps.db, params.origin_wilaya_id, params.dest_wilaya_id
+    )
 
-    if not route:
+    if not route_options:
         return TransportRouteResult(
             origin_wilaya=o_name, dest_wilaya=d_name,
             origin_wilaya_id=params.origin_wilaya_id,
@@ -969,58 +984,106 @@ async def get_transport_route(ctx: RunContext[TravelAgentDeps], params: Transpor
         )
 
     options = []
-    # Bus
-    bus_cost = route.estimate_bus_cost()
-    options.append(TransportModeOption(
-        mode="bus", estimated_cost_dzd=bus_cost,
-        estimated_time_minutes=route.driving_time_minutes,
-        time_label=route.travel_time_label(),
-    ))
-    # Shared taxi
-    shared_cost = route.estimate_shared_taxi_cost_per_person()
-    options.append(TransportModeOption(
-        mode="shared_taxi", estimated_cost_dzd=shared_cost,
-        estimated_time_minutes=route.driving_time_minutes,
-        time_label=route.travel_time_label(),
-    ))
-    # Private taxi
-    priv_cost = route.estimate_private_taxi_cost()
-    options.append(TransportModeOption(
-        mode="private_taxi", estimated_cost_dzd=priv_cost,
-        estimated_time_minutes=route.driving_time_minutes,
-        time_label=route.travel_time_label(),
-    ))
-    # Train
-    train_cost = route.estimate_train_cost()
-    options.append(TransportModeOption(
-        mode="train", estimated_cost_dzd=train_cost,
-        available=train_cost is not None,
-    ))
-    # Plane
-    plane_cost = route.estimate_plane_cost()
-    options.append(TransportModeOption(
-        mode="plane", estimated_cost_dzd=plane_cost,
-        available=plane_cost is not None,
-    ))
+    driving_dist = None
+    driving_time = None
+    for opt in route_options:
+        mode_opt = TransportModeOption(
+            mode=opt.mode, line_name=opt.line_name, operator=opt.operator,
+            cost_dzd=opt.cost_dzd, duration_min=opt.duration_min,
+            schedule=opt.schedule, pricing=opt.pricing,
+            transfers=opt.transfers,
+            contacts=[OperatorContactInfo(**c.__dict__) for c in opt.contacts],
+            available=True,
+        )
+        options.append(mode_opt)
+        if opt.mode == "driving":
+            driving_dist = opt.pricing.get("bus", 0) / 6.0 if opt.pricing else None  # reverse from cost
+            driving_time = opt.duration_min
 
-    # Best recommendation
-    best = "bus"
-    best_cost = bus_cost
-    if shared_cost is not None and shared_cost < best_cost:
-        best = "shared_taxi"
-        best_cost = shared_cost
-    if train_cost is not None and train_cost < best_cost:
-        best = "train"
-        best_cost = train_cost
+    # Best recommendation: cheapest available option
+    available_opts = [o for o in options if o.cost_dzd is not None]
+    if available_opts:
+        cheapest = min(available_opts, key=lambda o: o.cost_dzd)
+        best = f"Cheapest: {cheapest.mode} at {cheapest.cost_dzd:.0f} DZD"
+        if cheapest.line_name:
+            best += f" ({cheapest.line_name})"
+        if cheapest.duration_min:
+            h, m = divmod(cheapest.duration_min, 60)
+            best += f", ~{h}h{m:02d}" if m else f"~{h}h"
+    else:
+        best = "Driving is the only available option."
+
+    # Recalculate driving distance from driving option
+    driving_opt = next((o for o in options if o.mode == "driving"), None)
+    if driving_opt and driving_opt.pricing:
+        driving_dist = driving_opt.pricing.get("private_taxi", 0) / 20.0
 
     return TransportRouteResult(
         origin_wilaya=o_name, dest_wilaya=d_name,
         origin_wilaya_id=params.origin_wilaya_id,
         dest_wilaya_id=params.dest_wilaya_id,
-        driving_distance_km=route.driving_distance_km,
-        driving_time_minutes=route.driving_time_minutes,
+        driving_distance_km=driving_dist,
+        driving_time_minutes=driving_time,
         options=options,
-        best_recommendation=f"The cheapest option is {best} at {best_cost:.0f} DZD per person.",
+        best_recommendation=best,
+    )
+
+
+# ── Operator Contacts ──
+
+class OperatorContactsParams(BaseModel):
+    mode: str | None = Field(None, description="Filter by mode: train, flight, bus, taxi, tram, cablecar")
+    wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by headquarters wilaya")
+
+
+class OperatorContactResult(BaseModel):
+    name: str
+    name_ar: str | None = None
+    mode: str
+    phone: str | None = None
+    website: str | None = None
+    email: str | None = None
+    headquarters_wilaya: int | None = None
+    description: str | None = None
+    coverage_type: str | None = None
+
+
+class OperatorContactsOutput(BaseModel):
+    results: list[OperatorContactResult]
+    total: int
+
+
+async def get_operator_contacts(ctx: RunContext[TravelAgentDeps], params: OperatorContactsParams) -> OperatorContactsOutput:
+    """Get contact information for Algerian transport operators.
+
+    Returns phone numbers, websites, and emails for SNTF, Air Algérie,
+    SOGRAL, ETUSA, ETO, SETRAM, and other operators.
+    """
+    conditions = ["is_active = TRUE"]
+    bind: dict = {}
+    if params.mode:
+        conditions.append("mode = :mode")
+        bind["mode"] = params.mode
+    if params.wilaya_id:
+        conditions.append("headquarters_wilaya_id = :wid")
+        bind["wid"] = params.wilaya_id
+
+    where = " AND ".join(conditions)
+    rows = await ctx.deps.db.execute(
+        text(f"SELECT name, name_ar, mode, phone, website, email, headquarters_wilaya_id, description, coverage_type "
+             f"FROM transport_operators WHERE {where} ORDER BY mode, name"),
+        bind,
+    )
+    return OperatorContactsOutput(
+        total=rows.rowcount,
+        results=[
+            OperatorContactResult(
+                name=r[0], name_ar=r[1], mode=r[2], phone=r[3],
+                website=r[4], email=r[5], headquarters_wilaya=r[6],
+                description=r[7], coverage_type=r[8],
+            )
+            for r in rows.all()
+        ],
     )
 
 

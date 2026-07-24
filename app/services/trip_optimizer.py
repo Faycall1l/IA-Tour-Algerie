@@ -18,6 +18,7 @@ from app.schemas.trip import (
     TripBriefPOI,
     TripItemRead,
 )
+from app.services.poi_graph import POIGraphService
 from app.services.transit_routing import TransitRoutingService
 from app.services.transport import TransportService
 
@@ -147,6 +148,8 @@ class TripOptimizer:
         remaining = list(with_coords[1:])
         total_cost = 0
 
+        poi_graph = POIGraphService()
+
         while remaining:
             current = sorted_items[-1]
             current_coord = Coord(current.latitude, current.longitude)
@@ -158,7 +161,13 @@ class TripOptimizer:
                 if transit is not None:
                     cost = transit
                 else:
-                    cost = _haversine_km(current_coord, Coord(candidate.latitude, candidate.longitude))
+                    walk_time = await poi_graph.walking_time(
+                        db, str(current.item_id), str(candidate.item_id)
+                    )
+                    if walk_time is not None:
+                        cost = walk_time
+                    else:
+                        cost = _haversine_km(current_coord, Coord(candidate.latitude, candidate.longitude))
                 if cost < nearest_cost:
                     nearest_cost = cost
                     nearest_idx = i
@@ -177,6 +186,7 @@ class TripOptimizer:
 
         available_minutes = (day_end_hour - day_start_hour) * 60
         used_minutes = 0
+        poi_graph = POIGraphService()
         for i, item in enumerate(enriched):
             duration = item.estimated_duration_minutes or _DEFAULT_POI_DURATION
             used_minutes += duration
@@ -185,12 +195,18 @@ class TripOptimizer:
                 if transit is not None:
                     travel = transit
                 else:
-                    travel = _walk_time_minutes(
-                        _haversine_km(
-                            Coord(enriched[i].latitude or 0, enriched[i].longitude or 0),
-                            Coord(enriched[i + 1].latitude or 0, enriched[i + 1].longitude or 0),
-                        )
+                    walk_time = await poi_graph.walking_time(
+                        db, str(enriched[i].item_id), str(enriched[i + 1].item_id)
                     )
+                    if walk_time is not None:
+                        travel = walk_time
+                    else:
+                        travel = _walk_time_minutes(
+                            _haversine_km(
+                                Coord(enriched[i].latitude or 0, enriched[i].longitude or 0),
+                                Coord(enriched[i + 1].latitude or 0, enriched[i + 1].longitude or 0),
+                            )
+                        )
                 used_minutes += travel
 
         gap_minutes = available_minutes - used_minutes
@@ -207,26 +223,19 @@ class TripOptimizer:
         existing_ids: set[uuid.UUID],
     ) -> list[OptimizationSuggestion]:
         suggestions = []
+        poi_graph = POIGraphService()
         for wid in wilaya_ids:
-            rows = (
-                (
-                    await db.execute(
-                        select(POI)
-                        .where(POI.wilaya_id == wid, POI.id.notin_(existing_ids))
-                        .limit(3)
-                    )
-                )
-                .scalars()
-                .all()
-            )
-            for p in rows:
-                suggestions.append(
-                    OptimizationSuggestion(
-                        item_id=p.id,
-                        reason=f"Nearby: {p.name} ({p.category})",
-                        action="add_to_trip",
-                    )
-                )
+            clusters = await poi_graph.cluster_pois(db, wid, radius_m=1500)
+            for cluster in clusters[:3]:
+                for poi in cluster.pois[:2]:
+                    if str(poi.id) not in {str(i) for i in existing_ids}:
+                        suggestions.append(
+                            OptimizationSuggestion(
+                                item_id=poi.id,
+                                reason=f"Walkable cluster near {cluster.pois[0].name}: {poi.name} ({poi.category})",
+                                action="add_to_trip",
+                            )
+                        )
         return suggestions
 
     async def compute_budget(
@@ -288,9 +297,18 @@ class TripBriefGenerator:
             for pid, score in review_rows:
                 review_scores.setdefault(pid, []).append(score)
 
+        # Use MultiModalRouter for rich transport options when available
+        multimodal_options = None
         route = None
         if origin_wilaya_id != wilaya_id:
-            route = await self._transport.get_route(db, origin_wilaya_id, wilaya_id)
+            try:
+                from app.services.multimodal_router import MultiModalRouter
+                router = MultiModalRouter()
+                multimodal_options = await router.get_inter_wilaya_options(
+                    db, origin_wilaya_id, wilaya_id
+                )
+            except Exception:
+                route = await self._transport.get_route(db, origin_wilaya_id, wilaya_id)
 
         top_pois = []
         for row in pois_rows:
@@ -299,7 +317,19 @@ class TripBriefGenerator:
             gt = row.getting_there or {}
 
             transport_cost = None
-            if route:
+            if multimodal_options:
+                cheapest = min(
+                    (o for o in multimodal_options if o.cost_dzd is not None),
+                    key=lambda o: o.cost_dzd,
+                    default=None,
+                )
+                if cheapest:
+                    dur = ""
+                    if cheapest.duration_min:
+                        h, m = divmod(cheapest.duration_min, 60)
+                        dur = f", ~{h}h{m:02d}" if m else f" ~{h}h"
+                    transport_cost = f"{cheapest.mode}: ~{cheapest.cost_dzd:,.0f} DZD{dur}"
+            elif route:
                 bus = route.estimate_bus_cost()
                 taxi = route.estimate_shared_taxi_cost()
                 label = route.travel_time_label()
@@ -358,8 +388,22 @@ class TripBriefGenerator:
             for e in exp_rows
         ]
 
+        # Rich transport advice from MultiModalRouter
         transport_advice = None
-        if route:
+        if multimodal_options:
+            parts = []
+            for opt in multimodal_options:
+                label = opt.mode
+                if opt.line_name:
+                    label = f"{opt.mode} ({opt.line_name})"
+                dur = ""
+                if opt.duration_min:
+                    h, m = divmod(opt.duration_min, 60)
+                    dur = f", ~{h}h{m:02d}" if m else f" ~{h}h"
+                cost = f"~{opt.cost_dzd:,.0f} DZD" if opt.cost_dzd else "price N/A"
+                parts.append(f"{label}: {cost}{dur}")
+            transport_advice = " | ".join(parts)
+        elif route:
             label = route.travel_time_label()
             bus_cost = route.estimate_bus_cost()
             taxi_cost = route.estimate_shared_taxi_cost()

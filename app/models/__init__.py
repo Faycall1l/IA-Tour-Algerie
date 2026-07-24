@@ -17,6 +17,7 @@ from app.models.refresh_token import RefreshToken
 from app.models.review import Review
 from app.models.station import LineStop, Station, TransportLine
 from app.models.stay import Stay
+from app.models.transport_operator import TransportOperator
 from app.models.traveler_profile import AtharTravelerProfile
 from app.models.trip import Trip, TripItem
 from app.models.user import User
@@ -47,6 +48,7 @@ __all__ = [
     "RefreshToken",
     "Station",
     "TransportLine",
+    "TransportOperator",
     "LineStop",
     "Stay",
     "Trip",

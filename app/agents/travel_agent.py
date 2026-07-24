@@ -22,6 +22,8 @@ from app.agents.tools import (
     EventSearchParams,
     ExperienceSearchOutput,
     ExperienceSearchParams,
+    OperatorContactsOutput,
+    OperatorContactsParams,
     POISearchOutput,
     POISearchParams,
     StaySearchOutput,
@@ -33,6 +35,7 @@ from app.agents.tools import (
     WilayaGuideOutput,
     WilayaGuideParams,
     find_events,
+    get_operator_contacts,
     get_transport_route,
     get_weather,
     get_wilaya_guide,
@@ -84,7 +87,8 @@ AGENT_INSTRUCTIONS = (
     "\n- Discover tours, activities, and cultural experiences"
     "\n- Find local artisans and craftspeople (pottery, weaving, jewelry, leatherwork, etc.)"
     "\n- Get a curated wilaya travel guide with featured attractions per category"
-    "\n- Find transport options (bus, taxi, train, plane) between two wilayas"
+    "\n- Find transport options (bus, taxi, train, plane, multi-hop) between two wilayas"
+    "\n- Look up operator contacts (SNTF, Air Algérie, SOGRAL, etc.) with phone numbers"
     "\n- Search cultural events and festivals by wilaya, category, and month"
     "\n- Check weather forecasts for destinations"
     "\n- Look up the user's saved collections/wishlists"
@@ -93,13 +97,14 @@ AGENT_INSTRUCTIONS = (
     "\n1. ALWAYS use `search_pois` with the `query` param describing what the user wants"
     "\n2. ALWAYS use `search_stays` when the user asks about accommodation"
     "\n3. Use `get_wilaya_guide` when the user asks 'what to see' in a specific wilaya"
-    "\n4. Use `get_transport_route` when the user asks how to get between two wilayas"
-    "\n5. Use `find_events` when the user asks about festivals, events, or seasonal activities"
-    "\n6. Use `get_weather` when the user asks about weather or when planning outdoor activities"
-    "\n7. Use `search_artisans` when the user asks about local crafts, workshops, or buying souvenirs"
-    "\n8. Combine multiple tools to give comprehensive answers"
-    "\n9. If a tool returns no results, say so honestly and suggest alternatives"
-    "\n10. Always mention wilaya names when citing places"
+    "\n4. Use `get_transport_route` when the user asks how to get between two wilayas — it returns train (direct + multi-hop), bus, taxi, and flight options with schedules and pricing"
+    "\n5. Use `get_operator_contacts` when the user asks for phone numbers or contact info for transport companies"
+    "\n6. Use `find_events` when the user asks about festivals, events, or seasonal activities"
+    "\n7. Use `get_weather` when the user asks about weather or when planning outdoor activities"
+    "\n8. Use `search_artisans` when the user asks about local crafts, workshops, or buying souvenirs"
+    "\n9. Combine multiple tools to give comprehensive answers"
+    "\n10. If a tool returns no results, say so honestly and suggest alternatives"
+    "\n11. Always mention wilaya names when citing places"
 
     "\n\nRESPONSE STYLE:"
     "\n- Be concise but informative"
@@ -162,6 +167,7 @@ def _register_all_tools(agent: Agent) -> None:
     """Register every tool including transport routing."""
     _register_search_tools(agent)
     agent.tool(get_transport_route)
+    agent.tool(get_operator_contacts)
 
 
 def _make_model(base_url: str, api_key: str, model_name: str) -> OpenAIChatModel:

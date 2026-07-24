@@ -10,6 +10,7 @@ from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_db
 from app.main import app
+from app.models import TransportOperator  # noqa: F401 — ensure table is created
 from app.models.poi import POI
 from app.models.user import User
 from app.models.wilaya import Wilaya

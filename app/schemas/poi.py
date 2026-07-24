@@ -81,6 +81,8 @@ class POIRead(BaseModel):
     neighborhood: str | None = None
     award: str | None = None
     getting_there: dict | None = None
+    fun_fact: str | None = None
+    fun_fact_source: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
     average_score: float | None = None
@@ -106,6 +108,7 @@ class POIBrief(BaseModel):
     distance_km: float | None = None
     average_score: float | None = None
     total_reviews: int = 0
+    fun_fact: str | None = None
 
 
 class POIFeed(BaseModel):

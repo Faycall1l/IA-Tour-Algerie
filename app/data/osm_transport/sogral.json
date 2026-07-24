@@ -1,0 +1,36 @@
+[
+  {
+    "type": "node",
+    "id": 6644112202,
+    "lat": 31.6960721,
+    "lon": 6.054957,
+    "tags": {
+      "addr:city": "حاسي مسعود",
+      "addr:city:ar": "حاسي مسعود",
+      "amenity": "bus_station",
+      "bus": "yes",
+      "description": "الطارف، عنابة، قالمة، سكيكدة ،قسنطينة، باتنة، سوق أهراس، جيجل، سطيف، بسكرة، الوادي، ورقلة، تقرت، الجزائر، الشلف، وهران، غرداية، إليزي",
+      "name": "المحطة البرية - حاسي مسعود",
+      "name:ar": "المحطة البرية - حاسي مسعود",
+      "name:fr": "Garre routière Hassi-Messaoud",
+      "operator": "SOGRAL",
+      "public_transport": "station",
+      "wheelchair": "no"
+    }
+  },
+  {
+    "type": "node",
+    "id": 8851384799,
+    "lat": 32.90827,
+    "lon": 0.5427811,
+    "tags": {
+      "addr:city": "الابيض سيد الشيخ",
+      "bus": "yes",
+      "internet_access": "no",
+      "name": "محطة المسافرين",
+      "network": "كل الاتجاهات",
+      "operator": "SOGRAL",
+      "public_transport": "station"
+    }
+  }
+]
