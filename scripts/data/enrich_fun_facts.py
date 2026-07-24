@@ -57,6 +57,25 @@ CATEGORY_FACTS = {
         "This souk has been a center of trade and commerce for generations.",
         "Traditional crafts and local produce make this market a cultural experience.",
     ],
+    "cultural": [
+        "This site reflects the rich cultural tapestry of Algeria's diverse communities.",
+        "Here, centuries of cultural exchange have left a unique imprint on local traditions.",
+        "This cultural landmark stands as a testament to Algeria's artistic heritage.",
+        "Local artisans have maintained traditional crafts at this site for generations.",
+        "The area around this site is known for its vibrant cultural life and community gatherings.",
+    ],
+    "restaurant": [
+        "This eatery serves traditional Algerian cuisine passed down through family recipes.",
+        "From couscous to chorba, this is where locals come for authentic Algerian flavors.",
+    ],
+    "cafe": [
+        "Cafés like this are the social heart of Algerian neighborhoods, where stories are shared over mint tea.",
+        "Traditional Algerian coffee culture thrives at spots like this one.",
+    ],
+    "other": [
+        "This spot is one of Algeria's many hidden treasures waiting to be explored.",
+        "A notable point of interest in the region, reflecting local character and history.",
+    ],
 }
 
 # Civilization-based facts
@@ -74,33 +93,88 @@ CIVILIZATION_FACTS = {
 }
 
 
-def fetch_wikidata_sparql(entity_name: str) -> dict | None:
-    """Search Wikidata for an entity by name and return interesting claims."""
-    query = f"""
-    SELECT ?item ?itemLabel ?inception ?unescoStatus ?height ?architect ?population WHERE {{
-      ?item rdfs:label ?label .
-      FILTER(CONTAINS(LCASE(?label), LCASE("{entity_name}")))
-      OPTIONAL {{ ?item wdt:P571 ?inception . }}
-      OPTIONAL {{ ?item wdt:P1411 ?unescoStatus . }}
-      OPTIONAL {{ ?item wdt:P2048 ?height . }}
-      OPTIONAL {{ ?item wdt:P84 ?architect . }}
-      OPTIONAL {{ ?item wdt:P1082 ?population . }}
-      SERVICE wikibase:label {{ bd:serviceParam wikibase:language "en,fr,ar" . }}
-    }} LIMIT 1
-    """
-    try:
-        r = requests.get(
-            "https://query.wikidata.org/sparql",
-            params={"query": query, "format": "json"},
-            headers={"User-Agent": "ATHAR-Tourism/1.0"},
-            timeout=15,
-        )
-        if r.status_code == 200:
-            results = r.json().get("results", {}).get("bindings", [])
-            if results:
-                return results[0]
-    except Exception:
-        pass
+def fetch_wikidata_batch(names: list[str]) -> dict[str, dict]:
+    """Batch search Wikidata for multiple entities by name via wbsearchentities API (fast)."""
+    results = {}
+    for name in names:
+        if not name or len(name) < 4:
+            continue
+        try:
+            r = requests.get(
+                WIKIDATA_API,
+                params={
+                    "action": "wbsearchentities",
+                    "search": name,
+                    "language": "en",
+                    "type": "item",
+                    "limit": 1,
+                    "format": "json",
+                },
+                headers={"User-Agent": "ATHAR-Tourism/1.0"},
+                timeout=8,
+            )
+            if r.status_code == 200:
+                search_results = r.json().get("search", [])
+                if search_results:
+                    entity_id = search_results[0]["id"]
+                    r2 = requests.get(
+                        WIKIDATA_API,
+                        params={
+                            "action": "wbgetentities",
+                            "ids": entity_id,
+                            "props": "claims",
+                            "format": "json",
+                        },
+                        headers={"User-Agent": "ATHAR-Tourism/1.0"},
+                        timeout=8,
+                    )
+                    if r2.status_code == 200:
+                        claims = r2.json().get("entities", {}).get(entity_id, {}).get("claims", {})
+                        fact = _extract_fact_from_claims(claims)
+                        if fact:
+                            results[name] = {"fact": fact, "source": "wikidata"}
+        except Exception:
+            pass
+        time.sleep(0.3)
+    return results
+
+
+def _extract_fact_from_claims(claims: dict) -> str | None:
+    """Extract a fun fact from Wikidata claims dict."""
+    inception = claims.get("P571")
+    if inception:
+        try:
+            val = inception[0]["mainsnak"]["datavalue"]["value"]["time"]
+            year = val.lstrip("+").split("-")[0]
+            if year.isdigit() and int(year) > 0:
+                return f"This site was established around {year}, spanning over {2026 - int(year)} years of history."
+        except (KeyError, IndexError):
+            pass
+
+    unesco = claims.get("P1411")
+    if unesco:
+        try:
+            qid = unesco[0]["mainsnak"]["datavalue"]["value"]["id"]
+            return f"This site is a UNESCO World Heritage site (Q{qid.replace('Q','')}), recognized for its outstanding universal value."
+        except (KeyError, IndexError):
+            return "This site is listed as a UNESCO World Heritage site."
+
+    height = claims.get("P2048")
+    if height:
+        try:
+            val = height[0]["mainsnak"]["datavalue"]["value"]["amount"]
+            return f"Standing at {val} meters, this is a notable structure in the region."
+        except (KeyError, IndexError):
+            pass
+
+    architect = claims.get("P84")
+    if architect:
+        try:
+            qid = architect[0]["mainsnak"]["datavalue"]["value"]["id"]
+            return f"This structure was designed by a notable architect (Wikidata: {qid})."
+        except (KeyError, IndexError):
+            pass
+
     return None
 
 
@@ -154,36 +228,6 @@ def search_wikipedia(query: str) -> str | None:
                 return fetch_wikipedia_extract(title)
     except Exception:
         pass
-    return None
-
-
-def extract_fun_fact_from_wikidata(result: dict) -> str | None:
-    """Convert a Wikidata SPARQL result binding into a fun fact string."""
-    if not result:
-        return None
-
-    inception = result.get("inception", {}).get("value")
-    if inception:
-        year = inception[:4]
-        if year.isdigit() and int(year) > 0:
-            return f"This site was established around {year}, spanning over {2026 - int(year)} years of history."
-
-    unesco = result.get("unescoStatus", {}).get("label")
-    if unesco:
-        return f"This site is listed as a UNESCO World Heritage site ({unesco}), recognized for its outstanding universal value."
-
-    height = result.get("height", {}).get("value")
-    if height:
-        return f"Standing at {height} meters, this is a notable structure in the region."
-
-    architect = result.get("architect", {}).get("label")
-    if architect:
-        return f"Designed by {architect}, this structure is an architectural highlight."
-
-    population = result.get("population", {}).get("value")
-    if population:
-        return f"As of the last census, this area has a population of {int(population):,}."
-
     return None
 
 
@@ -270,12 +314,15 @@ def generate_fun_fact_from_tags(poi_name: str, category: str, osm_tags: dict) ->
 def main():
     limit = 500
     featured_only = False
+    fast_mode = False
 
     for i, arg in enumerate(sys.argv[1:]):
         if arg == "--limit" and i + 1 < len(sys.argv):
             limit = int(sys.argv[i + 2])
         if arg == "--featured-only":
             featured_only = True
+        if arg == "--fast":
+            fast_mode = True
 
     engine = create_engine(DB_URL)
 
@@ -285,6 +332,7 @@ def main():
         FROM pois
         WHERE fun_fact IS NULL
           AND latitude IS NOT NULL
+          AND name IS NOT NULL AND LENGTH(name) > 3
     """
     if featured_only:
         query += " AND is_featured = true"
@@ -296,81 +344,76 @@ def main():
 
     print(f"POIs to enrich: {len(pois)}")
 
+    BATCH_SIZE = 50
     enriched = 0
     skipped = 0
     wiki_hits = 0
-    sparql_hits = 0
+    wikidata_hits = 0
     tag_hits = 0
     template_hits = 0
 
-    for i, poi in enumerate(pois):
-        name = poi["name"]
-        category = poi["category"]
-        civilization = poi.get("historic_civilization")
-        osm_tags = poi.get("osm_tags") or {}
-        description = poi.get("description") or ""
-        is_featured = poi.get("is_featured", False)
+    for batch_start in range(0, len(pois), BATCH_SIZE):
+        batch = pois[batch_start:batch_start + BATCH_SIZE]
 
-        fun_fact = None
-        source = None
+        names_for_wikidata = []
+        if not fast_mode:
+            names_for_wikidata = [
+                p["name"] for p in batch
+                if p["name"] and any(c.isascii() and c.isalpha() for c in p["name"]) and len(p["name"]) > 4
+            ]
+        wikidata_facts = fetch_wikidata_batch(names_for_wikidata) if names_for_wikidata else {}
 
-        if name and len(name) > 3:
-            wiki_text = search_wikipedia(f"{name} Algeria")
-            if wiki_text:
-                fun_fact = extract_fun_fact_from_wikipedia(wiki_text)
+        for poi in batch:
+            name = poi["name"]
+            category = poi["category"]
+            civilization = poi.get("historic_civilization")
+            osm_tags = poi.get("osm_tags") or {}
+
+            fun_fact = None
+            source = None
+
+            if name in wikidata_facts:
+                fun_fact = wikidata_facts[name]["fact"]
+                source = "wikidata"
+                wikidata_hits += 1
+
+            if not fun_fact and civilization:
+                fact = CIVILIZATION_FACTS.get(civilization)
+                if fact:
+                    fun_fact = fact
+                    source = "historic_data"
+                    template_hits += 1
+
+            if not fun_fact and osm_tags:
+                fun_fact = generate_fun_fact_from_tags(name, category, osm_tags)
                 if fun_fact:
-                    source = "wikipedia"
-                    wiki_hits += 1
+                    source = "osm_tags"
+                    tag_hits += 1
 
-        if not fun_fact and name and len(name) > 3:
-            sparql_result = fetch_wikidata_sparql(name)
-            if sparql_result:
-                fun_fact = extract_fun_fact_from_wikidata(sparql_result)
-                if fun_fact:
-                    source = "wikidata"
-                    sparql_hits += 1
-
-        if not fun_fact and civilization:
-            fact = CIVILIZATION_FACTS.get(civilization)
-            if fact:
-                fun_fact = fact
-                source = "historic_data"
+            if not fun_fact and category in CATEGORY_FACTS and name:
+                templates = CATEGORY_FACTS[category]
+                fun_fact = templates[hash(name) % len(templates)]
+                source = "category_template"
                 template_hits += 1
 
-        if not fun_fact and osm_tags:
-            fun_fact = generate_fun_fact_from_tags(name, category, osm_tags)
-            if fun_fact:
-                source = "osm_tags"
-                tag_hits += 1
+            if fun_fact and source:
+                with engine.connect() as conn:
+                    conn.execute(
+                        text("UPDATE pois SET fun_fact = :fact, fun_fact_source = :source WHERE id = :id"),
+                        {"fact": fun_fact, "source": source, "id": poi["id"]},
+                    )
+                    conn.commit()
+                enriched += 1
+            else:
+                skipped += 1
 
-        if not fun_fact and category in CATEGORY_FACTS and name:
-            templates = CATEGORY_FACTS[category]
-            fun_fact = templates[0]
-            source = "category_template"
-            template_hits += 1
-
-        if fun_fact and source:
-            with engine.connect() as conn:
-                conn.execute(
-                    text("UPDATE pois SET fun_fact = :fact, fun_fact_source = :source WHERE id = :id"),
-                    {"fact": fun_fact, "source": source, "id": poi["id"]},
-                )
-                conn.commit()
-            enriched += 1
-        else:
-            skipped += 1
-
-        if (i + 1) % 50 == 0:
-            print(f"  Progress: {i+1}/{len(pois)} (enriched: {enriched})")
-
-        if (i + 1) % 20 == 0:
-            time.sleep(1)
+        print(f"  Progress: {min(batch_start + BATCH_SIZE, len(pois))}/{len(pois)} (enriched: {enriched}, wikidata: {wikidata_hits}, wiki: {wiki_hits})")
 
     print(f"\n=== SUMMARY ===")
     print(f"Total POIs processed: {len(pois)}")
     print(f"Enriched: {enriched}")
+    print(f"  Wikidata: {wikidata_hits}")
     print(f"  Wikipedia: {wiki_hits}")
-    print(f"  Wikidata SPARQL: {sparql_hits}")
     print(f"  OSM tags: {tag_hits}")
     print(f"  Category templates: {template_hits}")
     print(f"Skipped: {skipped}")
