@@ -297,32 +297,31 @@ class POIGraphService:
 
         last_pid = max(selected_map.values(), key=lambda p: _dist(p)) if selected_map else None
 
+        from collections import Counter
+        cat_counts = Counter(self._pois[pid].category for pid in used_pids)
+
         while len(used_pids) < max_pois and remaining and budget_left > 0:
-            if last_pid:
-                last_node = self._pois[last_pid]
-                remaining.sort(key=lambda pid: _haversine_km(
-                    last_node.lat, last_node.lon,
-                    self._pois[pid].lat, self._pois[pid].lon
-                ))
-            best = None
+            prev = self._pois[last_pid] if last_pid else start_node
+            scored = []
             for pid in remaining:
                 node = self._pois[pid]
-                prev = self._pois[last_pid] if last_pid else start_node
                 km = _haversine_km(prev.lat, prev.lon, node.lat, node.lon)
                 walk = km * 12
                 cost = walk + node.duration_min
-                if cost <= budget_left:
-                    best = pid
-                    break
-            if best is None:
+                if cost > budget_left:
+                    continue
+                dup_penalty = 1.0 + 0.4 * cat_counts.get(node.category, 0)
+                score = cost * dup_penalty
+                scored.append((score, pid, cost))
+            if not scored:
                 break
+            scored.sort(key=lambda x: x[0])
+            _, best, cost = scored[0]
             remaining.remove(best)
             node = self._pois[best]
-            prev = self._pois[last_pid] if last_pid else start_node
-            km = _haversine_km(prev.lat, prev.lon, node.lat, node.lon)
-            walk = km * 12
-            budget_left -= (walk + node.duration_min)
+            budget_left -= cost
             used_pids.add(best)
+            cat_counts[node.category] += 1
             last_pid = best
 
         if not used_pids:

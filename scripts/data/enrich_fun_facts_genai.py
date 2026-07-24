@@ -80,6 +80,7 @@ def build_user_prompt(poi: dict) -> str:
     wilaya_id = poi.get("wilaya_id")
     wilaya_name = WILAYA_NAMES.get(wilaya_id, f"Wilaya {wilaya_id}")
     description = poi.get("description") or ""
+    name_en = poi.get("name_en") or ""
     osm_tags = poi.get("osm_tags") or {}
     if isinstance(osm_tags, str):
         import json
@@ -91,25 +92,22 @@ def build_user_prompt(poi: dict) -> str:
     cat_ctx = CATEGORY_CONTEXT.get(category, "")
 
     tag_parts = []
-    for key in (
-        "amenity", "tourism", "historic", "natural", "leisure",
-        "building", "cuisine", "religion", "material", "start_date",
-        "artist_name", "architect", "heritage", "name:en", "name:ar",
-        "ele", "height", "population", "website", "phone",
-        "opening_hours", "wheelchair", "operator",
-    ):
-        if key in osm_tags:
-            tag_parts.append(f"{key}={osm_tags[key]}")
+    for key in sorted(osm_tags.keys()):
+        val = osm_tags[key]
+        if key.startswith("name:") and not key.startswith("name:en") and not key.startswith("name:ar"):
+            continue
+        tag_parts.append(f"{key}={val}")
 
-    tag_str = "; ".join(tag_parts[:10]) if tag_parts else "no extra tags"
+    tag_str = "; ".join(tag_parts[:15]) if tag_parts else "no extra tags"
 
     sub = f" ({subtype})" if subtype else ""
+    en = f" (English: {name_en})" if name_en and name_en != name else ""
 
-    prompt = f"POI: {name}{sub}\nCategory: {category}\n{cat_ctx}\nLocation: {wilaya_name}, Algeria\nTags: {tag_str}"
+    prompt = f"POI: {name}{sub}{en}\nCategory: {category}\n{cat_ctx}\nLocation: {wilaya_name}, Algeria\nOSM data: {tag_str}"
     if description and len(description) > 20:
         desc_clean = description[:300].strip()
         prompt += f"\nDescription: {desc_clean}"
-    prompt += "\n\nWrite ONE fun fact:"
+    prompt += "\n\nWrite ONE fun fact about this specific place:"
     return prompt
 
 
@@ -199,17 +197,27 @@ async def fetch_target_pois(db: AsyncSession, limit: int, offset: int) -> list[d
               AND name NOT LIKE '%Unnamed%'
               AND name NOT LIKE '%unknown%'
               AND name NOT LIKE '%Inconnu%'
+              AND name NOT LIKE '%Bibliothèque%'
+              AND name NOT LIKE '%Bibliotheque%'
+              AND name NOT LIKE '%mactab%'
+              AND name NOT LIKE '%مكتبة%'
               AND category = ANY(:cats)
               AND (
-                (is_featured = true)
-                OR (description IS NOT NULL AND LENGTH(description) > 80)
-                OR (name_en IS NOT NULL AND LENGTH(name_en) > 5 AND name_en ~ '[a-zA-Z]{3,}')
+                (description IS NOT NULL AND LENGTH(description) > 100)
+                OR (name_en IS NOT NULL AND name_en ~ '[A-Z][a-z]')
+                OR (osm_tags::text LIKE '%heritage%')
+                OR (osm_tags::text LIKE '%start_date%')
+                OR (osm_tags::text LIKE '%historic%')
+                OR (is_featured = true AND name NOT LIKE '%ONAT%' AND name NOT LIKE '%ديوان%')
               )
             ORDER BY
+                (osm_tags::text LIKE '%heritage%') DESC,
+                (osm_tags::text LIKE '%start_date%') DESC,
+                (osm_tags::text LIKE '%historic%') DESC,
+                (name_en IS NOT NULL AND name_en ~ '^[A-Z][a-z]' AND LENGTH(name_en) > 8) DESC,
+                (description IS NOT NULL AND LENGTH(description) > 150) DESC,
+                category IN ('museum','natural','mountain','park','religious','beach','historical') DESC,
                 is_featured DESC,
-                (description IS NOT NULL AND LENGTH(description) > 100) DESC,
-                (name_en IS NOT NULL AND name_en ~ '[a-zA-Z]{3,}') DESC,
-                category IN ('cultural','museum','natural','mountain','park','religious','beach') DESC,
                 name
             LIMIT :limit OFFSET :offset
         """),
