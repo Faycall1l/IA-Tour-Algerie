@@ -17,6 +17,38 @@ _transport_service = TransportService()
 
 # ── Legacy inter-wilaya route endpoints ─────────────────────────────
 
+@router.get("/routes/from/{origin_wilaya_id}")
+async def get_routes_from(
+    origin_wilaya_id: int,
+    db: AsyncSession = Depends(get_db),
+    limit: int = 20,
+) -> dict:
+    stmt = (
+        select(WilayaDistance)
+        .where(
+            or_(
+                WilayaDistance.origin_wilaya_id == origin_wilaya_id,
+                WilayaDistance.dest_wilaya_id == origin_wilaya_id,
+            )
+        )
+        .order_by(WilayaDistance.driving_distance_km)
+        .limit(limit)
+    )
+    rows = (await db.execute(stmt)).scalars().all()
+    destinations = []
+    for r in rows:
+        same_origin = r.origin_wilaya_id == origin_wilaya_id
+        other_id = r.dest_wilaya_id if same_origin else r.origin_wilaya_id
+        destinations.append(
+            {
+                "dest_wilaya_id": other_id,
+                "driving_distance_km": r.driving_distance_km,
+                "driving_time_minutes": r.driving_time_minutes,
+            }
+        )
+    return {"origin_wilaya_id": origin_wilaya_id, "destinations": destinations}
+
+
 @router.get("/routes/{origin_wilaya_id}/{dest_wilaya_id}")
 async def get_transport_route(
     origin_wilaya_id: int,
@@ -89,38 +121,6 @@ async def get_transport_route(
         "driving_time_minutes": driving_time,
         "options": result_options,
     }
-
-
-@router.get("/routes/from/{origin_wilaya_id}")
-async def get_routes_from(
-    origin_wilaya_id: int,
-    db: AsyncSession = Depends(get_db),
-    limit: int = 20,
-) -> dict:
-    stmt = (
-        select(WilayaDistance)
-        .where(
-            or_(
-                WilayaDistance.origin_wilaya_id == origin_wilaya_id,
-                WilayaDistance.dest_wilaya_id == origin_wilaya_id,
-            )
-        )
-        .order_by(WilayaDistance.driving_distance_km)
-        .limit(limit)
-    )
-    rows = (await db.execute(stmt)).scalars().all()
-    destinations = []
-    for r in rows:
-        same_origin = r.origin_wilaya_id == origin_wilaya_id
-        other_id = r.dest_wilaya_id if same_origin else r.origin_wilaya_id
-        destinations.append(
-            {
-                "dest_wilaya_id": other_id,
-                "driving_distance_km": r.driving_distance_km,
-                "driving_time_minutes": r.driving_time_minutes,
-            }
-        )
-    return {"origin_wilaya_id": origin_wilaya_id, "destinations": destinations}
 
 
 # ── New multi-modal transit routing endpoints ──────────────────────
