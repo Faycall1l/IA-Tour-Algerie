@@ -10,7 +10,6 @@ from app.models.suggestion import Suggestion
 from app.models.price_report import PriceReport
 from app.models.provider_profile import ProviderProfile
 from app.models.refresh_token import RefreshToken
-from app.models.review import Review
 from app.models.station import LineStop, Station, TransportLine
 from app.models.stay import Stay
 from app.models.transport_operator import TransportOperator
@@ -35,7 +34,6 @@ __all__ = [
     "UserPreference",
     "PriceReport",
     "ProviderProfile",
-    "Review",
     "RefreshToken",
     "Station",
     "TransportLine",

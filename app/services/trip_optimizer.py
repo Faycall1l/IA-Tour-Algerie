@@ -7,7 +7,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.experience import Experience
 from app.models.poi import POI
-from app.models.review import Review
 from app.models.stay import Stay
 from app.models.trip import TripItem
 from app.models.wilaya import Wilaya
@@ -286,17 +285,6 @@ class TripBriefGenerator:
             )
         ).all()
 
-        poi_ids = [r.id for r in pois_rows]
-        review_scores: dict[uuid.UUID, list[int]] = {}
-        if poi_ids:
-            review_rows = (
-                await db.execute(
-                    select(Review.poi_id, Review.overall_score).where(Review.poi_id.in_(poi_ids))
-                )
-            ).all()
-            for pid, score in review_rows:
-                review_scores.setdefault(pid, []).append(score)
-
         # Use MultiModalRouter for rich transport options when available
         multimodal_options = None
         route = None
@@ -312,8 +300,6 @@ class TripBriefGenerator:
 
         top_pois = []
         for row in pois_rows:
-            scores = review_scores.get(row.id, [])
-            avg = round(sum(scores) / len(scores), 1) if scores else None
             gt = row.getting_there or {}
 
             transport_cost = None
@@ -344,8 +330,8 @@ class TripBriefGenerator:
                     id=row.id,
                     name=row.name,
                     category=row.category,
-                    average_score=avg,
-                    total_reviews=len(scores),
+                    average_score=None,
+                    total_reviews=0,
                     photo_url=row.photo_url,
                     photo_urls=photos,
                     latitude=row.latitude,

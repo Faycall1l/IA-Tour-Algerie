@@ -10,7 +10,6 @@ from app.core.exceptions import NotFoundException
 from app.models.artisan import Artisan
 from app.models.experience import Experience
 from app.models.poi import POI
-from app.models.review import Review
 from app.models.stay import Stay
 from app.models.user import User
 from app.models.wilaya import Wilaya
@@ -281,17 +280,6 @@ async def discover_wilaya(
         .all()
     )
 
-    poi_ids = [p.id for p in pois_rows]
-    review_scores: dict[uuid.UUID, list[int]] = {}
-    if poi_ids:
-        rows = (
-            await db.execute(
-                select(Review.poi_id, Review.overall_score).where(Review.poi_id.in_(poi_ids))
-            )
-        ).all()
-        for pid, score in rows:
-            review_scores.setdefault(pid, []).append(score)
-
     pois = [
         DiscoverPOI(
             id=p.id,
@@ -302,8 +290,8 @@ async def discover_wilaya(
             longitude=p.longitude,
             photo_url=p.photo_url,
             entry_fee_dzd=p.entry_fee_dzd,
-            average_score=_avg_score(review_scores.get(p.id, [])),
-            total_reviews=len(review_scores.get(p.id, [])),
+            average_score=None,
+            total_reviews=0,
         )
         for p in pois_rows
     ]
@@ -463,18 +451,6 @@ async def wilaya_guide(
             stays=[],
         )
 
-    # Build review scores
-    poi_ids = [p.id for p in all_pois]
-    review_scores: dict[uuid.UUID, list[int]] = {}
-    if poi_ids:
-        rows = (
-            await db.execute(
-                select(Review.poi_id, Review.overall_score).where(Review.poi_id.in_(poi_ids))
-            )
-        ).all()
-        for pid, score in rows:
-            review_scores.setdefault(pid, []).append(score)
-
     def build_guide_poi(p: POI) -> GuidePOI:
         gt = p.getting_there or {}
         return GuidePOI(
@@ -491,8 +467,8 @@ async def wilaya_guide(
             entry_fee_dzd=p.entry_fee_dzd,
             price_level=p.price_level,
             suggested_duration_min=p.suggested_duration_min,
-            average_score=_avg_score(review_scores.get(p.id, [])),
-            total_reviews=len(review_scores.get(p.id, [])),
+            average_score=None,
+            total_reviews=0,
             accessibility_score=gt.get("accessibility_score"),
             combined_score=gt.get("combined_score"),
             nearest_station_name=gt.get("nearest_station_name"),

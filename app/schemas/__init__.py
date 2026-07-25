@@ -18,7 +18,6 @@ from app.schemas.price_report import (
     PriceReportFeed,
     PriceReportRead,
 )
-from app.schemas.review import POIRating, ReviewCreate, ReviewFeed, ReviewRead
 from app.schemas.trip import (
     DayPlan,
     OptimizationSuggestion,
@@ -54,10 +53,6 @@ __all__ = [
     "POICreate",
     "POIRead",
     "POIFeed",
-    "ReviewCreate",
-    "ReviewRead",
-    "ReviewFeed",
-    "POIRating",
     "AdminActionResponse",
     "AdminRoleUpdate",
     "PriceReportAdminRead",

@@ -17,7 +17,6 @@ from app.api.v1.endpoints import (
     pois,
     price_calendar,
     prices,
-    reviews,
     search,
     stays,
     stats,
@@ -40,7 +39,6 @@ router.include_router(events.router)
 router.include_router(pois.router)
 router.include_router(price_calendar.router)
 router.include_router(prices.router)
-router.include_router(reviews.router)
 router.include_router(users.router)
 router.include_router(wilayas.router)
 router.include_router(experiences.router)

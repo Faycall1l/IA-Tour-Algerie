@@ -9,10 +9,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_current_admin, get_current_user, get_current_user_optional, get_db, get_provider_or_admin, get_storage, get_vector_search
 from app.core.exceptions import NotFoundException
 from app.models.poi import POI
-from app.models.review import Review
 from app.models.user import User
 from app.models.wilaya import Wilaya
-from app.schemas.poi import POIBrief, POICreate, POIFeed, POIRead, POIUpdate, TopReview
+from app.schemas.poi import POIBrief, POICreate, POIFeed, POIRead, POIUpdate
 from app.services.storage import StorageService
 from app.services.vector_search import VectorSearchService
 
@@ -23,50 +22,7 @@ router = APIRouter(prefix="/pois", tags=["Points of Interest"])
 async def _attach_ratings(db: AsyncSession, pois: list[POI]) -> list[POIRead]:
     if not pois:
         return []
-
-    poi_ids = [p.id for p in pois]
-    ratings_query = (
-        select(
-            Review.poi_id,
-            func.avg(Review.overall_score).label("avg"),
-            func.count(Review.id).label("cnt"),
-        )
-        .where(Review.poi_id.in_(poi_ids))
-        .group_by(Review.poi_id)
-    )
-    ratings_map: dict[uuid.UUID, tuple[float, int]] = {}
-    for row in await db.execute(ratings_query):
-        ratings_map[row.poi_id] = (round(float(row.avg), 1), row.cnt)
-
-    top_reviews_query = (
-        select(Review, User.display_name, User.phone)
-        .join(User, Review.user_id == User.id)
-        .where(Review.poi_id.in_(poi_ids))
-        .order_by(Review.helpfulness_count.desc(), Review.created_at.desc())
-    )
-    top_rows = (await db.execute(top_reviews_query)).all()
-    top_map: dict[uuid.UUID, list[TopReview]] = {}
-    for review, display_name, phone in top_rows:
-        name = display_name or phone
-        tr = TopReview(
-            id=review.id,
-            user_name=name,
-            overall_score=review.overall_score,
-            text=review.text,
-            created_at=review.created_at,
-            helpfulness_count=review.helpfulness_count,
-        )
-        top_map.setdefault(review.poi_id, []).append(tr)
-
-    items = []
-    for p in pois:
-        avg, cnt = ratings_map.get(p.id, (None, 0))
-        base = POIRead.model_validate(p)
-        base.average_score = avg
-        base.total_reviews = cnt
-        base.top_reviews = (top_map.get(p.id) or [])[:3]
-        items.append(base)
-    return items
+    return [POIRead.model_validate(p) for p in pois]
 
 
 @router.post("", response_model=POIRead, status_code=201)

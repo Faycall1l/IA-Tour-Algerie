@@ -5,7 +5,6 @@ from app.models.experience import Experience
 from app.models.poi import POI
 from app.models.price_report import PriceReport
 from app.models.provider_profile import ProviderProfile
-from app.models.review import Review
 from app.models.user import User
 from app.models.wilaya import Wilaya
 from httpx import AsyncClient

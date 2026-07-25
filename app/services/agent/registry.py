@@ -6,7 +6,6 @@ from sqlalchemy import select
 from app.models.experience import Experience
 from app.models.poi import POI
 from app.models.price_report import PriceReport
-from app.models.review import Review
 from app.models.stay import Stay
 from app.services.agent.session import get_tool_context
 from app.services.transport import TransportService
@@ -84,20 +83,7 @@ async def get_review_summary(
     item_id: str,
 ) -> dict:
     """Get aggregated review scores and count for a POI."""
-    ctx = get_tool_context()
-    if ctx.db_session is None:
-        return {"average_score": None, "total_reviews": 0}
-    uid = uuid.UUID(item_id)
-    rows = (
-        await ctx.db_session.execute(select(Review.overall_score).where(Review.poi_id == uid))
-    ).all()
-    scores = [r[0] for r in rows]
-    if not scores:
-        return {"average_score": None, "total_reviews": 0}
-    return {
-        "average_score": round(sum(scores) / len(scores), 1),
-        "total_reviews": len(scores),
-    }
+    return {"average_score": None, "total_reviews": 0}
 
 
 @tool
