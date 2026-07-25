@@ -54,7 +54,7 @@ class ArtisanRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID
-    user_id: uuid.UUID
+    user_id: uuid.UUID | None = None
     name: str
     craft_type: str
     description: str | None = None
