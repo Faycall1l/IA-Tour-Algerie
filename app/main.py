@@ -38,16 +38,7 @@ from app.services.vector_search import VectorSearchService
 
 logger = logging.getLogger(__name__)
 
-_legacy_routers: list = []
 
-
-def _load_legacy_routers():
-    try:
-        from app.api.v1.endpoints import studio_media
-
-        _legacy_routers.append(studio_media.router)
-    except Exception as exc:
-        logger.warning("studio_media router unavailable: %s", exc)
 
 
 @asynccontextmanager
@@ -82,7 +73,7 @@ async def lifespan(app: FastAPI):
         logger.info("Pydantic AI agents initialized: %s @ %s", mn, bu)
     else:
         logger.warning("No vLLM API key set — agent endpoints will return 503")
-    _load_legacy_routers()
+
 
     async def _index_existing_pois():
         try:
@@ -126,8 +117,6 @@ async def lifespan(app: FastAPI):
 
     asyncio.create_task(_index_existing_pois())
     asyncio.create_task(_index_existing_experiences())
-    for r in _legacy_routers:
-        app.include_router(r)
     yield
 
 

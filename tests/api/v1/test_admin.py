@@ -3,7 +3,6 @@ import uuid
 import pytest
 from app.models.experience import Experience
 from app.models.poi import POI
-from app.models.price_report import PriceReport
 from app.models.provider_profile import ProviderProfile
 from app.models.user import User
 from app.models.wilaya import Wilaya
@@ -22,92 +21,6 @@ async def test_non_admin_cannot_access(
 
     resp = await client.get("/api/v1/admin/users", headers=admin_headers)
     assert resp.status_code == 200
-
-
-# ── Price Reports ──────────────────────────────────────────────────
-
-
-@pytest.mark.asyncio
-async def test_list_price_reports(
-    client: AsyncClient,
-    admin_headers: dict[str, str],
-    test_user: User,
-    db: AsyncSession,
-):
-    report = PriceReport(
-        user_id=test_user.id,
-        origin_wilaya_id=1,
-        dest_wilaya_id=2,
-        transport_mode="bus",
-        price_dzd=500,
-    )
-    db.add(report)
-    await db.commit()
-
-    resp = await client.get("/api/v1/admin/price-reports", headers=admin_headers)
-    assert resp.status_code == 200
-    data = resp.json()
-    assert data["total"] >= 1
-    assert data["items"][0]["confidence"] == "user"
-
-
-@pytest.mark.asyncio
-async def test_verify_price_report(
-    client: AsyncClient,
-    admin_headers: dict[str, str],
-    test_user: User,
-    db: AsyncSession,
-):
-    report = PriceReport(
-        user_id=test_user.id,
-        origin_wilaya_id=1,
-        dest_wilaya_id=3,
-        transport_mode="taxi",
-        price_dzd=1000,
-    )
-    db.add(report)
-    await db.commit()
-    await db.refresh(report)
-
-    resp = await client.put(
-        f"/api/v1/admin/price-reports/{report.id}/verify",
-        headers=admin_headers,
-    )
-    assert resp.status_code == 200
-    assert resp.json()["message"] == "Price report verified"
-
-    await db.refresh(report)
-    assert report.confidence == "verified"
-
-
-@pytest.mark.asyncio
-async def test_reject_price_report(
-    client: AsyncClient,
-    admin_headers: dict[str, str],
-    test_user: User,
-    db: AsyncSession,
-):
-    report = PriceReport(
-        user_id=test_user.id,
-        origin_wilaya_id=1,
-        dest_wilaya_id=4,
-        transport_mode="train",
-        price_dzd=800,
-    )
-    db.add(report)
-    await db.commit()
-    await db.refresh(report)
-
-    resp = await client.delete(
-        f"/api/v1/admin/price-reports/{report.id}",
-        headers=admin_headers,
-    )
-    assert resp.status_code == 200
-
-    # Verify deletion via API
-    resp2 = await client.get(f"/api/v1/admin/price-reports", headers=admin_headers)
-    assert resp2.status_code == 200
-    assert not any(item["id"] == str(report.id) for item in resp2.json()["items"])
 
 
 # ── Users ──────────────────────────────────────────────────────────
@@ -208,7 +121,6 @@ async def test_approve_provider(
 
 
 # ── Content Moderation ─────────────────────────────────────────────
-
 
 
 

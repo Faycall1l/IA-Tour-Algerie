@@ -18,8 +18,6 @@ from app.services.agent.middleware import (
 from app.services.agent.prompts.trip_brief import TRIP_BRIEF_PROMPT
 from app.services.agent.registry import (
     get_experience,
-    get_price_estimate,
-    get_review_summary,
     get_transport_route,
     search_pois,
 )
@@ -44,8 +42,6 @@ def get_trip_brief_agent():
             tools=[
                 search_pois,
                 get_experience,
-                get_price_estimate,
-                get_review_summary,
                 get_transport_route,
             ],
             system_prompt=TRIP_BRIEF_PROMPT,

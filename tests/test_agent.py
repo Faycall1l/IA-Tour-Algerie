@@ -129,28 +129,6 @@ class TestAgentRegistry:
         result = await search_pois.ainvoke({"query": "mosque"})
         assert result == []
 
-    async def test_get_price_estimate_no_session(self):
-        from app.services.agent.registry import get_price_estimate
-
-        result = await get_price_estimate.ainvoke(
-            {
-                "item_type": "poi",
-                "item_id": "00000000-0000-0000-0000-000000000000",
-            }
-        )
-        assert result["count"] == 0
-
-    async def test_get_review_summary_no_session(self):
-        from app.services.agent.registry import get_review_summary
-
-        result = await get_review_summary.ainvoke(
-            {
-                "item_type": "poi",
-                "item_id": "00000000-0000-0000-0000-000000000000",
-            }
-        )
-        assert result["total_reviews"] == 0
-
     async def test_get_experience_no_session(self):
         from app.services.agent.registry import get_experience
 
@@ -381,12 +359,6 @@ class TestToolEdgeCases:
         result = await search_pois.ainvoke({"query": "mosque"})
         assert result == []
         set_tool_context(ToolContext())
-
-    async def test_get_price_estimate_bad_uuid(self):
-        from app.services.agent.registry import get_price_estimate
-
-        result = await get_price_estimate.ainvoke({"item_type": "poi", "item_id": "not-a-uuid"})
-        assert result["count"] == 0
 
     async def test_compute_travel_time_zero_distance(self):
         from app.services.agent.registry import compute_travel_time

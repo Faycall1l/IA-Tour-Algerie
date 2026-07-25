@@ -2,12 +2,8 @@ from app.models.artisan import Artisan
 from app.models.collection import Collection, CollectionItem
 from app.models.event import Event
 from app.models.experience import Experience
-from app.models.price_calendar_entry import PriceCalendarEntry
 from app.models.local_agency import LocalAgency
 from app.models.poi import POI
-from app.models.preference import UserPreference
-from app.models.suggestion import Suggestion
-from app.models.price_report import PriceReport
 from app.models.provider_profile import ProviderProfile
 from app.models.refresh_token import RefreshToken
 from app.models.station import LineStop, Station, TransportLine
@@ -29,10 +25,7 @@ __all__ = [
     "CollectionItem",
     "Event",
     "Experience",
-    "PriceCalendarEntry",
     "POI",
-    "UserPreference",
-    "PriceReport",
     "ProviderProfile",
     "RefreshToken",
     "Station",
@@ -43,5 +36,4 @@ __all__ = [
     "Trip",
     "TripItem",
     "WilayaDistance",
-    "Suggestion",
 ]

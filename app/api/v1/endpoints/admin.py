@@ -1,6 +1,5 @@
 import logging
 import uuid
-from datetime import date
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
@@ -11,14 +10,11 @@ from app.core.config import settings
 from app.core.exceptions import NotFoundException
 from app.models.experience import Experience
 from app.models.poi import POI
-from app.models.price_report import PriceReport
 from app.models.provider_profile import PROVIDER_TYPES, ProviderProfile
 from app.models.user import User
 from app.schemas.admin import (
     AdminActionResponse,
     AdminRoleUpdate,
-    PriceReportAdminFeed,
-    PriceReportAdminRead,
     ProviderAdminFeed,
     ProviderProfileAdminRead,
     StatsDashboard,
@@ -84,77 +80,6 @@ async def dashboard_stats(
         pois_per_wilaya=pois_per_wilaya,
         pois_per_category=pois_per_category,
     )
-
-
-# ── Price Reports ──────────────────────────────────────────────────
-
-
-@router.get("/price-reports", response_model=PriceReportAdminFeed)
-async def list_price_reports(
-    verified: bool | None = Query(None),
-    page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=50),
-    _current_user: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db),
-):
-    query = select(PriceReport).order_by(PriceReport.created_at.desc())
-
-    if verified is True:
-        query = query.where(PriceReport.confidence == "verified")
-    elif verified is False:
-        query = query.where(PriceReport.confidence == "user")
-
-    count_query = select(func.count()).select_from(query.subquery())
-    total = (await db.execute(count_query)).scalar() or 0
-
-    offset = (page - 1) * page_size
-    query = query.offset(offset).limit(page_size)
-    result = await db.execute(query)
-    reports = result.scalars().all()
-
-    total_pages = (total + page_size - 1) // page_size if total > 0 else 0
-    return PriceReportAdminFeed(
-        items=[PriceReportAdminRead.model_validate(r) for r in reports],
-        total=total,
-        page=page,
-        page_size=page_size,
-        total_pages=total_pages,
-        has_prev=page > 1,
-        has_next=page < total_pages,
-    )
-
-
-@router.put("/price-reports/{report_id}/verify", response_model=AdminActionResponse)
-async def verify_price_report(
-    report_id: uuid.UUID,
-    _current_user: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db),
-):
-    report = await db.get(PriceReport, report_id)
-    if not report:
-        raise NotFoundException(message="Price report not found")
-
-    report.confidence = "verified"
-    report.verified_at = date.today().isoformat()
-    await db.commit()
-
-    return AdminActionResponse(message="Price report verified")
-
-
-@router.delete("/price-reports/{report_id}", response_model=AdminActionResponse)
-async def reject_price_report(
-    report_id: uuid.UUID,
-    _current_user: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db),
-):
-    report = await db.get(PriceReport, report_id)
-    if not report:
-        raise NotFoundException(message="Price report not found")
-
-    await db.delete(report)
-    await db.commit()
-
-    return AdminActionResponse(message="Price report rejected and deleted")
 
 
 # ── Users ──────────────────────────────────────────────────────────

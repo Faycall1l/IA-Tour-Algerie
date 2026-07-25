@@ -5,7 +5,7 @@ from sqlalchemy import select
 
 from app.models.experience import Experience
 from app.models.poi import POI
-from app.models.price_report import PriceReport
+
 from app.models.stay import Stay
 from app.services.agent.session import get_tool_context
 from app.services.transport import TransportService
@@ -43,47 +43,6 @@ async def search_pois(
         }
         for p in rows
     ]
-
-
-@tool
-async def get_price_estimate(
-    item_type: str,
-    item_id: str,
-) -> dict:
-    """Get fair price estimate for a POI or experience."""
-    ctx = get_tool_context()
-    if ctx.db_session is None:
-        return {"min": None, "max": None, "median": None, "count": 0}
-    uid = uuid.UUID(item_id)
-    rows = (
-        await ctx.db_session.execute(
-            select(PriceReport.price_dzd).where(PriceReport.poi_id == uid).limit(20)
-        )
-    ).all()
-    prices = [r[0] for r in rows]
-    if not prices:
-        return {"min": None, "max": None, "median": None, "count": 0}
-    sorted_prices = sorted(prices)
-    n = len(sorted_prices)
-    if n % 2:
-        median = sorted_prices[n // 2]
-    else:
-        median = (sorted_prices[n // 2 - 1] + sorted_prices[n // 2]) / 2
-    return {
-        "min": min(prices),
-        "max": max(prices),
-        "median": round(median, 0),
-        "count": n,
-    }
-
-
-@tool
-async def get_review_summary(
-    item_type: str,
-    item_id: str,
-) -> dict:
-    """Get aggregated review scores and count for a POI."""
-    return {"average_score": None, "total_reviews": 0}
 
 
 @tool

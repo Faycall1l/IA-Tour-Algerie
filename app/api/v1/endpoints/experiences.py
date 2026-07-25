@@ -177,7 +177,6 @@ async def get_experience(
 
     if current_user:
         from app.models.favorite import Favorite
-        from app.models.visit import Visit
         from sqlalchemy import select
 
         fav = await db.execute(
@@ -188,15 +187,6 @@ async def get_experience(
             )
         )
         result.is_favorited = fav.scalar_one_or_none() is not None
-
-        vis = await db.execute(
-            select(Visit).where(
-                Visit.user_id == current_user.id,
-                Visit.entity_type == "experience",
-                Visit.entity_id == experience_id,
-            )
-        )
-        result.has_visited = vis.scalar_one_or_none() is not None
 
     return result
 

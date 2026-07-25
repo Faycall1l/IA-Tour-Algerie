@@ -10,30 +10,6 @@ class AdminActionResponse(BaseModel):
     message: str
 
 
-class PriceReportAdminRead(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    id: uuid.UUID
-    user_id: uuid.UUID
-    origin_wilaya_id: int
-    dest_wilaya_id: int
-    transport_mode: str
-    price_dzd: float
-    confidence: str
-    verified_at: str | None
-    created_at: datetime
-
-
-class PriceReportAdminFeed(BaseModel):
-    items: list[PriceReportAdminRead]
-    total: int
-    page: int
-    page_size: int
-    total_pages: int
-    has_prev: bool
-    has_next: bool
-
-
 class UserAdminRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
