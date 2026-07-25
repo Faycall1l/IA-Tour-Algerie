@@ -1,6 +1,6 @@
 # API Layer
 
-## Route Inventory (~95 routes)
+## Route Inventory (101 operations, 77 paths)
 
 ```
 # Public
@@ -10,6 +10,7 @@ GET    /api/v1/health                          # Health check
 POST   /api/v1/auth/send-otp                   # Passwordless OTP
 POST   /api/v1/auth/verify-otp                 # Login
 POST   /api/v1/auth/refresh                    # Rotate tokens
+POST   /api/v1/auth/register-provider          # Register as provider
 
 # Wilayas
 GET    /api/v1/wilayas                         # List 69 wilayas
@@ -20,9 +21,12 @@ GET    /api/v1/pois/neighborhoods              # List distinct neighborhoods (?w
 POST   /api/v1/pois                            # Create POI (auth)
 GET    /api/v1/pois                            # List POIs (filters: wilaya, category, neighborhood, search, sort)
 GET    /api/v1/pois/search                     # Semantic search via Qdrant
+GET    /api/v1/pois/nearby                     # Nearby POIs (?lat=&lng=&radius_km=)
 GET    /api/v1/pois/{poi_id}                   # POI detail
+PATCH  /api/v1/pois/{poi_id}                   # Partial update POI (admin)
 POST   /api/v1/pois/{poi_id}/photo             # Upload POI photo (admin)
 DELETE /api/v1/pois/{poi_id}                   # Delete POI (admin)
+GET    /api/v1/pois/{poi_id}/similar           # Similar POIs
 
 # POI Tour Optimization
 GET    /api/v1/pois/tour/optimize              # Optimize walking tour
@@ -51,6 +55,7 @@ GET    /api/v1/transport/routes/from/{origin_wilaya_id}              # All route
 GET    /api/v1/transport/stations              # List all stations
 GET    /api/v1/transport/stations/nearby       # Nearby stations (lat/lng/radius)
 GET    /api/v1/transport/lines                 # List transport lines
+GET    /api/v1/transport/operators             # Transport operators with contacts
 GET    /api/v1/transport/plan                  # Route planner (origin,dest,time)
 GET    /api/v1/transport/access/{poi_id}       # Transit access info for a POI
 
@@ -65,17 +70,26 @@ DELETE /api/v1/trips/{trip_id}/items/{item_id} # Remove item
 PUT    /api/v1/trips/{trip_id}/items/{item_id} # Reorder / change day
 POST   /api/v1/trips/{trip_id}/optimize        # Route optimization
 GET    /api/v1/trips/brief/{wilaya_id}         # Generate wilaya trip brief
+POST   /api/v1/trips/{trip_id}/share           # Generate share link
+GET    /api/v1/trips/shared/{share_token}      # View shared trip
 
 # Events (read-only calendar)
 GET    /api/v1/events                          # List events (filters: wilaya, category, month)
+POST   /api/v1/events                          # Create event (auth, admin)
 GET    /api/v1/events/{event_id}               # Event detail
+PATCH  /api/v1/events/{event_id}               # Update event (admin)
+DELETE /api/v1/events/{event_id}               # Delete event (admin)
 
 # Artisans
+POST   /api/v1/artisans                        # Create artisan (auth)
 GET    /api/v1/artisans                        # List artisans (filters: wilaya, craft)
 GET    /api/v1/artisans/{artisan_id}           # Artisan detail
+PUT    /api/v1/artisans/{artisan_id}           # Update artisan (owner)
+DELETE /api/v1/artisans/{artisan_id}           # Delete artisan (owner/admin)
 
 # Search (Full-Text)
 GET    /api/v1/search                          # Unified search across POIs, stays, experiences (?q=)
+GET    /api/v1/search/suggest                  # Search suggestions/autocomplete
 
 # GeoJSON (spatial data)
 GET    /api/v1/pois.geojson                    # All POIs as GeoJSON FeatureCollection (filters)
@@ -102,6 +116,7 @@ GET    /api/v1/users/me                        # Current user profile
 PUT    /api/v1/users/me                        # Update profile
 PUT    /api/v1/users/me/role                   # Switch role
 PUT    /api/v1/users/me/profile                # Update provider profile
+GET    /api/v1/users/me/dashboard              # User dashboard stats
 GET    /api/v1/users/providers                 # List providers (role=guide/agency/hotel)
 GET    /api/v1/users/providers/{user_id}       # Single provider detail
 
@@ -117,13 +132,15 @@ GET    /api/v1/discover/wilayas/{wilaya_id}/guide  # Curated guide: POIs sorted 
 GET    /api/v1/discover/experiences/by-poi/{poi_id}  # Find experiences matching a POI
 
 # Admin
+GET    /api/v1/admin/stats                     # Dashboard stats (counts, recent)
+GET    /api/v1/admin/verify/stats              # POI verification stats
+GET    /api/v1/admin/verify/poi/{poi_id}       # POI verification detail
 GET    /api/v1/admin/users                     # List users (filter: role, verified)
 PUT    /api/v1/admin/users/{id}/role           # Change user role
 PUT    /api/v1/admin/users/{id}/verify         # Toggle user verified
 GET    /api/v1/admin/providers                 # List provider profiles
 PUT    /api/v1/admin/providers/{id}/approve    # Approve provider
 DELETE /api/v1/admin/experiences/{id}          # Delete any experience
-GET    /api/v1/admin/stats                     # Dashboard stats (counts, recent)
 
 # Providers
 GET    /api/v1/providers/dashboard             # Provider dashboard data
