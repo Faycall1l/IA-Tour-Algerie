@@ -117,8 +117,6 @@ class TripBriefPOI(BaseModel):
     id: uuid.UUID
     name: str
     category: str
-    average_score: float | None
-    total_reviews: int
     photo_url: str | None
     photo_urls: list[str] | None = None
     latitude: float | None

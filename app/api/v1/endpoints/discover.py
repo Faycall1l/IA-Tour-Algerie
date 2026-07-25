@@ -21,10 +21,6 @@ CATEGORY_ORDER = {
 }
 
 
-def _avg_score(scores: list[int]) -> float | None:
-    return round(sum(scores) / len(scores), 1) if scores else None
-
-
 def _display_name(user_map: dict, user_id: uuid.UUID) -> str | None:
     u = user_map.get(user_id)
     return u.display_name if u else None
@@ -51,8 +47,6 @@ class DiscoverPOI(BaseModel):
     longitude: float | None
     photo_url: str | None
     entry_fee_dzd: float | None
-    average_score: float | None
-    total_reviews: int
 
 
 class DiscoverExperience(BaseModel):
@@ -140,8 +134,6 @@ class GuidePOI(BaseModel):
     entry_fee_dzd: float | None = None
     price_level: str | None = None
     suggested_duration_min: int | None = None
-    average_score: float | None = None
-    total_reviews: int = 0
     accessibility_score: int | None = None
     combined_score: float | None = None
     nearest_station_name: str | None = None
@@ -290,8 +282,6 @@ async def discover_wilaya(
             longitude=p.longitude,
             photo_url=p.photo_url,
             entry_fee_dzd=p.entry_fee_dzd,
-            average_score=None,
-            total_reviews=0,
         )
         for p in pois_rows
     ]
@@ -467,8 +457,6 @@ async def wilaya_guide(
             entry_fee_dzd=p.entry_fee_dzd,
             price_level=p.price_level,
             suggested_duration_min=p.suggested_duration_min,
-            average_score=None,
-            total_reviews=0,
             accessibility_score=gt.get("accessibility_score"),
             combined_score=gt.get("combined_score"),
             nearest_station_name=gt.get("nearest_station_name"),

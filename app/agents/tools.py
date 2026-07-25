@@ -648,8 +648,6 @@ class GuidePOIOutput(BaseModel):
     price_level: str | None = None
     suggested_duration_min: int | None = None
     photo_url: str | None = None
-    average_score: float | None = None
-    total_reviews: int = 0
     nearest_station: str | None = None
 
 

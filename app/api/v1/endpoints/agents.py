@@ -92,8 +92,8 @@ async def agent_chat(
 ):
     """Ask the travel assistant any Algeria travel question."""
     agent = _get_agent(request, "travel_agent")
-    deps = _make_deps(current_user, db, request)
-    result = await agent.run(body.message, deps=deps)
+    agent_deps = _make_deps(current_user, db, request)
+    result = await agent.run(body.message, deps=agent_deps)
     return AgentChatResponse(
         reply=str(result.output),
     )
@@ -109,14 +109,14 @@ async def agent_plan_trip(
 ):
     """Create a detailed itinerary for an Algeria trip."""
     agent = _get_agent(request, "itinerary_agent")
-    deps = _make_deps(current_user, db, request)
+    agent_deps = _make_deps(current_user, db, request)
     prompt = (
         f"Plan a {body.duration_days}-day trip to {body.destination} "
         f"on a {body.budget} budget."
     )
     if body.interests.strip():
         prompt += f"\nInterests: {body.interests}"
-    result = await agent.run(prompt, deps=deps)
+    result = await agent.run(prompt, deps=agent_deps)
     reply = str(result.output)
     return TripPlanResponse(plan=reply)
 
@@ -131,6 +131,6 @@ async def agent_search(
 ):
     """Unified search across POIs, stays, and experiences via agent."""
     agent = _get_agent(request, "search_agent")
-    deps = _make_deps(current_user, db, request)
-    result = await agent.run(body.query, deps=deps)
+    agent_deps = _make_deps(current_user, db, request)
+    result = await agent.run(body.query, deps=agent_deps)
     return AgentSearchResponse(results=[], total=0, reply=str(result.output))

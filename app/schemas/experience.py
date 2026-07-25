@@ -101,4 +101,3 @@ class ExperienceDetail(BaseModel):
     provider_avatar: str | None
     provider_role: str | None
     is_favorited: bool = False
-    has_visited: bool = False

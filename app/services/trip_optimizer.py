@@ -330,8 +330,6 @@ class TripBriefGenerator:
                     id=row.id,
                     name=row.name,
                     category=row.category,
-                    average_score=None,
-                    total_reviews=0,
                     photo_url=row.photo_url,
                     photo_urls=photos,
                     latitude=row.latitude,

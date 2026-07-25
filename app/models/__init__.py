@@ -2,7 +2,6 @@ from app.models.artisan import Artisan
 from app.models.collection import Collection, CollectionItem
 from app.models.event import Event
 from app.models.experience import Experience
-from app.models.local_agency import LocalAgency
 from app.models.poi import POI
 from app.models.provider_profile import ProviderProfile
 from app.models.recommendation import Recommendation, UserPreference
@@ -10,7 +9,6 @@ from app.models.refresh_token import RefreshToken
 from app.models.station import LineStop, Station, TransportLine
 from app.models.stay import Stay
 from app.models.transport_operator import TransportOperator
-from app.models.traveler_profile import AtharTravelerProfile
 from app.models.trip import Trip, TripItem
 from app.models.user import User
 from app.models.wilaya import Wilaya
@@ -20,8 +18,6 @@ __all__ = [
     "Artisan",
     "User",
     "Wilaya",
-    "LocalAgency",
-    "AtharTravelerProfile",
     "Collection",
     "CollectionItem",
     "Event",

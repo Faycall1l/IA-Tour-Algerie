@@ -11,3 +11,5 @@ class WilayaRead(BaseModel):
     name_tz: str | None
     latitude: float | None
     longitude: float | None
+    description: str | None = None
+    description_en: str | None = None

@@ -19,12 +19,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/pois", tags=["Points of Interest"])
 
 
-async def _attach_ratings(db: AsyncSession, pois: list[POI]) -> list[POIRead]:
-    if not pois:
-        return []
-    return [POIRead.model_validate(p) for p in pois]
-
-
 @router.post("", response_model=POIRead, status_code=201)
 async def create_poi(
     body: POICreate,
@@ -62,8 +56,7 @@ async def upload_poi_photo(
     poi.photo_url = photo_url
     await db.commit()
     await db.refresh(poi)
-    items = await _attach_ratings(db, [poi])
-    return items[0]
+    return POIRead.model_validate(poi)
 
 
 @router.get("/neighborhoods", response_model=list[str])
@@ -120,7 +113,7 @@ async def list_pois(
     result = await db.execute(query)
     pois = list(result.scalars().all())
 
-    items = await _attach_ratings(db, pois)
+    items = [POIRead.model_validate(p) for p in pois]
 
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     return POIFeed(
@@ -222,7 +215,7 @@ async def search_pois(
         result = await db.execute(stmt)
         pois = list(result.scalars().all())
 
-    items = await _attach_ratings(db, pois)
+    items = [POIRead.model_validate(p) for p in pois]
     total = len(items)
     return POIFeed(
         items=items,
@@ -245,8 +238,7 @@ async def get_poi(
     if not poi:
         raise NotFoundException(message="Point of interest not found")
 
-    items = await _attach_ratings(db, [poi])
-    result = items[0]
+    result = POIRead.model_validate(poi)
 
     if current_user:
         from app.models.favorite import Favorite
@@ -276,8 +268,7 @@ async def update_poi(
 
     updates = body.model_dump(exclude_unset=True)
     if not updates:
-        items = await _attach_ratings(db, [poi])
-        return items[0]
+        return POIRead.model_validate(poi)
 
     for field, value in updates.items():
         setattr(poi, field, value)
@@ -286,8 +277,7 @@ async def update_poi(
     await db.refresh(poi)
     vector_search.index_poi(poi)
 
-    items = await _attach_ratings(db, [poi])
-    return items[0]
+    return POIRead.model_validate(poi)
 
 
 @router.get("/{poi_id}/similar", response_model=list[POIBrief])

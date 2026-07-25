@@ -72,6 +72,5 @@ class POI(UUIDPkMixin, TimestampMixin, Base):
         TSVECTOR, Computed("to_tsvector('french', coalesce(name, '') || ' ' || coalesce(name_en, '') || ' ' || coalesce(name_ar, '') || ' ' || coalesce(description, '') || ' ' || coalesce(category, '') || ' ' || coalesce(subtype, '') || ' ' || coalesce(commune, '') || ' ' || coalesce(operator, '') || ' ' || coalesce(cuisine, '') || ' ' || coalesce(neighborhood, ''))"), nullable=True
     )
     getting_there: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    trip_type_counts: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     fun_fact: Mapped[str | None] = mapped_column(Text, nullable=True)
     fun_fact_source: Mapped[str | None] = mapped_column(String(200), nullable=True)

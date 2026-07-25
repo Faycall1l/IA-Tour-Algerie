@@ -37,15 +37,6 @@ class POIUpdate(BaseModel):
     neighborhood: str | None = Field(None, max_length=200)
 
 
-class TopReview(BaseModel):
-    id: uuid.UUID
-    user_name: str
-    overall_score: float
-    text: str | None = None
-    created_at: datetime
-    helpfulness_count: int = 0
-
-
 class POIRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -85,11 +76,7 @@ class POIRead(BaseModel):
     fun_fact_source: str | None = None
     created_at: datetime
     updated_at: datetime | None = None
-    average_score: float | None = None
-    total_reviews: int = 0
-    top_reviews: list[TopReview] | None = None
     is_favorited: bool = False
-    has_visited: bool = False
 
 
 class POIBrief(BaseModel):
@@ -106,8 +93,6 @@ class POIBrief(BaseModel):
     photo_url: str | None = None
     is_featured: bool = False
     distance_km: float | None = None
-    average_score: float | None = None
-    total_reviews: int = 0
     fun_fact: str | None = None
 
 

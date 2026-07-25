@@ -66,7 +66,6 @@ class StayRead(BaseModel):
     provider_name: str | None = None
     provider_avatar: str | None = None
     is_favorited: bool = False
-    has_visited: bool = False
 
 
 class StayFeed(BaseModel):
