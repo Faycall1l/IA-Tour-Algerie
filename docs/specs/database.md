@@ -26,7 +26,7 @@ engine = create_async_engine(
 - `pool_timeout=30` prevents infinite waits under load.
 - SSL support via `?sslmode=require` in connection URL → `connect_args["ssl"]` activates.
 
-## Models (29 SQLAlchemy ORM models across 24 files)
+## Models (22 SQLAlchemy ORM models across 18 files)
 
 ### User (`users`)
 | Column | Type | Notes |

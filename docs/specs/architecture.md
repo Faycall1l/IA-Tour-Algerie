@@ -2,29 +2,28 @@
 
 ## System Overview
 
-ATHAR OS is an async Python backend (Python 3.11, FastAPI) for a three-sided marketplace connecting travelers with local Algerian providers (guides, agencies, hotels). Built for sovereignty, offline-first mobile consumption, and hackathon-velocity iteration.
+ATHAR OS is an async Python backend (Python 3.11, FastAPI) for an agentic travel guide for Algeria — not a marketplace, not social media. Built for data quality, AI-powered discovery, and offline-first mobile consumption.
 
 ```
-                          ┌─────────────────────────────┐
-                          │  PWA / Flutter App (future)  │
-                          └──────────┬──────────────────┘
-                                     │ HTTPS / JSON
-                          ┌──────────▼──────────────────┐
-                          │   FastAPI (uvicorn)          │
-                          │                              │
-                          │  Auth  POIs  Prices  Live    │
-                          │  Experiences  Stays  Trips   │
-                          │  Bookings  Notifications     │
-                          │  Transport  Circuits         │
-                          │  Discover  Admin  Users      │
-                          │  Wilayas  Health             │
-                          └──────┬────┬────┬────┬───────┘
-                                 │    │    │    │
-                        ┌────────▼──┐┌─▼──┐┌▼───┐┌▼────┐
-                        │PostgreSQL ││Qdnt││MinIO││Redis│
-                        │  16.4     ││1.18││2026││7.4  │
-                        │  asyncpg  ││gRPC││Apr ││pass │
-                        └───────────┘└────┘└────┘└─────┘
+                           ┌─────────────────────────────┐
+                           │  PWA / Flutter App (future)  │
+                           └──────────┬──────────────────┘
+                                      │ HTTPS / JSON
+                           ┌──────────▼──────────────────┐
+                           │   FastAPI (uvicorn)          │
+                           │                              │
+                           │  Auth  POIs  Stays           │
+                           │  Experiences  Transport      │
+                           │  Trips  Discover             │
+                           │  Admin  Users  Wilayas       │
+                           │  Agents  Artisans  Events    │
+                           └──────┬────┬────┬────┬───────┘
+                                  │    │    │    │
+                         ┌────────▼──┐┌─▼──┐┌▼───┐┌▼────┐
+                         │PostgreSQL ││Qdnt││MinIO││Redis│
+                         │  16.4     ││1.18││2026││7.4  │
+                         │  asyncpg  ││gRPC││Apr ││pass │
+                         └───────────┘└────┘└────┘└─────┘
 ```
 
 All services except MinIO (standalone) run in Docker Compose on an isolated `backend` network. Only the API has an external port (bound to `127.0.0.1`).

@@ -39,7 +39,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - **DATABASE SEEDING**: All tourism tables now populated:
   - **52,997 POIs** in `pois` table (all categories: historical, natural, cultural, religious, museum, beach, mountain, park, market, restaurant, cafe)
   - **999 stays** in `stays` table (624 hotels, 249 hostels, 126 guesthouses — extracted from OSM POIs)
-  - **73 experiences** across all 58 wilayas (31 tours, 14 cultural, 13 adventure, 7 hiking, 6 wellness, 2 food)
+  - **529 experiences** across all 58 wilayas (31 tours, 14 cultural, 13 adventure, 7 hiking, 6 wellness, 2 food)
   - **10 local agencies** covering key regions (Kabylie, Sahara, Tassili, Hoggar, M'zab, etc.)
   - **4 provider users** (hotel, agency, guide, admin) + 3 provider profiles
 - **POI description enrichment**: 52,997/52,997 (100%) POIs now have descriptions — originally 42,254 from Wikidata/tag-based; all 9,974 remaining (including unnamed POIs) now covered via tag-value mapping (`enrich_remaining_descriptions.py`)
@@ -63,13 +63,17 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
   - **Names**: 48,580 Arabic/English names extracted from osm_tags
   - **POI↔Experience links**: 167 links via keyword matching in `poi_experiences` junction table
 - **App runs without Docker**: API starts and serves all endpoints, gracefully falling back (Qdrant→no vector search, MinIO→no uploads, Redis→in-memory rate limiter)
-- **Spec docs synced**: `database.md` (22 models), `api.md` (85 routes), `architecture.md` (accurate counts), `README.md` (fixed links)
 - **OSM bus stations** (`insert_osm_bus_stations.py`): 425 new `amenity=bus_station` nodes imported from OSM Overpass API — DB now has **4,329 stations** (3,660 bus, 301 train, 204 tram, 70 taxi, 27 airport, etc.)
 - **MultiModalRouter generalized** (`multimodal_router.py`): SQL fixed to include ALL multi-wilaya transport lines (was train+flight only, now includes 354 taxi + 13 bus + 6 tram + 4 ferry). **444 total multi-wilaya lines** loaded (was 66). **3,918 adjacency edges** in connectivity graph. Almost every wilaya has 62+ direct connections. `walking` mode excluded from inter-wilaya segments. Bug fixed: missing `mode` key in `line_record` dict, `per_person` pricing for taxis.
 - **POI graph service** (`app/services/poi_graph.py`): Networkx-based tourist routing with singleton pattern — 34,787 tourism POIs, 535,237 walking edges within 5km. Tour optimization with density-based cluster detection: Oran 9 POIs (4.1km), Tlemcen 10 (2.3km), Algiers 10 (3.2km), Blida 9 (0.8km), Batna 9 (5.5km), Constantine 7 (1.2km). API endpoints: `/pois/tour/optimize`, `/clusters`, `/hubs`.
 - **Trip optimizer wired to POI graph** (`trip_optimizer.py`): `optimize_day()` uses POIGraphService walking times (haversine fallback). `detect_gaps()` and `suggest_fillers()` also use POI graph for cluster-based recommendations.
 - **POI durations recalibrated**: historical 30min (was 90), museum 45min (was 120), natural 45min (was 180), mountain 90min (was 240) for realistic walking tours.
 - **Fun facts enrichment** (`enrich_fun_facts.py`): 583 POIs with fun facts from Wikidata (16), OSM tags (304), category templates (263). Migration 031: `fun_fact` + `fun_fact_source` columns.
+- **Real artisan data** (commit `ad715fa`): **3,744 artisan shops** extracted from OSM Overpass API across 52/58 wilayas (craft=*, shop=craft/pottery/carpet/leather/jewelry). All geolocated with wilaya_id. Top: Tlemcen 1,710, Algiers 311, Ain Temouchent 273. DB seeded: 3,752 total (8 existing + 3,744 new).
+- **Social media bloat killed** (commit `d1472d7`): Discussion threads, live posts, WhatsApp bot, mock visa OCR — all removed.
+- **Bookings, circuits, notifications killed** (commit `180cd78`): 0 rows, not core to travel guide.
+- **Reviews killed** (commit `0ab3625`): Seeded, not real user data. POI ratings return defaults (None/0).
+- **8 dead features killed** (commit `9835797`): Price reports, price calendar, suggestions, visits, preferences, recommendations, stats, studio media — all 0 rows, not core.
 
 ### Blocked
 - **Wasly.app REST API** is partner-only (B2B request required) — bus data publicly unavailable
@@ -91,26 +95,27 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 2. **⬅️ More photos for remaining historical/cultural POIs**: 7,010 POIs now have MinIO photos — remaining ~46K have no matching Commons/Wikipedia content
 3. ~~⬜ **Expand schedule/pricing**~~ — **DONE**: 854/855 transport lines have schedule + pricing data (walking excluded)
 4. ⬜ **Add operator contacts for remaining wilaya taxi unions** — currently only national operators seeded; wilaya-level taxi phone numbers needed
-5. **⬅️ More fun facts via GenAI** — 218/52,997 POIs have fun facts (0.4%); 4,182 eligible POIs with good context remain; enrichment script running in background via vLLM Gemma 4
-6. ⬜ **Frontend** — the API is complete with ~120+ routes; needs a mobile/web frontend to be actually usable
+5. **⬅️ More fun facts via GenAI** — 583/52,997 POIs have fun facts; 4,182 eligible POIs with good context remain; enrichment script running in background via vLLM Gemma 4
+6. ⬜ **Frontend** — the API is complete; needs a mobile/web frontend to be actually usable
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
 - All tourism tables now populated with real OSM and curated data
-- API endpoints at `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/bookings`, `/reviews`, `/trips` all return data
+- **API routes** (142 passing tests): `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/trips`, `/favorites`, `/collections`, `/artisans`, `/auth`, `/users`, `/admin`, `/providers`
 - POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls[], subtype, name_ar/name_en, is_featured, average_score, total_reviews, fun_fact
 - Vector search (Qdrant) configured but needs Docker running to work
 - App has trip optimizer combining POIs + transport + stays + restaurants + experiences, now wired to POI graph for walking times
 - **POI graph service**: 34,787 tourism POIs, 535,237 walking edges. Tour optimization works: Oran 9 POIs (4.1km), Tlemcen 10 (2.3km), Algiers 10 (3.2km), Blida 9 (0.8km), Batna 9 (5.5km), Constantine 7 (1.2km)
 - MultiModalRouter loads 444 multi-wilaya transport lines with 3,918 adjacency edges
-- **Fun facts enrichment**: 218 POIs with real fun facts — 20 hand-curated (Timgad, Casbah, Fort Santa Cruz, etc.) + 198 AI-generated via vLLM Gemma 4. Only 135 unnamed/generic POIs without fun facts; 4,182 eligible remaining for enrichment
-- Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `enrich_poi_descriptions.py`, `enrich_fun_facts.py`, `enrich_fun_facts_genai.py`, `migrate_photos_minio.py`
+- **Fun facts enrichment**: 583 POIs with real fun facts — 20 hand-curated (Timgad, Casbah, Fort Santa Cruz, etc.) + 563 via Wikidata/OSM/templates. 4,182 eligible remaining for GenAI enrichment
+- Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `enrich_poi_descriptions.py`, `enrich_fun_facts.py`, `enrich_fun_facts_genai.py`, `migrate_photos_minio.py`, `extract_osm_artisans.py`
 
 ## Relevant Files
 - `app/data/poi_nodes_enriched.json`: 53,948 standalone POI nodes
 - `app/data/poi_edges_enriched.json`: 15,580 walking edges POI↔transit
 - `app/data/transit_nodes_enriched.json`: 57,743 nodes (2,502 wilaya-fixed)
 - `app/data/transit_edges_enriched.json`: 30,957 edges
+- `app/data/osm_artisans.json`: 3,744 OSM artisan shops (gitignored, force-added)
 - `scripts/data/seed_pois_db.py`: POI → DB seeder
 - `scripts/data/seed_providers.py`: Users + profiles + agencies seeder
 - `scripts/data/seed_stays_db.py`: Hotels/guesthouses → stays table
@@ -121,6 +126,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - `scripts/data/enrich_poi_full.py`: Full OSM field extraction (subtype, operator, parking, accessibility, names, IDs, cuisine)
 - `scripts/data/import_geoalgeria.py`: Thermal springs, parks, historic cross-reference from @geoalgeria/tourisme
 - `scripts/data/extract_osm_pois.py`: OSM extraction + transit graph merge
+- `scripts/data/extract_osm_artisans.py`: OSM artisan extraction + DB seeding (3,744 artisans)
 - `scripts/data/insert_osm_bus_stations.py`: OSM bus_station import (425 new stations)
 - `scripts/data/organize_transport.py`: Taxi/SOGRAL/inter-city routes + DB seeding
 - `scripts/data/fix_missing_wilaya.py`: Assign wilaya to transit nodes via reverse geocoding
@@ -128,16 +134,4 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - `scripts/data/enrich_photos_bulk.py`: Photo enrichment via Wikidata SPARQL matching
 - `scripts/data/enrich_photos_more.py`: Enhanced photo enrichment (SPARQL + Commons API)
 - `scripts/data/enrich_fun_facts.py`: Fun facts from Wikidata + OSM tags + category templates
-- `scripts/data/seed_more_experiences.py`: Experiences for remaining wilayas
-- `scripts/data/enrich_poi_descriptions.py`: Wikidata + tag-based description enrichment
-- `scripts/data/enrich_remaining_descriptions.py`: Tag-value mapping for all remaining POI descriptions (100% coverage)
-- `scripts/data/enrich_poi_full.py`: Full OSM field extraction (subtype, operator, parking, accessibility, names, IDs, cuisine)
-- `scripts/data/import_geoalgeria.py`: Thermal springs, parks, historic cross-reference from @geoalgeria/tourisme
-- `scripts/data/extract_osm_pois.py`: OSM extraction + transit graph merge
-- `scripts/data/insert_osm_bus_stations.py`: OSM bus_station import (425 new stations)
-- `scripts/data/organize_transport.py`: Taxi/SOGRAL/inter-city routes + DB seeding
-- `scripts/data/fix_missing_wilaya.py`: Assign wilaya to transit nodes via reverse geocoding
-- `scripts/data/fix_missing_wilaya.py`: Assign wilaya to transit nodes via reverse geocoding
-- `scripts/data/enrich_phase_a.py`: Rankings, price level, duration, POI↔experience links
-- `scripts/data/enrich_photos_bulk.py`: Photo enrichment via Wikidata SPARQL matching
-- `scripts/data/enrich_photos_more.py`: Enhanced photo enrichment (SPARQL + Commons API)
+- `scripts/data/migrate_photos_minio.py`: Wikimedia photo → MinIO migration

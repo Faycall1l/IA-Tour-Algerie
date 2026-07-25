@@ -1,8 +1,8 @@
-# Feature: POIs & Reviews
+# Feature: POIs
 
 ## Points of Interest
 
-ATHAR's core content layer — a crowdsourced directory of places to visit in Algeria.
+ATHAR's core content layer — 52,997 real places to visit in Algeria, extracted from OpenStreetMap.
 
 ### Categories
 
@@ -17,6 +17,8 @@ ATHAR's core content layer — a crowdsourced directory of places to visit in Al
 | `mountain` | Djurdjura, Hoggar |
 | `park` | El-Kala National Park, Tlemcen National Park |
 | `market` | Souk El Djemâa, Marché Malakoff |
+| `cafe` | Cafés with cultural significance |
+| `restaurant` | Traditional restaurants |
 | `other` | Anything else |
 
 ### CRUD
@@ -24,8 +26,9 @@ ATHAR's core content layer — a crowdsourced directory of places to visit in Al
 | Endpoint | Auth | Notes |
 |----------|------|-------|
 | `POST /pois` | User | Create new POI. Also indexes in Qdrant. |
-| `GET /pois` | Public | Filters: `wilaya_id`, `category`, `search`. Sort: `name`, `created_at`, `rating`. Search falls through Qdrant if `?search=` param given. |
-| `GET /pois/{id}` | Public | Returns with `average_score` + `total_reviews` from Review aggregation. |
+| `GET /pois` | Public | Filters: `wilaya_id`, `category`, `neighborhood`, `search`. Sort: `name`, `created_at`. |
+| `GET /pois/search` | Public | Semantic search via Qdrant vector similarity. Falls through to SQL ILIKE if Qdrant is down. |
+| `GET /pois/{id}` | Public | POI detail with TripAdvisor-style fields. |
 | `DELETE /pois/{id}` | Admin | Also removes from Qdrant. |
 | `POST /pois/{id}/photo` | Admin | Upload image via MinIO. |
 
@@ -34,74 +37,52 @@ ATHAR's core content layer — a crowdsourced directory of places to visit in Al
 When `?search=` query param is present:
 1. If Qdrant is available → vector search via EmbeddingService + VectorSearchService.
 2. If Qdrant is down → SQL `ILIKE` on name and description.
-3. Results are enriched with rating stats.
 
 When `?search=` is absent → standard SQL filtering + sorting.
 
-### Ratings Enrichment
+### POI Response Fields
 
-Every POI list item and detail response includes:
-
-```python
-# Single query for all POIs in the list
-ratings_query = text("""
-    SELECT poi_id, AVG(rating)::float as avg_rating, COUNT(*) as cnt
-    FROM reviews WHERE poi_id = ANY(:ids) GROUP BY poi_id
-""")
-```
-
-Attached as `average_score` (float) and `total_reviews` (int).
-
----
-
-## Reviews
-
-### Rules
-
-- **One review per user per POI** — enforced at DB level with UNIQUE(user_id, poi_id).
-- **Rating 1–5** — enforced with CHECK constraint.
-- **Comment optional** — up to 2000 chars.
-
-### Endpoints
-
-| Endpoint | Auth | Notes |
-|----------|------|-------|
-| `POST /reviews` | User | Create. Rejects if user already reviewed this POI. |
-| `GET /reviews` | Public | Filters: `poi_id`, `user_id`. Sorted by created_at desc. |
-| `GET /reviews/ratings/{poi_id}` | Public | Rating distribution: {1: count, 2: count, ..., 5: count}. |
-| `DELETE /reviews/{id}` | Author/Admin | Author can delete own, admin can delete any. |
-
-### Review Response Format
+Every POI includes TripAdvisor-style enrichment:
 
 ```json
 {
   "id": "uuid",
-  "poi_id": "uuid",
-  "user_id": "uuid",
-  "user_name": "Yasmine B.",
-  "rating": 5,
-  "comment": "Absolutely stunning Roman ruins. The guide was fantastic.",
-  "poi_name": "Timgad",
-  "wilaya_name": "Batna",
-  "created_at": "2026-07-04T18:30:00Z"
+  "name": "Timgad",
+  "category": "historical",
+  "wilaya_id": 5,
+  "latitude": 35.48,
+  "longitude": 6.47,
+  "description": "Roman ruins...",
+  "entry_fee_dzd": 300,
+  "ranking": 1,
+  "price_level": "$$",
+  "suggested_duration_min": 90,
+  "photo_urls": ["https://..."],
+  "subtype": "archaeological_site",
+  "name_ar": "تيمقاد",
+  "name_en": "Timgad",
+  "is_featured": true,
+  "featured_order": 1,
+  "average_score": null,
+  "total_reviews": 0,
+  "has_parking": true,
+  "has_accessibility": false,
+  "fun_fact": "Built by Emperor Trajan around 100 AD..."
 }
 ```
 
-### Rating Distribution
+### POI Graph Service
 
-`GET /reviews/ratings/{poi_id}`
+Networkx-based tourist routing with 34,787 tourism POIs and 535,237 walking edges within 5km.
 
-```json
-{
-  "poi_id": "uuid",
-  "average": 4.6,
-  "total": 12,
-  "distribution": {
-    "1": 0,
-    "2": 0,
-    "3": 1,
-    "4": 3,
-    "5": 8
-  }
-}
-```
+- **Tour optimization**: Density-based cluster detection with category diversity penalty
+- **Cluster detection**: Oran 9 POIs (4.1km), Tlemcen 10 (2.3km), Algiers 10 (3.2km)
+- **API**: `GET /pois/tour/optimize`, `/tour/clusters`, `/tour/hubs`
+
+### Fun Facts
+
+583 POIs have fun facts sourced from:
+- Wikidata (16)
+- OSM tags (304)
+- Category templates (263)
+- AI-generated via vLLM Gemma 4 (planned: 4,182 eligible)
