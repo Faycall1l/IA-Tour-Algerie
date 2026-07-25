@@ -1,11 +1,9 @@
 from app.models.artisan import Artisan
 from app.models.booking import Booking
 from app.models.collection import Collection, CollectionItem
-from app.models.discussion import DiscussionPost, DiscussionThread
 from app.models.event import Event
 from app.models.experience import Experience
 from app.models.price_calendar_entry import PriceCalendarEntry
-from app.models.live_post import LivePost
 from app.models.local_agency import LocalAgency
 from app.models.notification import Notification
 from app.models.poi import POI
@@ -33,12 +31,9 @@ __all__ = [
     "Booking",
     "Collection",
     "CollectionItem",
-    "DiscussionPost",
-    "DiscussionThread",
     "Event",
     "Experience",
     "PriceCalendarEntry",
-    "LivePost",
     "Notification",
     "POI",
     "UserPreference",

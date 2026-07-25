@@ -10,7 +10,6 @@ from app.api.deps import get_current_admin, get_db, get_vector_search
 from app.core.config import settings
 from app.core.exceptions import NotFoundException
 from app.models.experience import Experience
-from app.models.live_post import LivePost
 from app.models.poi import POI
 from app.models.price_report import PriceReport
 from app.models.provider_profile import PROVIDER_TYPES, ProviderProfile
@@ -327,38 +326,6 @@ async def admin_delete_review(
     await db.commit()
 
     return AdminActionResponse(message="Review deleted")
-
-
-@router.delete("/live-posts/{post_id}", response_model=AdminActionResponse)
-async def admin_delete_live_post(
-    post_id: uuid.UUID,
-    _current_user: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db),
-):
-    post = await db.get(LivePost, post_id)
-    if not post:
-        raise NotFoundException(message="Live post not found")
-
-    await db.delete(post)
-    await db.commit()
-
-    return AdminActionResponse(message="Live post deleted")
-
-
-@router.put("/live-posts/{post_id}/moderate", response_model=AdminActionResponse)
-async def moderate_live_post(
-    post_id: uuid.UUID,
-    _current_user: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db),
-):
-    post = await db.get(LivePost, post_id)
-    if not post:
-        raise NotFoundException(message="Live post not found")
-
-    post.is_moderated = True
-    await db.commit()
-
-    return AdminActionResponse(message="Live post marked as moderated")
 
 
 @router.delete("/experiences/{experience_id}", response_model=AdminActionResponse)

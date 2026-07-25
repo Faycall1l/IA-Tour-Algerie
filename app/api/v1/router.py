@@ -16,8 +16,6 @@ from app.api.v1.endpoints import (
     preferences,
     recommendations,
     health,
-    discussions,
-    live,
     notifications,
     pois,
     price_calendar,
@@ -40,10 +38,8 @@ router.include_router(agents.router)
 router.include_router(artisans.router)
 router.include_router(health.router)
 router.include_router(auth.router)
-router.include_router(discussions.router)
 router.include_router(discover.router)
 router.include_router(events.router)
-router.include_router(live.router)
 router.include_router(pois.router)
 router.include_router(price_calendar.router)
 router.include_router(prices.router)

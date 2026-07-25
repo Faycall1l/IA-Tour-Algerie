@@ -10,7 +10,6 @@ from app.schemas.admin import (
 )
 from app.schemas.auth import OTPRequest, OTPVerify, TokenRefresh
 from app.schemas.health import HealthResponse
-from app.schemas.live_post import LivePostCreate, LivePostFeed, LivePostRead
 from app.schemas.poi import POICreate, POIFeed, POIRead
 from app.schemas.price_report import (
     PriceEstimateResponse,
@@ -42,9 +41,6 @@ __all__ = [
     "UserRead",
     "UserCreate",
     "TokenResponse",
-    "LivePostRead",
-    "LivePostCreate",
-    "LivePostFeed",
     "OTPRequest",
     "OTPVerify",
     "TokenRefresh",

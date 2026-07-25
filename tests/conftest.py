@@ -129,15 +129,11 @@ async def db() -> AsyncIterator[AsyncSession]:
 class _MockTwilio:
     is_available = False
     sms_available = False
-    whatsapp_available = False
 
     async def send_otp(self, phone: str) -> dict | None:
         return None
 
     async def verify_otp(self, phone: str, code: str) -> bool:
-        return False
-
-    async def send_whatsapp(self, to_phone: str, message: str) -> bool:
         return False
 
 

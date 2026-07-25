@@ -149,9 +149,3 @@ class TripBrief(BaseModel):
     top_experiences: list[TripBriefExperience]
     transport_advice: str | None
     tips: list[str]
-
-
-class TripWhatsAppResponse(BaseModel):
-    sent: bool
-    phone: str | None = None
-    error: str | None = None

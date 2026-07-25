@@ -2,7 +2,6 @@ import uuid
 
 import pytest
 from app.models.experience import Experience
-from app.models.live_post import LivePost
 from app.models.poi import POI
 from app.models.price_report import PriceReport
 from app.models.provider_profile import ProviderProfile
@@ -236,54 +235,6 @@ async def test_admin_delete_review(
         headers=admin_headers,
     )
     assert resp.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_admin_delete_live_post(
-    client: AsyncClient,
-    admin_headers: dict[str, str],
-    test_user: User,
-    db: AsyncSession,
-):
-    post = LivePost(
-        user_id=test_user.id,
-        photo_url="https://example.com/photo.jpg",
-    )
-    db.add(post)
-    await db.commit()
-    await db.refresh(post)
-
-    resp = await client.delete(
-        f"/api/v1/admin/live-posts/{post.id}",
-        headers=admin_headers,
-    )
-    assert resp.status_code == 200
-
-
-@pytest.mark.asyncio
-async def test_moderate_live_post(
-    client: AsyncClient,
-    admin_headers: dict[str, str],
-    test_user: User,
-    db: AsyncSession,
-):
-    post = LivePost(
-        user_id=test_user.id,
-        photo_url="https://example.com/photo2.jpg",
-        is_moderated=False,
-    )
-    db.add(post)
-    await db.commit()
-    await db.refresh(post)
-
-    resp = await client.put(
-        f"/api/v1/admin/live-posts/{post.id}/moderate",
-        headers=admin_headers,
-    )
-    assert resp.status_code == 200
-
-    await db.refresh(post)
-    assert post.is_moderated is True
 
 
 @pytest.mark.asyncio
