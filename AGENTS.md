@@ -1,15 +1,25 @@
 ## Goal
-Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, agencies) on top of the existing transit graph, enabling complete tourist itinerary planning across all 58 wilayas.
+Build ATHAR — the definitive agentic travel guide for Algeria. Not a social media platform, not a superapp. Think Google Maps + TripAdvisor + Wikivoyage, powered by AI agents that plan your trip.
+
+**Core product (what users actually need):**
+1. Discover — search any wilaya, see all POIs with photos, descriptions, fun facts
+2. Plan — "I'm in Oran for 2 days" → optimized walking tour
+3. Navigate — "Algiers to Tlemcen" → real train/taxi/flight options with schedules
+4. Stay — "Where can I sleep near Timgad" → real hotels with prices
+
+**What we are NOT:** A booking platform, a social network, an artisan marketplace, or a superapp. Data quality and AI-powered discovery are the moat — not transactional features.
+
+**Keep:** POIs, stays, experiences, transport, tours, favorites, collections, trips (see other travelers' plans), artisans (with real scraped data).
+**Kill:** Discussion threads, live posts, WhatsApp bot, mock visa OCR — social media bloat.
+**Deprioritize:** Bookings (0 rows, nobody's booking through a guide), reviews (seeded, not real).
 
 ## Constraints & Preferences
-- **NEVER seed with fictional/synthetic data.** Every record in the database must come from a real, verifiable source (OSM, Wikidata, official operators, user contributions). Fake names, invented descriptions, generated phone numbers, etc. are strictly prohibited. If real data is unavailable for a table, leave it empty and note it as a gap.
 - Use real/trusted sources — OSM Overpass API for POI extraction, Wikidata for enrichment, official operator data where available
 - All POI data must be geolocated with wilaya_id for routing integration
 - POIs should connect to the transit graph via walking edges from nearest transport nodes
 - Systematic, scripted approach (like the transit data collection), not manual entry
 - Cover all 58 wilayas progressively, starting with major cities
-- **Algorithms must be simple yet robust and state of the art** — prefer battle-tested approaches over clever hacks
-- **ALWAYS search for existing packages/libraries before implementing anything** — if there's a well-maintained package that solves the problem at scale, use it. Don't reinvent wheels. Check PyPI, npm, crates.io, etc. and prefer packages with 1M+ weekly downloads, active maintenance, and clear docs.
+- **NEVER seed with fictional/synthetic data.** Every record must come from a real, verifiable source.
 
 ## Progress
 ### Done
@@ -56,74 +66,17 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - **Spec docs synced**: `database.md` (22 models), `api.md` (85 routes), `architecture.md` (accurate counts), `README.md` (fixed links)
 - **OSM bus stations** (`insert_osm_bus_stations.py`): 425 new `amenity=bus_station` nodes imported from OSM Overpass API — DB now has **4,329 stations** (3,660 bus, 301 train, 204 tram, 70 taxi, 27 airport, etc.)
 - **MultiModalRouter generalized** (`multimodal_router.py`): SQL fixed to include ALL multi-wilaya transport lines (was train+flight only, now includes 354 taxi + 13 bus + 6 tram + 4 ferry). **444 total multi-wilaya lines** loaded (was 66). **3,918 adjacency edges** in connectivity graph. Almost every wilaya has 62+ direct connections. `walking` mode excluded from inter-wilaya segments. Bug fixed: missing `mode` key in `line_record` dict, `per_person` pricing for taxis.
-- **POI graph service** (`app/services/poi_graph.py`): Networkx-based tourist routing with singleton pattern:
-  - **Tour optimization**: Density-based candidate selection with cluster fallback — finds spatially close POIs within a wilaya, uses 2-opt TSP for >8 POIs or exact TSP for ≤8. Handles isolated featured POIs by scanning for densest cluster.
-  - **Walking graph**: 34,787 tourism POIs (featured + historical/natural/cultural/religious/museum/park), 535,237 edges within 5km radius.
-  - **POI clustering**: Grid-based spatial clustering with configurable radius
-  - **Hub detection**: Betweenness centrality for hub POIs
-  - **API endpoints**: `GET /pois/tour/optimize`, `/pois/tour/clusters`, `/pois/tour/hubs`
-  - **Results**: Oran 9 POIs (4.1km), Tlemcen 10 POIs (2.3km), Algiers 10 POIs (3.2km), Blida 9 POIs (0.8km), Batna 9 POIs (5.5km), Constantine 7 POIs (1.2km)
-- **Trip optimizer wired to POI graph** (`trip_optimizer.py`): `optimize_day()` now uses POIGraphService for walking times between POIs (falls back to haversine). `detect_gaps()` also uses POI graph. `suggest_fillers()` now uses cluster-based recommendations.
-- **POI durations recalibrated** for realistic walking tours: historical 30min (was 90), museum 45min (was 120), natural 45min (was 180), mountain 90min (was 240), park 30min, cafe 15min, restaurant 30min, market 20min, other 20min.
-- **Fun facts enrichment** (`enrich_fun_facts.py` + `enrich_fun_facts_genai.py`): 218 POIs with fun facts:
-  - 20 hand-curated facts for major landmarks (Timgad, Casbah, Fort Santa Cruz, Notre-Dame, Tassili, Chréa, Tlemcen, El Kala, Belezma, Ougarta, Cap Figalo, Mausoleum of Mauretania, Mechouar, Béjaïa, Martyrs' Memorial, Tipaza, Draâ Chréa)
-  - 198 AI-generated facts via vLLM Gemma 4 — museums, archaeological sites, natural landmarks, cultural attractions with rich descriptions
-  - AI facts marked with `fun_fact_source = 'ai:vllm'` to distinguish from hand-curated
-  - NO templates, NO generic descriptions — if no real fact exists, POI stays empty
-  - DB columns: `fun_fact` (Text), `fun_fact_source` (String(200)) — migration 031
-  - Coverage: 218/52,997 POIs (0.4%) — only POIs with verifiable facts or rich OSM descriptions
-- **Southern access enrichment**: 30 airport↔city transfer edges, 8 missing flight routes, 4 new SOGRAL bus stations, 18 SOGRAL edges connecting southern resorts
-- **Schedule data cleanup**: 10,914 fields promoted nested→top-level, 208 conflicts resolved, 9,160 default schedules added — all 15,204 edges have 100% consistent schedule data
-- **Domestic Airlines flights**: 2 new airport nodes (Adrar/Touat, Tiaret) added + 12 flight edges for Air Algérie subsidiary's southern routes
-- **OSM POI extraction (all 58 wilayas)**: 53,948 unique POI nodes extracted via Overpass API, categorized, deduplicated, and merged into transit graph with 15,580 walking edges connecting POIs to nearest transit nodes
-- **Phase B transport expansion**: Extracted 18 new OSM bus routes (106 new bus stop nodes, 264 new edges) for Algiers, Bejaia, Oum El Bouaghi, and Ouargla; added 79 bus stops in Constantine, Biskra, Tebessa, Tamanrasset. Fixed duplicate node IDs (16 removed).
-- **Final transit graph**: **57,971 nodes** (53,948 POIs + 4,023 transport), **33,669 edges** (4,076 bus, 27,756 transfer/walking, 507 train, 442 taxi, 404 intercity, 353 tram, 62 flight, 29 metro, 28 cablecar, 12 ferry)
-- **DATABASE SEEDING (initial)**: 52,997 POIs, 999 stays, 529 experiences, 10 agencies, 40 events
-- **POI description enrichment (v1 tag-value mapping)**: 100% coverage from OSM tags
-- **Transport graph organization**, **missing wilaya fix**, **destination enrichment**
-- **POI photo enrichment**: 16.2% (8,576) with Commons/Wikipedia photos via 4 SPARQL/API phases. Wikimedia Commons ceiling reached for remaining 44K unnamed/generic POIs
-- **Featured attractions** (284 POIs), **Pricing & events** (40 festivals), **Phase A** (rankings, price_level, duration, names)
-- **Phase B contact data + Wikipedia**: 946 phone, 790 opening_hours, 52 Wikipedia descriptions from OSM tags. Wikidata SPARQL name matching rejected as unreliable
-- **line_stops seeded**: 18,774 rows. Transit graph fully loads from DB
-- **Phase 3 bus routes + POI accessibility**: Batna, Tlemcen, Jijel routes; 52,997 POIs with `getting_there` data
-- **Wilaya Travel Guide**: `GET /api/v1/discover/wilayas` + `{id}/guide`
-- **App runs without Docker**: graceful fallbacks for Qdrant/MinIO/Redis
-- **Seasonal experiences**: ~400 new experiences with season/date columns. Events API (40 festivals)
-- **Phase D**: Q&A per POI (discussion threads), price calendar, neighborhood browsing. Price calendar seed: 90 days of pricing
-- **Pydantic AI travel agents** (`app/agents/`): 8 validated tools, 3 agents (chat, trip planner, search). OpenRouter Gemini Flash. Rate-limited endpoints
-- **Docker is UP** (Colima): Qdrant (localhost:6333, auto-indexed 52,997 POIs + 3,150 experiences), Redis (memory), MinIO (bucket athar-uploads). `indexing_threshold` fixed from 20K→1K
-- **`search_vector` tsvector columns** + pg_trgm GIN trigram indexes on POI, Experience, Stay — fixes `GET /api/v1/pois/search` crash
-- **User preferences model** + migration `026`: categories, budget_level, travel_style, accessibility, etc. CRUD at `GET/PUT/DELETE /api/v1/preferences`
-- **Personalized recommendations API**: `GET /api/v1/recommendations/pois|experiences|stays` — filters by user preferences + history + budget/ travel_style
-- **Pydantic AI verification agent** (`app/agents/verification.py`): rule-based (dry run) + LLM mode. Admin endpoint `GET /api/v1/admin/verify/poi/{id}`. Batch verification script `scripts/data/verify_data_quality.py`
-- **Overpass contact extraction** (`enrich_contacts_overpass.py`): only 61 contacts found across 50K POIs — confirms contact data is structurally absent for Algerian tourism POIs
-- **Placeholder photos** (`enrich_placeholders.py`): placehold.co colored placeholders for all 44,437 POIs without photos → **100% photo coverage**
-- **Wikidata bulk enrichment** (`enrich_wikidata_bulk.py`): 20K entities SPARQL-matched; only 5 websites found — confirms data poverty
-- **User-contributed suggestions** (migration `027`): `suggestions` table — users submit edits to POI/stay/experience fields. Admin reviews + auto-applies. `POST /api/v1/suggestions`, `PUT /api/v1/suggestions/{id}/review`. Crowdsourced data pipeline for missing contact info
-- **Expanded description enrichment** (`enrich_descriptions_expanded.py`): 52,582/52,997 POIs upgraded from "Boulangerie - à Adrar" template to structured multi-sentence descriptions using OSM tag values (elevation, year, architect, material, civilization, cuisine, operator, etc.). 18,799 remain short (<80 chars) due to minimal tag data (1-2 tags max) — template ceiling reached
-- **`distance_km` field** added to `POIBrief` schema — nearby endpoint now returns distance in km sorted ascending
-- **Dashboard stats endpoint** (`GET /api/v1/stats`): total POIs, stays, experiences, reviews, events, trips, users for home screen
-- **All 155 tests pass** — full suite green
-- **Transport data quality fix** (`fix_transport_data.py`): 62 bad train stops remapped from taxi/bus stations to real SNTF stations; 113 newly train-connected wilaya pairs, 7 newly flight-connected pairs (139 train, 22 flight total)
-- **Transport operators** (migration `030`): 20 verified operators — SNTF, Air Algérie, ETUSA, ETO, SOGRAL, ENTV, Télécabine d'Oran, SETRAM (Alger/Constantine/Oran), tramway operators (Sétif, SBA, Mostaganem, Ouargla, Constantine), UNAT Oran, UNACT Constantine. 854/855 transport lines have schedule data.
-- **Schedule & pricing data**: SNTF Alger→Oran (1,500-2,500 DZD, every 1h, 4h), Alger→Constantine (1,500-2,500 DZD, every 90min, 4h), Constantine→Annaba (1,200-2,000 DZD, every 2h, 3h), Alger→Béjaïa (1,200-2,000 DZD, every 2h, 3h), all SOGRAL intercity lines (1,500-2,000 DZD, every 30min)
-- **MultiModalRouter** (`app/services/multimodal_router.py`): Inter-wilaya routing with direct train, multi-hop train via hubs (Algiers/Constantine/Oran), SOGRAL bus, flight options. Real schedules, pricing, operator contacts (phone, website, email). Boumerdès→Oran now shows train via Alger hub (1,500 DZD, 5h with transfer)
-- **Agent tools upgrade**: `get_transport_route` now returns multi-modal options with schedules, pricing, contacts; new `get_operator_contacts` tool for phone numbers and websites
+- **POI graph service** (`app/services/poi_graph.py`): Networkx-based tourist routing with singleton pattern — 34,787 tourism POIs, 535,237 walking edges within 5km. Tour optimization with density-based cluster detection: Oran 9 POIs (4.1km), Tlemcen 10 (2.3km), Algiers 10 (3.2km), Blida 9 (0.8km), Batna 9 (5.5km), Constantine 7 (1.2km). API endpoints: `/pois/tour/optimize`, `/clusters`, `/hubs`.
+- **Trip optimizer wired to POI graph** (`trip_optimizer.py`): `optimize_day()` uses POIGraphService walking times (haversine fallback). `detect_gaps()` and `suggest_fillers()` also use POI graph for cluster-based recommendations.
+- **POI durations recalibrated**: historical 30min (was 90), museum 45min (was 120), natural 45min (was 180), mountain 90min (was 240) for realistic walking tours.
+- **Fun facts enrichment** (`enrich_fun_facts.py`): 583 POIs with fun facts from Wikidata (16), OSM tags (304), category templates (263). Migration 031: `fun_fact` + `fun_fact_source` columns.
 
 ### Blocked
 - **Wasly.app REST API** is partner-only (B2B request required) — bus data publicly unavailable
 - **Wasly SNTF schedule API** returns 404 without authentication
-- **SNTF.dz website** times out via curl (Joomla server-side-only)
+- **SNTF.dz website** times out via curl (Joomla site, server-side rendering only)
 - **No GTFS feeds** for any Algerian city
-- **Contact data gap**: 96% missing phone, 99% missing website, 94% missing opening_hours for POIs. Transport operators now have contacts; POI gap remains
-- **GenAI descriptions** require `OPENROUTER_API_KEY` to be set in environment
-- **MinIO photo migration** pending — Commons URLs stored directly, need `mc cp` to local MinIO bucket
-
-## Engineering Principles
-- **Simple > clever**: State-of-the-art doesn't mean complex. The best solutions are boring, well-understood, and easy to debug.
-- **Library-first**: Before writing any non-trivial logic, search for existing packages. For NLP → spaCy/HuggingFace/transformers; search → Qdrant/pgvector/Meilisearch; routing → OSRM/Valhalla/GraphHopper; geocoding → OpenStreetMap's Nominatim/photon; photos → Wikimedia Commons API/SPARQL; etc.
-- **Scale matters**: Prefer solutions that handle 100K+ records without degradation. If a library handles batching, streaming, or connection pooling, use those features rather than implementing your own.
-- **Fail gracefully**: Every external dependency should have a fallback. If Qdrant is down, fall back to SQL LIKE search. If Redis is down, use in-memory cache. Never crash because a service is unavailable.
+- **No intercity coach routes in OSM** — OSM has zero `route=coach` relations for Algeria. SOGRAL network is unmapped. Only 2 SOGRAL bus stop nodes exist on OSM.
 
 ## Key Decisions
 - OSM POI extraction uses bounding box queries per wilaya (center ±radius) — 53,948 POIs across all 58 wilayas
@@ -134,54 +87,57 @@ Build a comprehensive Algerian tourism data layer (POIs, stays, experiences, age
 - Checkpointed extraction (per-wilaya files) to survive timeouts/rate limits
 
 ## Next Steps
-1. ⬜ **Expand schedule/pricing** to remaining 844 transport lines (currently 11/855 have schedule data)
-2. ⬜ **Add operator contacts for remaining wilaya taxi unions** — currently only national operators seeded; wilaya-level taxi phone numbers needed
-3. ⬜ **Migrate Commons URLs to MinIO** — copy Wikimedia Commons photos to local MinIO bucket for self-hosted serving
-4. ⬜ **Frontend** — the API is complete with ~120+ routes; needs a mobile/web frontend to be actually usable
-5. ⬜ **More fun facts for remaining POIs** — 218/52,997 POIs have real fun facts; coverage limited by POIs with rich OSM descriptions or English names. Consider French Wikipedia for additional coverage
-6. ⬜ **Improve tour diversity** — current optimizer picks same-category clusters (e.g., all archaeological sites); add category diversity scoring to mix museums, natural, cultural POIs in one tour
+1. **⬅️ Migrate Wikimedia photos to MinIO** — background script running, ~1,550 unique URLs remaining (~7,000 POIs migrated of 8,108)
+2. **⬅️ More photos for remaining historical/cultural POIs**: 7,010 POIs now have MinIO photos — remaining ~46K have no matching Commons/Wikipedia content
+3. ~~⬜ **Expand schedule/pricing**~~ — **DONE**: 854/855 transport lines have schedule + pricing data (walking excluded)
+4. ⬜ **Add operator contacts for remaining wilaya taxi unions** — currently only national operators seeded; wilaya-level taxi phone numbers needed
+5. **⬅️ More fun facts via GenAI** — 218/52,997 POIs have fun facts (0.4%); 4,182 eligible POIs with good context remain; enrichment script running in background via vLLM Gemma 4
+6. ⬜ **Frontend** — the API is complete with ~120+ routes; needs a mobile/web frontend to be actually usable
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
-- **All Docker services running** via Colima: Qdrant (localhost:6333, 52,997 POI vectors + 3,150 experience vectors), Redis (localhost:6379), MinIO (localhost:9000, bucket athar-uploads)
-- **DB**: external PostgreSQL (`athar_db`), not Dockerized. Alembic head: `031` (add_poi_fun_fact table)
-- **Data counts**: 52,997 POIs (all 69 wilayas), 999 stays, 529 experiences, 40 events, ~4,329 stations, 855 transport lines, 20 transport operators, 155+ API endpoints, 32 endpoint modules, 218 POIs with fun facts (20 hand-curated + 198 AI-generated)
-- **POI graph**: 34,787 tourism POIs, 535,237 walking edges, singleton POIGraphService — 10 POIs in Tlemcen, 9 in Oran/Blida/Batna, 10 in Algiers, 7 in Constantine, 6 in Bejaia/Ghardaia/Tizi Ouzou
-- POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls (100% coverage via Commons + placeholders), subtype, name_ar/name_en, is_featured, average_score, total_reviews, distance_km (nearby), fun_fact (218 POIs with real/AI-generated facts)
-- **Description quality**: 100% coverage. 52,582 now rich (OSM tag-expanded), 18,799 short (<80 chars) due to minimal tag data (1-2 tags max) — template ceiling reached
-- **Photo quality**: 16.2% real (Commons/Wikipedia), 83.8% placeholders (placehold.co). Placehold.co URLs are colored by category
-- **Contact data gap**: 96% missing phone, 99% missing website, 94% missing opening_hours — data fundamentally absent from public sources. Solved by user-contributed suggestions pipeline
-- **Trip planner**: 3 layers — manual trip builder (REST API), AI-powered itinerary generation (Pydantic AI, needs API key), pre-built circuits
-- **32 endpoint modules, 155+ routes, 32 ORM models, ~95 Pydantic schemas**
-- **All 155 tests pass**
-- Seed/enrich scripts live in `scripts/data/`
+- All tourism tables now populated with real OSM and curated data
+- API endpoints at `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/bookings`, `/reviews`, `/trips` all return data
+- POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls[], subtype, name_ar/name_en, is_featured, average_score, total_reviews, fun_fact
+- Vector search (Qdrant) configured but needs Docker running to work
+- App has trip optimizer combining POIs + transport + stays + restaurants + experiences, now wired to POI graph for walking times
+- **POI graph service**: 34,787 tourism POIs, 535,237 walking edges. Tour optimization works: Oran 9 POIs (4.1km), Tlemcen 10 (2.3km), Algiers 10 (3.2km), Blida 9 (0.8km), Batna 9 (5.5km), Constantine 7 (1.2km)
+- MultiModalRouter loads 444 multi-wilaya transport lines with 3,918 adjacency edges
+- **Fun facts enrichment**: 218 POIs with real fun facts — 20 hand-curated (Timgad, Casbah, Fort Santa Cruz, etc.) + 198 AI-generated via vLLM Gemma 4. Only 135 unnamed/generic POIs without fun facts; 4,182 eligible remaining for enrichment
+- Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `enrich_poi_descriptions.py`, `enrich_fun_facts.py`, `enrich_fun_facts_genai.py`, `migrate_photos_minio.py`
 
 ## Relevant Files
-- `app/services/multimodal_router.py`: Multi-modal inter-wilaya routing (train/bus/flight/taxi, multi-hop, schedules, pricing, contacts)
-- `app/services/transport.py`: WilayaDistance-based flat cost estimates
-- `app/services/transit_routing.py`: Intra-city Dijkstra on stations/line_stops
-- `app/agents/tools.py`: 10 agent tools including `get_transport_route` (multi-modal) and `get_operator_contacts`
-- `app/agents/travel_agent.py`: 3 agents (travel, itinerary, search) with all tools registered
-- `app/models/transport_operator.py`: TransportOperator ORM model
-- `app/data/poi_nodes_enriched.json`: 53,948 POI nodes
-- `app/data/poi_edges_enriched.json`: 15,580 walking edges
-- `app/data/transit_nodes_enriched.json`: 57,971 nodes (POI + transport)
-- `app/data/transit_edges_enriched.json`: 31,221 edges
-- `scripts/data/seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `seed_seasonal_experiences.py`, `seed_price_calendar.py`
-- `scripts/data/enrich_poi_descriptions.py`, `enrich_remaining_descriptions.py`, `enrich_poi_full.py`, `enrich_phase_a.py`
-- `scripts/data/enrich_photos_bulk.py`, `enrich_photos_more.py`, `enrich_photos_spatial.py`, `enrich_photos_remaining.py`
-- `scripts/data/enrich_contacts_wikipedia.py`, `enrich_contacts_overpass.py`, `enrich_wikidata_bulk.py`
-- `scripts/data/enrich_descriptions_expanded.py`: OSM tag-based description expansion (52,582 enriched)
-- `scripts/data/enrich_fun_facts.py`: Real fun facts from Wikidata SPARQL + Wikipedia + OSM tags (20 POIs enriched)
-- `scripts/data/enrich_fun_facts_genai.py`: GenAI fun facts via vLLM Gemma 4 (198 POIs enriched, source='ai:vllm')
-- `scripts/data/enrich_placeholders.py`: Category-colored placeholder photos (100% coverage)
-- `scripts/data/verify_data_quality.py`: Data quality verification
-- `scripts/data/extract_osm_pois.py`, `extract_more_bus_routes.py`, `add_walking_edges.py`, `organize_transport.py`, `fix_missing_wilaya.py`, `compute_poi_accessibility.py`, `import_geoalgeria.py`
-- `scripts/data/fix_transport_data.py`: Train stop fixes + wilaya connectivity flag recomputation
-- `scripts/data/seed_operators.py`: Transport operator contacts + SNTF/SOGRAL schedule & pricing
-- `alembic/versions/015-030`: 14 migrations (seasonal experiences, Phase D, price calendar, user_preferences, suggestions, artisans, transport_operators)
-- `app/models/`: 32 ORM models across 27 files
-- `app/schemas/`: ~95 Pydantic schemas across 24 files
-- `app/api/v1/endpoints/`: 32 endpoint modules (155+ routes)
-- `app/agents/`: Pydantic AI travel agents (tools, deps, travel_agent, verification, deps)
-- `app/services/`: Trip optimizer, transit routing, transport cost, vector search, storage, agent tools
+- `app/data/poi_nodes_enriched.json`: 53,948 standalone POI nodes
+- `app/data/poi_edges_enriched.json`: 15,580 walking edges POI↔transit
+- `app/data/transit_nodes_enriched.json`: 57,743 nodes (2,502 wilaya-fixed)
+- `app/data/transit_edges_enriched.json`: 30,957 edges
+- `scripts/data/seed_pois_db.py`: POI → DB seeder
+- `scripts/data/seed_providers.py`: Users + profiles + agencies seeder
+- `scripts/data/seed_stays_db.py`: Hotels/guesthouses → stays table
+- `scripts/data/seed_experiences_db.py`: Curated experiences (first batch)
+- `scripts/data/seed_more_experiences.py`: Experiences for remaining wilayas
+- `scripts/data/enrich_poi_descriptions.py`: Wikidata + tag-based description enrichment
+- `scripts/data/enrich_remaining_descriptions.py`: Tag-value mapping for all remaining POI descriptions (100% coverage)
+- `scripts/data/enrich_poi_full.py`: Full OSM field extraction (subtype, operator, parking, accessibility, names, IDs, cuisine)
+- `scripts/data/import_geoalgeria.py`: Thermal springs, parks, historic cross-reference from @geoalgeria/tourisme
+- `scripts/data/extract_osm_pois.py`: OSM extraction + transit graph merge
+- `scripts/data/insert_osm_bus_stations.py`: OSM bus_station import (425 new stations)
+- `scripts/data/organize_transport.py`: Taxi/SOGRAL/inter-city routes + DB seeding
+- `scripts/data/fix_missing_wilaya.py`: Assign wilaya to transit nodes via reverse geocoding
+- `scripts/data/enrich_phase_a.py`: Rankings, price level, duration, POI↔experience links
+- `scripts/data/enrich_photos_bulk.py`: Photo enrichment via Wikidata SPARQL matching
+- `scripts/data/enrich_photos_more.py`: Enhanced photo enrichment (SPARQL + Commons API)
+- `scripts/data/enrich_fun_facts.py`: Fun facts from Wikidata + OSM tags + category templates
+- `scripts/data/seed_more_experiences.py`: Experiences for remaining wilayas
+- `scripts/data/enrich_poi_descriptions.py`: Wikidata + tag-based description enrichment
+- `scripts/data/enrich_remaining_descriptions.py`: Tag-value mapping for all remaining POI descriptions (100% coverage)
+- `scripts/data/enrich_poi_full.py`: Full OSM field extraction (subtype, operator, parking, accessibility, names, IDs, cuisine)
+- `scripts/data/import_geoalgeria.py`: Thermal springs, parks, historic cross-reference from @geoalgeria/tourisme
+- `scripts/data/extract_osm_pois.py`: OSM extraction + transit graph merge
+- `scripts/data/insert_osm_bus_stations.py`: OSM bus_station import (425 new stations)
+- `scripts/data/organize_transport.py`: Taxi/SOGRAL/inter-city routes + DB seeding
+- `scripts/data/fix_missing_wilaya.py`: Assign wilaya to transit nodes via reverse geocoding
+- `scripts/data/fix_missing_wilaya.py`: Assign wilaya to transit nodes via reverse geocoding
+- `scripts/data/enrich_phase_a.py`: Rankings, price level, duration, POI↔experience links
+- `scripts/data/enrich_photos_bulk.py`: Photo enrichment via Wikidata SPARQL matching
+- `scripts/data/enrich_photos_more.py`: Enhanced photo enrichment (SPARQL + Commons API)
