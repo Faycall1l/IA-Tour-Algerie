@@ -211,30 +211,6 @@ async def test_approve_provider(
 # ── Content Moderation ─────────────────────────────────────────────
 
 
-@pytest.mark.asyncio
-async def test_admin_delete_review(
-    client: AsyncClient,
-    admin_headers: dict[str, str],
-    test_user: User,
-    db: AsyncSession,
-):
-    poi = POI(name="Test POI", category="cultural", wilaya_id=1, latitude=36, longitude=3)
-    db.add(poi)
-    await db.flush()
-    review = Review(
-        user_id=test_user.id,
-        poi_id=poi.id,
-        overall_score=4,
-    )
-    db.add(review)
-    await db.commit()
-    await db.refresh(review)
-
-    resp = await client.delete(
-        f"/api/v1/admin/reviews/{review.id}",
-        headers=admin_headers,
-    )
-    assert resp.status_code == 200
 
 
 @pytest.mark.asyncio

@@ -1,11 +1,9 @@
 from app.models.artisan import Artisan
-from app.models.booking import Booking
 from app.models.collection import Collection, CollectionItem
 from app.models.event import Event
 from app.models.experience import Experience
 from app.models.price_calendar_entry import PriceCalendarEntry
 from app.models.local_agency import LocalAgency
-from app.models.notification import Notification
 from app.models.poi import POI
 from app.models.preference import UserPreference
 from app.models.suggestion import Suggestion
@@ -28,13 +26,11 @@ __all__ = [
     "Wilaya",
     "LocalAgency",
     "AtharTravelerProfile",
-    "Booking",
     "Collection",
     "CollectionItem",
     "Event",
     "Experience",
     "PriceCalendarEntry",
-    "Notification",
     "POI",
     "UserPreference",
     "PriceReport",

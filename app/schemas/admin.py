@@ -100,8 +100,6 @@ class StatsDashboard(BaseModel):
     total_experiences: int
     total_events: int
     total_users: int
-    total_reviews: int
-    total_bookings: int
     total_trips: int
     pois_per_wilaya: list[WilayaCount]
     pois_per_category: list[CategoryCount]

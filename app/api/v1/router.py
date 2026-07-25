@@ -5,8 +5,6 @@ from app.api.v1.endpoints import (
     agents,
     artisans,
     auth,
-    bookings,
-    circuits,
     collections,
     discover,
     events,
@@ -16,7 +14,6 @@ from app.api.v1.endpoints import (
     preferences,
     recommendations,
     health,
-    notifications,
     pois,
     price_calendar,
     prices,
@@ -47,9 +44,6 @@ router.include_router(reviews.router)
 router.include_router(users.router)
 router.include_router(wilayas.router)
 router.include_router(experiences.router)
-router.include_router(bookings.router)
-router.include_router(circuits.router)
-router.include_router(notifications.router)
 router.include_router(stats.router)
 router.include_router(stays.router)
 router.include_router(transport.router)

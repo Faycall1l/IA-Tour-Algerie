@@ -43,11 +43,9 @@ async def dashboard_stats(
     _current_user: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    from app.models.booking import Booking
     from app.models.event import Event
     from app.models.experience import Experience
     from app.models.poi import POI
-    from app.models.review import Review
     from app.models.stay import Stay
     from app.models.trip import Trip
     from app.models.user import User
@@ -57,8 +55,6 @@ async def dashboard_stats(
     total_experiences = (await db.execute(select(func.count(Experience.id)))).scalar() or 0
     total_events = (await db.execute(select(func.count(Event.id)))).scalar() or 0
     total_users = (await db.execute(select(func.count(User.id)))).scalar() or 0
-    total_reviews = (await db.execute(select(func.count(Review.id)))).scalar() or 0
-    total_bookings = (await db.execute(select(func.count(Booking.id)))).scalar() or 0
     total_trips = (await db.execute(select(func.count(Trip.id)))).scalar() or 0
 
     wilaya_rows = (
@@ -85,8 +81,6 @@ async def dashboard_stats(
         total_experiences=total_experiences,
         total_events=total_events,
         total_users=total_users,
-        total_reviews=total_reviews,
-        total_bookings=total_bookings,
         total_trips=total_trips,
         pois_per_wilaya=pois_per_wilaya,
         pois_per_category=pois_per_category,
@@ -310,22 +304,6 @@ async def approve_provider(
 
 
 # ── Content Moderation ─────────────────────────────────────────────
-
-
-@router.delete("/reviews/{review_id}", response_model=AdminActionResponse)
-async def admin_delete_review(
-    review_id: uuid.UUID,
-    _current_user: User = Depends(get_current_admin),
-    db: AsyncSession = Depends(get_db),
-):
-    review = await db.get(Review, review_id)
-    if not review:
-        raise NotFoundException(message="Review not found")
-
-    await db.delete(review)
-    await db.commit()
-
-    return AdminActionResponse(message="Review deleted")
 
 
 @router.delete("/experiences/{experience_id}", response_model=AdminActionResponse)
