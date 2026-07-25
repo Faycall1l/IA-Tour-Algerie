@@ -13,6 +13,7 @@ from app.api.v1.endpoints import (
     geojson,
     health,
     pois,
+    recommendations,
     search,
     stays,
     transport,
@@ -30,6 +31,7 @@ router.include_router(auth.router)
 router.include_router(discover.router)
 router.include_router(events.router)
 router.include_router(pois.router)
+router.include_router(recommendations.router)
 router.include_router(users.router)
 router.include_router(wilayas.router)
 router.include_router(experiences.router)

@@ -5,6 +5,7 @@ from sqlalchemy import select
 
 from app.models.experience import Experience
 from app.models.poi import POI
+from app.models.recommendation import Recommendation
 
 from app.models.stay import Stay
 from app.services.agent.session import get_tool_context
@@ -194,6 +195,42 @@ def _haversine(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     dlng = math.radians(lng2 - lng1)
     a = (
         math.sin(dlat / 2) ** 2
-        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng / 2) ** 2
+        + math.cos(math.radians(lat1))
+        * math.cos(math.radians(lat2))
+        * math.sin(dlng / 2) ** 2
     )
     return radius * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+
+@tool
+async def get_recommendations(
+    wilaya_id: int | None = None,
+    entity_type: str | None = None,
+    limit: int = 5,
+) -> list[dict]:
+    """Get personalized travel recommendations based on user preferences and interaction history."""
+    ctx = get_tool_context()
+    if ctx.db_session is None or not ctx.user_id:
+        return []
+    from app.services.recommendation import recommendation_engine
+
+    try:
+        user_uuid = uuid.UUID(ctx.user_id)
+    except (ValueError, AttributeError):
+        return []
+
+    recs = await recommendation_engine.generate_recommendations(
+        ctx.db_session, user_uuid, wilaya_id=wilaya_id, entity_type=entity_type, limit=limit,
+    )
+    return [
+        {
+            "id": str(r.id),
+            "entity_type": r.entity_type,
+            "entity_id": str(r.entity_id),
+            "wilaya_id": r.wilaya_id,
+            "score": r.score,
+            "explanation": r.explanation,
+            "reason_code": r.reason_code,
+        }
+        for r in recs
+    ]

@@ -5,6 +5,7 @@ from app.models.experience import Experience
 from app.models.local_agency import LocalAgency
 from app.models.poi import POI
 from app.models.provider_profile import ProviderProfile
+from app.models.recommendation import Recommendation, UserPreference
 from app.models.refresh_token import RefreshToken
 from app.models.station import LineStop, Station, TransportLine
 from app.models.stay import Stay
@@ -27,7 +28,9 @@ __all__ = [
     "Experience",
     "POI",
     "ProviderProfile",
+    "Recommendation",
     "RefreshToken",
+    "UserPreference",
     "Station",
     "TransportLine",
     "TransportOperator",

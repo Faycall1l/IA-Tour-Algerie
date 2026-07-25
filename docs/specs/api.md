@@ -1,6 +1,6 @@
 # API Layer
 
-## Route Inventory (101 operations, 77 paths)
+## Route Inventory (106 operations, 81 paths)
 
 ```
 # Public
@@ -110,6 +110,13 @@ DELETE /api/v1/collections/{id}/items/{item_id} # Remove single item
 GET    /api/v1/favorites                       # List favorites (auth)
 POST   /api/v1/favorites                       # Add favorite (auth)
 DELETE /api/v1/favorites/{id}                  # Remove favorite (auth)
+
+# Recommendations (Personalized)
+GET    /api/v1/recommendations                 # Get ranked recs (?wilaya_id=&entity_type=&limit=)
+GET    /api/v1/recommendations/preferences     # Get user preferences
+PATCH  /api/v1/recommendations/preferences     # Update preferences
+POST   /api/v1/recommendations/preferences/derive  # Re-derive from interactions
+POST   /api/v1/recommendations/{rec_id}/feedback    # Feedback (liked/dismissed/bookmarked)
 
 # Users
 GET    /api/v1/users/me                        # Current user profile
