@@ -11,11 +11,9 @@ from uuid import UUID
 import httpx
 from pydantic import BaseModel, Field
 from pydantic_ai import RunContext
-from sqlalchemy import select, text
+from sqlalchemy import text
 
 from app.agents.deps import TravelAgentDeps
-from app.models.poi import POI
-from app.models.stay import Stay
 
 
 # ── POI Search ──
@@ -579,54 +577,6 @@ async def get_weather(ctx: RunContext[TravelAgentDeps], params: WeatherParams) -
         location={"lat": params.latitude, "lng": params.longitude},
         days=days,
         summary=" | ".join(summary_parts) if summary_parts else "No forecast available",
-    )
-
-
-# ── Collections ──
-
-class CollectionSearchParams(BaseModel):
-    collection_id: str = Field(..., description="UUID of the user's collection/wishlist")
-
-
-class CollectionItemResult(BaseModel):
-    entity_type: str
-    entity_id: str
-    notes: str | None = None
-
-
-class CollectionSearchOutput(BaseModel):
-    name: str
-    items: list[CollectionItemResult]
-    item_count: int
-
-
-async def get_user_collection(ctx: RunContext[TravelAgentDeps], params: CollectionSearchParams) -> CollectionSearchOutput:
-    """Get the contents of a user's saved collection (wishlist).
-
-    Collections can contain POIs, stays, and experiences.
-    """
-    from app.models.collection import Collection as CollectionModel
-    from sqlalchemy.orm import selectinload
-
-    result = await ctx.deps.db.execute(
-        select(CollectionModel)
-        .where(
-            CollectionModel.id == UUID(params.collection_id),
-            CollectionModel.user_id == ctx.deps.user.id,
-        )
-        .options(selectinload(CollectionModel.items))
-    )
-    c = result.scalar_one_or_none()
-    if not c:
-        return CollectionSearchOutput(name="", items=[], item_count=0)
-
-    return CollectionSearchOutput(
-        name=c.name,
-        item_count=len(c.items),
-        items=[
-            CollectionItemResult(entity_type=i.entity_type, entity_id=str(i.entity_id), notes=i.notes)
-            for i in c.items
-        ],
     )
 
 
