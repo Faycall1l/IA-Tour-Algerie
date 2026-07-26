@@ -297,8 +297,6 @@ class ExperienceSearchResult(BaseModel):
     included: list[str] | None = None
     what_to_bring: list[str] | None = None
     language: str | None = None
-    is_verified: bool = False
-    completion_count: int = 0
 
 
 class ExperienceSearchOutput(BaseModel):
@@ -352,7 +350,7 @@ async def search_experiences(ctx: RunContext[TravelAgentDeps], params: Experienc
     columns = (
         "id, title, category, wilaya_id, price_dzd, duration_hours, "
         "max_participants, description, meeting_point, season, photos, "
-        "included, what_to_bring, language, is_verified, completion_count"
+        "included, what_to_bring, language"
     )
 
     count_result = await ctx.deps.db.execute(
@@ -381,8 +379,7 @@ async def search_experiences(ctx: RunContext[TravelAgentDeps], params: Experienc
                 meeting_point=r[8], season=r[9],
                 photo_url=r[10][0] if r[10] else None,
                 included=r[11], what_to_bring=r[12],
-                language=r[13], is_verified=r[14] or False,
-                completion_count=r[15] or 0,
+                language=r[13],
             )
             for r in rows
         ],
@@ -805,7 +802,7 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
             SELECT id, title, category, price_dzd, duration_hours, photos
             FROM experiences
             WHERE wilaya_id = :wid AND status = 'active'
-            ORDER BY completion_count DESC
+            ORDER BY created_at DESC
             LIMIT 5
         """),
         {"wid": wid},
