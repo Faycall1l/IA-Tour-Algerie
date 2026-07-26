@@ -1,5 +1,4 @@
 import uuid
-from datetime import time
 
 from pydantic import BaseModel
 

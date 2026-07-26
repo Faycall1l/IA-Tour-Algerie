@@ -7,7 +7,7 @@ shortest paths using BFS / Dijkstra across all modes (train, metro, tram, bus).
 import math
 import uuid
 from collections import defaultdict
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from heapq import heappop, heappush
 
 from sqlalchemy import select
