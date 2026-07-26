@@ -26,7 +26,7 @@ engine = create_async_engine(
 - `pool_timeout=30` prevents infinite waits under load.
 - SSL support via `?sslmode=require` in connection URL → `connect_args["ssl"]` activates.
 
-## Models (22 SQLAlchemy ORM models across 18 files)
+## Models (20 SQLAlchemy ORM models across 16 files)
 
 ### User (`users`)
 | Column | Type | Notes |
@@ -173,19 +173,6 @@ Indexes: `(provider_id)`, `(wilaya_id)`.
 
 Indexes: `(provider_id)`, `(wilaya_id, category)`, `(season)`.
 
-### Booking (`bookings`)
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| traveler_id | UUID | FK → users.id, CASCADE |
-| experience_id | UUID | FK → experiences.id |
-| status | String(20) | `pending` \| `confirmed` \| `completed` \| `cancelled`, CHECK, default `pending` |
-| message | Text | |
-| participants | Integer | Default 1 |
-| requested_date | Date | |
-| created_at | DateTime(tz) | |
-| updated_at | DateTime(tz) | |
-
 ### Trip (`trips`)
 | Column | Type | Notes |
 |--------|------|-------|
@@ -219,87 +206,6 @@ Polymorphic items attached to a trip.
 
 Indexes: `(trip_id)`, `(trip_id, day_number)`.
 
-### Circuit (`circuits`)
-15 pre-seeded multi-day itineraries.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| title | String(200) | |
-| description | Text | |
-| duration_days | Integer | CK ≥ 1 |
-| wilaya_id | Integer | FK → wilayas.id, nullable |
-| category | String(50) | |
-| difficulty | String(20) | Default `easy` |
-| total_distance_km | Float | |
-| total_budget_est_dzd | Float | |
-| photo_url | Text | |
-| is_active | Boolean | Default true |
-| created_at | DateTime(tz) | |
-| updated_at | DateTime(tz) | |
-
-### CircuitItem (`circuit_items`)
-Day-by-day items within a circuit.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| circuit_id | UUID | FK → circuits.id, CASCADE |
-| day_number | Integer | CK ≥ 1 |
-| item_order | Integer | Default 0 |
-| time_slot | String(20) | `morning` \| `afternoon` \| `evening`, CHECK |
-| item_type | String(20) | CHECK: `poi`, `stay`, `experience`, `restaurant`, `transport` |
-| item_match_name | String(300) | Matched by name to actual POI/Stay |
-| notes | Text | |
-| created_at | DateTime(tz) | |
-| updated_at | DateTime(tz) | |
-
-### DiscussionThread (`discussion_threads`)
-Polymorphic Q&A threads attached to any entity (POI, experience, stay).
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| entity_type | String(20) | `poi` \| `experience` \| `stay`, CHECK |
-| entity_id | UUID | FK to the respective entity |
-| title | String(200) | Nullable |
-| created_by | UUID | FK → users.id |
-| created_at | DateTime(tz) | |
-| updated_at | DateTime(tz) | |
-
-Indexes: `(entity_type, entity_id)`, `(created_by)`.
-
-### DiscussionPost (`discussion_posts`)
-Answers within discussion threads, supports threaded replies.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| thread_id | UUID | FK → discussion_threads.id, CASCADE |
-| parent_id | UUID | FK → discussion_posts.id, SET NULL (for threaded replies) |
-| author_id | UUID | FK → users.id, CASCADE |
-| content | Text | |
-| created_at | DateTime(tz) | |
-| updated_at | DateTime(tz) | |
-
-Indexes: `(thread_id)`, `(author_id)`.
-
-### PriceCalendarEntry (`price_calendar`)
-Generic per-date pricing calendar for experiences and stays (polymorphic via entity_type).
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| entity_type | String(20) | 'experience' or 'stay' |
-| entity_id | UUID | FK → experiences.id or stays.id |
-| date | Date | |
-| price_dzd | Float | |
-| available_spots | Integer | Nullable |
-
-**Constraints:** UNIQUE(entity_type, entity_id, date) — one price per date per entity.
-**CK:** entity_type IN ('experience', 'stay').
-Indexes: `(entity_type, entity_id)`, `(date)`.
-
 ### Event (`events`)
 40 seeded festivals/events.
 
@@ -318,105 +224,6 @@ Indexes: `(entity_type, entity_id)`, `(date)`.
 | updated_at | DateTime(tz) | |
 
 Indexes: `(wilaya_id)`, `(month)`.
-
-### ThermalSpring (`thermal_springs`)
-282 springs imported from ASAL Geoportail (authoritative government source).
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| name | String(200) | |
-| wilaya_id | Integer | FK → wilayas.id |
-| commune_name | String(200) | |
-| type | String(50) | `hammam`, `source`, `ain`, `forage` |
-| temperature_c | Float | |
-| debit_l_s | Float | Flow rate in L/s |
-| altitude_m | Float | |
-| minerality | String(200) | Chemical composition |
-| latitude | Float | |
-| longitude | Float | |
-| source | String(100) | Default 'ASAL geoportail' |
-| geoalgeria_id | Integer | |
-| created_at | DateTime(tz) | |
-
-### Review (`reviews`)
-17K rows seeded across 3K POIs (Phase C).
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| user_id | UUID | FK → users.id |
-| poi_id | UUID | FK → pois.id |
-| overall_score | Float | 1–5, CHECK |
-| text | Text | Nullable, max 2000 chars |
-| sub_ratings | JSONB | TripAdvisor-style breakdown per category |
-| is_verified | Boolean | Default false |
-| helpfulness_count | Integer | Default 0 |
-| owner_response | Text | Nullable, admin/owner reply |
-| response_created_at | DateTime(tz) | Nullable |
-| edited_at | DateTime(tz) | Nullable |
-| created_at | DateTime(tz) | |
-| updated_at | DateTime(tz) | |
-
-**Constraints:** UNIQUE(user_id, poi_id) — one review per user per POI.
-**Indexes:** `(poi_id, overall_score)`.
-
-### ReviewVote (`review_votes`)
-35K votes seeded (Phase C).
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| user_id | UUID | FK → users.id, CASCADE |
-| review_id | UUID | FK → reviews.id, CASCADE |
-| helpful | Boolean | True = upvote, False = downvote |
-| created_at | DateTime(tz) | |
-
-**Constraints:** UNIQUE(user_id, review_id) — one vote per user per review.
-
-### PriceReport (`price_reports`)
-Transport cost crowdsourcing.
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| user_id | UUID | FK → users.id |
-| origin_wilaya_id | Integer | FK → wilayas.id |
-| dest_wilaya_id | Integer | FK → wilayas.id |
-| transport_mode | String(10) | CHECK: `taxi`, `bus`, `train`, `walk`, `car`, `plane` |
-| price_dzd | Float | |
-| confidence | String(20) | `low` \| `medium` \| `high` |
-| verified_at | String(20) | Timestamp or null |
-| is_verified | Boolean | Default false |
-| created_at | DateTime(tz) | |
-| updated_at | DateTime(tz) | |
-
-### LivePost (`live_posts`)
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| user_id | UUID | FK → users.id |
-| caption | String(500) | |
-| photo_url | String(500) | |
-| wilaya_id | Integer | FK → wilayas.id |
-| poi_id | UUID | FK → pois.id, nullable |
-| is_moderated | Boolean | Default false |
-| created_at | DateTime(tz) | |
-
-### Notification (`notifications`)
-
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| user_id | UUID | FK → users.id, CASCADE |
-| type | String(50) | E.g. `booking_request`, `booking_confirmed` |
-| title | String(200) | |
-| message | Text | |
-| reference_type | String(50) | E.g. `booking` |
-| reference_id | UUID | |
-| is_read | Boolean | Default false |
-| created_at | DateTime(tz) | |
 
 ### ProviderProfile (`provider_profiles`)
 One-to-one with User. Uses unified `provider_type` field with polymorphic columns based on type.
@@ -446,15 +253,6 @@ One-to-one with User. Uses unified `provider_type` field with polymorphic column
 | languages | ARRAY(String) | |
 | website | String(500) | |
 | is_approved | Boolean | Default false |
-| created_at | DateTime(tz) | |
-| updated_at | DateTime(tz) | |
-
-### AtharTravelerProfile (`athar_traveler_profile`)
-| Column | Type | Notes |
-|--------|------|-------|
-| id | UUID | PK |
-| user_id | UUID | FK → users.id, unique |
-| preferences | JSON | |
 | created_at | DateTime(tz) | |
 | updated_at | DateTime(tz) | |
 
@@ -503,22 +301,135 @@ One-to-one with User. Uses unified `provider_type` field with polymorphic column
 | arrival_time | String(5) | |
 | created_at | DateTime(tz) | |
 
-### LocalAgency (`local_agencies`)
-10 rows covering key regions.
+### Favorite (`favorites`)
 
 | Column | Type | Notes |
 |--------|------|-------|
 | id | UUID | PK |
-| name | String(200) | |
-| name_ar | String(200) | |
-| description | Text | |
-| region | String(100) | |
-| wilaya_ids | ARRAY(Integer) | |
-| services | ARRAY(String) | |
-| phone | String(50) | |
-| website | String(500) | |
-| photo_url | String(500) | |
+| user_id | UUID | FK → users.id, CASCADE |
+| entity_type | String(20) | `poi` \| `experience` \| `stay`, CHECK |
+| entity_id | UUID | Polymorphic FK |
 | created_at | DateTime(tz) | |
+
+**Constraints:** UNIQUE(user_id, entity_type, entity_id). Indexes: `(user_id)`, `(entity_type, entity_id)`.
+
+### Collection (`collections`)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| user_id | UUID | FK → users.id, CASCADE |
+| name | String(200) | |
+| description | Text | Nullable |
+| is_public | Boolean | Default false |
+| created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
+
+### CollectionItem (`collection_items`)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| collection_id | UUID | FK → collections.id, CASCADE |
+| entity_type | String(20) | `poi` \| `experience` \| `stay`, CHECK |
+| entity_id | UUID | Polymorphic FK |
+| notes | Text | Nullable |
+| sort_order | Integer | Default 0 |
+| created_at | DateTime(tz) | |
+
+**Constraints:** UNIQUE(collection_id, entity_type, entity_id).
+
+### Artisan (`artisans`)
+3,752 rows extracted from OSM Overpass API (craft=*, shop=craft/*).
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| user_id | UUID | FK → users.id, CASCADE, nullable |
+| name | String(200) | |
+| craft_type | String(50) | CHECK: `pottery`, `carpet_weaving`, `leather_work`, `woodwork`, `metalwork`, `jewelry`, `textile`, `basket_weaving`, `tilework`, `calligraphy`, `embroidery`, `stone_carving`, `glasswork`, `copper_work`, `other` |
+| description | Text | Nullable |
+| wilaya_id | Integer | FK → wilayas.id |
+| address | String(500) | Nullable |
+| commune | String(200) | Nullable |
+| latitude | Float | Nullable |
+| longitude | Float | Nullable |
+| phone | String(20) | Nullable |
+| whatsapp | String(20) | Nullable |
+| website | String(500) | Nullable |
+| photos | ARRAY(String) | Nullable |
+| opening_hours | String(200) | Nullable |
+| years_experience | Integer | Nullable |
+| specializations | ARRAY(String) | Nullable |
+| price_range_min | Float | Nullable |
+| price_range_max | Float | Nullable |
+| accepts_custom_orders | Boolean | Default true |
+| has_workshop | Boolean | Default true |
+| accepts_visitors | Boolean | Default true |
+| is_verified | Boolean | Default false |
+| metadata | JSONB | Nullable |
+| created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
+
+### TransportOperator (`transport_operators`)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| name | String(100) | Unique |
+| name_ar | String(100) | Nullable |
+| mode | String(20) | `taxi`, `bus`, `train`, etc. |
+| phone | String(30) | Nullable |
+| website | String(300) | Nullable |
+| email | String(200) | Nullable |
+| headquarters_wilaya_id | Integer | FK → wilayas.id, nullable |
+| description | String(500) | Nullable |
+| coverage_type | String(30) | Nullable |
+| is_active | Boolean | Default true |
+| metadata | JSON | Nullable |
+| created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
+
+### UserPreference (`user_preferences`)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| user_id | UUID | FK → users.id, CASCADE, unique |
+| preferred_categories | JSONB | Nullable, list of category strings |
+| preferred_wilayas | JSONB | Nullable, list of wilaya IDs |
+| travel_style | String(30) | CHECK: `adventure`, `cultural`, `relaxation`, `nature`, `historical`, `culinary`, `spiritual`, `mixed` |
+| budget_tier | String(20) | CHECK: `budget`, `mid_range`, `luxury`, `any` |
+| interests | JSONB | Nullable |
+| avoided_categories | JSONB | Nullable |
+| min_entry_fee | Float | Nullable |
+| max_entry_fee | Float | Nullable |
+| preferred_duration_min | Integer | Nullable |
+| profile_summary | Text | Nullable |
+| interaction_score | JSONB | Nullable |
+| created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
+
+### Recommendation (`recommendations`)
+
+| Column | Type | Notes |
+|--------|------|-------|
+| id | UUID | PK |
+| user_id | UUID | FK → users.id, CASCADE |
+| entity_type | String(20) | `poi`, `experience`, `stay` |
+| entity_id | UUID | Polymorphic FK |
+| wilaya_id | Integer | FK → wilayas.id, nullable |
+| score | Float | |
+| explanation | Text | Nullable |
+| reason_code | String(50) | Nullable |
+| is_seen | Boolean | Default false |
+| is_dismissed | Boolean | Default false |
+| feedback | String(20) | Nullable, `helpful` \| `not_relevant` \| `dismissed` |
+| model_version | String(50) | Nullable |
+| created_at | DateTime(tz) | |
+| updated_at | DateTime(tz) | |
+
+Indexes: `(user_id, score)`, `(user_id, wilaya_id)`.
 
 ### WilayaDistance (`wilaya_distances`)
 Pre-computed distances between all 69×69 wilaya pairs.
@@ -540,9 +451,24 @@ Pre-computed distances between all 69×69 wilaya pairs.
 
 ## Constraints at DB Level
 - **CHECK constraints** on `role`, `category`, `property_type`, `transport_mode`, `overall_score`, `status`, `item_type`, `time_slot`, `month`, `duration_days`, `max_guests`, `price_per_night_dzd`.
-- **UNIQUE(user_id, poi_id)** on reviews — one review per user per POI.
-- **UNIQUE(user_id, review_id)** on review_votes — one vote per user per review.
 - **FK CASCADE** on all user/POI/experience references.
+
+## Orphaned DB Tables (no ORM model, legacy from killed features)
+These tables exist in the database but have no corresponding SQLAlchemy model. They were created by migrations but the model files were deleted during cleanup. Safe to drop if desired:
+- `bookings` — 0 rows (killed)
+- `circuits`, `circuit_items` — 0 rows (killed)
+- `discussion_threads`, `discussion_posts` — 0 rows (killed)
+- `reviews`, `review_votes` — 17K reviews, 35K votes seeded (killed, but data exists)
+- `price_reports` — 0 rows (killed)
+- `price_calendar` — 0 rows (killed)
+- `live_posts` — 0 rows (killed)
+- `notifications` — 0 rows (killed)
+- `suggestions` — 0 rows (killed)
+- `visits` — 0 rows (killed)
+- `athar_traveler_profile` — 0 rows (killed)
+- `local_agencies` — 10 rows seeded (killed)
+- `poi_experiences` — 167 rows (junction table, no ORM model)
+- `thermal_springs` — 282 rows imported from ASAL Geoportail (data exists, imported via raw SQL)
 
 ## Alembic Migrations
 

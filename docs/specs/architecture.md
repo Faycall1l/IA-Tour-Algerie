@@ -94,70 +94,64 @@ All services except MinIO (standalone) run in Docker Compose on an isolated `bac
 
 ## Route Count
 
-**~108 routes** across 20 endpoint modules + health + 3 legacy.
+**106 operations** across 18 endpoint modules + health.
 
 ## Project Structure
 
 ```
 app/
 ├── api/v1/
-│   ├── endpoints/     # 20 resource modules
-│   │   ├── admin.py          # 12 routes
-│   │   ├── auth.py           # 3 routes
-│   │   ├── bookings.py       # 4 routes
-│   │   ├── circuits.py       # 2 routes
-│   │   ├── discover.py       # 4 routes
-│   │   ├── discussions.py    # 6 routes (Q&A)
-│   │   ├── events.py         # 2 routes
-│   │   ├── experiences.py    # 7 routes
-│   │   ├── health.py         # 1 route
-│   │   ├── live.py           # 4 routes
-│   │   ├── notifications.py  # 3 routes
-│   │   ├── pois.py           # 7 routes (+neighborhoods)
-│   │   ├── price_calendar.py # 3 routes
-│   │   ├── prices.py         # 3 routes
-│   │   ├── reviews.py        # 7 routes
-│   │   ├── stays.py          # 5 routes
-│   │   ├── transport.py      # 7 routes
-│   │   ├── trips.py          # 11 routes
-│   │   ├── users.py          # 6 routes
-│   │   └── wilayas.py        # 2 routes
+│   ├── endpoints/     # 18 resource modules + health
+│   │   ├── admin.py          # Admin operations
+│   │   ├── agents.py         # AI agent chat
+│   │   ├── artisans.py       # Artisan CRUD
+│   │   ├── auth.py           # OTP, login, register
+│   │   ├── collections.py    # Collections CRUD
+│   │   ├── discover.py       # Discover feed
+│   │   ├── events.py         # Events CRUD
+│   │   ├── experiences.py    # Experience CRUD
+│   │   ├── favorites.py      # Favorites CRUD
+│   │   ├── geojson.py        # GeoJSON export
+│   │   ├── health.py         # Health check
+│   │   ├── pois.py           # POI CRUD + search + nearby
+│   │   ├── recommendations.py # User prefs + recommendations
+│   │   ├── search.py         # Unified search
+│   │   ├── stays.py          # Stay CRUD
+│   │   ├── transport.py      # Transport routing
+│   │   ├── trips.py          # Trip CRUD + optimization
+│   │   ├── users.py          # User profile
+│   │   └── wilayas.py        # Wilaya list
 │   ├── router.py      # Aggregates all endpoint modules
 │   └── __init__.py
 ├── core/              # config, security (EdDSA), exceptions, i18n, logging
 ├── db/                # session (async engine with pool_timeout + SSL), base, mixins
-├── models/            # 29 SQLAlchemy ORM models (24 files)
-│   ├── poi.py              # POI
-│   ├── user.py             # User
-│   ├── wilaya.py           # Wilaya
-│   ├── stay.py             # Stay
-│   ├── experience.py       # Experience
-│   ├── trip.py             # Trip, TripItem
-│   ├── circuit.py          # Circuit, CircuitItem
-│   ├── booking.py          # Booking
-│   ├── review.py           # Review, ReviewVote
-│   ├── price_report.py     # PriceReport
-│   ├── live_post.py        # LivePost
-│   ├── notification.py     # Notification
-│   ├── refresh_token.py    # RefreshToken
-│   ├── provider_profile.py # ProviderProfile
-│   ├── traveler_profile.py # AtharTravelerProfile
-│   ├── station.py          # Station, TransportLine, LineStop
-│   ├── local_agency.py     # LocalAgency
-│   ├── wilaya_distance.py  # WilayaDistance
-│   ├── poi_experience.py   # POI↔Experience junction
-│   ├── event.py            # Event
-│   ├── discussion.py       # DiscussionThread, DiscussionPost (Q&A)
-│   └── price_calendar_entry.py # PriceCalendarEntry (generic price calendar)
-├── schemas/           # ~97 pydantic schemas (22 files)
-│   ├── admin.py, auth.py, booking.py, circuit.py, discussion.py
-│   ├── event.py, experience.py, price_calendar.py, health.py
-│   ├── live_post.py, notification.py, poi.py, price_report.py
-│   ├── provider_profile.py, review.py, stay.py, transport.py
-│   ├── trip.py, user.py, wilaya.py
+├── models/            # 20 SQLAlchemy ORM models (16 files)
+│   ├── artisan.py            # Artisan
+│   ├── collection.py         # Collection, CollectionItem
+│   ├── event.py              # Event
+│   ├── experience.py         # Experience
+│   ├── favorite.py           # Favorite
+│   ├── poi.py                # POI
+│   ├── provider_profile.py   # ProviderProfile
+│   ├── recommendation.py     # UserPreference, Recommendation
+│   ├── refresh_token.py      # RefreshToken
+│   ├── station.py            # Station, TransportLine, LineStop
+│   ├── stay.py               # Stay
+│   ├── transport_operator.py # TransportOperator
+│   ├── trip.py               # Trip, TripItem
+│   ├── user.py               # User
+│   ├── wilaya.py             # Wilaya
+│   └── wilaya_distance.py    # WilayaDistance
+├── schemas/           # ~97 pydantic schemas (19 files)
+│   ├── admin.py, artisan.py, auth.py, collection.py
+│   ├── event.py, experience.py, favorite.py, health.py
+│   ├── poi.py, provider.py, provider_dashboard.py
+│   ├── provider_profile.py, recommendation.py, search.py
+│   ├── stay.py, transport.py, trip.py, user.py, wilaya.py
 │   └── __init__.py
 ├── services/          # StorageService (MinIO), EmbeddingService (ONNX)
 │                      # VectorSearchService (Qdrant), TransitRoutingService
 │                      # TransportService, TripOptimizer, TripBriefGenerator
+│                      # RecommendationEngine, POIGraphService
 └── main.py            # App factory, lifespan, middleware stack, error handlers
 ```
