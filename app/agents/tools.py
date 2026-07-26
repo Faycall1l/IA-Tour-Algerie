@@ -188,7 +188,6 @@ async def search_stays(ctx: RunContext[TravelAgentDeps], params: StaySearchParam
     Only returns active stays. Includes address, check-in/out times.
     """
     q = params.query.strip()
-    base_conditions = ["is_active = TRUE"]
     bind: dict = {"q": q}
 
     # Full-text search on stays
@@ -945,7 +944,6 @@ async def get_transport_route(ctx: RunContext[TravelAgentDeps], params: Transpor
         )
         options.append(mode_opt)
         if opt.mode == "driving":
-            driving_dist = opt.pricing.get("bus", 0) / 6.0 if opt.pricing else None  # reverse from cost
             driving_time = opt.duration_min
 
     # Best recommendation: cheapest available option
