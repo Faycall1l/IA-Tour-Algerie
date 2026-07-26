@@ -1,5 +1,5 @@
 import logging
-from uuid import UUID
+import uuid
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
@@ -54,8 +54,8 @@ async def list_events(
 
 
 @router.get("/{event_id}", response_model=EventRead)
-async def get_event(event_id: str, db: AsyncSession = Depends(get_db)):
-    event = await db.get(Event, UUID(event_id))
+async def get_event(event_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    event = await db.get(Event, event_id)
     if not event:
         raise NotFoundException(message="Event not found")
     return EventRead.model_validate(event)
@@ -80,12 +80,12 @@ async def create_event(
 
 @router.patch("/{event_id}", response_model=EventRead)
 async def update_event(
-    event_id: str,
+    event_id: uuid.UUID,
     body: EventUpdate,
     _current_user: User = Depends(get_provider_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await db.get(Event, UUID(event_id))
+    event = await db.get(Event, event_id)
     if not event:
         raise NotFoundException(message="Event not found")
 
@@ -103,11 +103,11 @@ async def update_event(
 
 @router.delete("/{event_id}", status_code=204)
 async def delete_event(
-    event_id: str,
+    event_id: uuid.UUID,
     _current_user: User = Depends(get_provider_or_admin),
     db: AsyncSession = Depends(get_db),
 ):
-    event = await db.get(Event, UUID(event_id))
+    event = await db.get(Event, event_id)
     if not event:
         raise NotFoundException(message="Event not found")
     await db.delete(event)

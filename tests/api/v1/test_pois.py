@@ -18,7 +18,7 @@ async def test_create_poi_requires_auth(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_create_and_list_pois(
     client: AsyncClient,
-    auth_headers: dict[str, str],
+    admin_headers: dict[str, str],
 ):
     resp = await client.post(
         "/api/v1/pois",
@@ -31,7 +31,7 @@ async def test_create_and_list_pois(
             "description": "A beautiful basilica in Oran",
             "entry_fee_dzd": 0,
         },
-        headers=auth_headers,
+        headers=admin_headers,
     )
     assert resp.status_code == 201
     data = resp.json()
@@ -50,7 +50,7 @@ async def test_create_and_list_pois(
 @pytest.mark.asyncio
 async def test_create_poi_invalid_wilaya(
     client: AsyncClient,
-    auth_headers: dict[str, str],
+    admin_headers: dict[str, str],
 ):
     resp = await client.post(
         "/api/v1/pois",
@@ -59,7 +59,7 @@ async def test_create_poi_invalid_wilaya(
             "category": "other",
             "wilaya_id": 999,
         },
-        headers=auth_headers,
+        headers=admin_headers,
     )
     assert resp.status_code == 422
 
@@ -67,7 +67,7 @@ async def test_create_poi_invalid_wilaya(
 @pytest.mark.asyncio
 async def test_create_poi_invalid_category(
     client: AsyncClient,
-    auth_headers: dict[str, str],
+    admin_headers: dict[str, str],
 ):
     resp = await client.post(
         "/api/v1/pois",
@@ -76,7 +76,7 @@ async def test_create_poi_invalid_category(
             "category": "invalid_cat",
             "wilaya_id": 16,
         },
-        headers=auth_headers,
+        headers=admin_headers,
     )
     assert resp.status_code == 422
 
@@ -84,7 +84,7 @@ async def test_create_poi_invalid_category(
 @pytest.mark.asyncio
 async def test_get_poi_by_id(
     client: AsyncClient,
-    auth_headers: dict[str, str],
+    admin_headers: dict[str, str],
 ):
     created = await client.post(
         "/api/v1/pois",
@@ -93,7 +93,7 @@ async def test_get_poi_by_id(
             "category": "natural",
             "wilaya_id": 11,
         },
-        headers=auth_headers,
+        headers=admin_headers,
     )
     poi_id = created.json()["id"]
 
@@ -111,17 +111,17 @@ async def test_get_missing_poi_404(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_search_pois(
     client: AsyncClient,
-    auth_headers: dict[str, str],
+    admin_headers: dict[str, str],
 ):
     await client.post(
         "/api/v1/pois",
         json={"name": "Le Jardin d'Essai", "category": "park", "wilaya_id": 16},
-        headers=auth_headers,
+        headers=admin_headers,
     )
     await client.post(
         "/api/v1/pois",
         json={"name": "Casbah d'Alger", "category": "historical", "wilaya_id": 16},
-        headers=auth_headers,
+        headers=admin_headers,
     )
 
     resp = await client.get("/api/v1/pois", params={"search": "Casbah"})
@@ -134,7 +134,7 @@ async def test_search_pois(
 @pytest.mark.asyncio
 async def test_filter_pois_by_wilaya_and_category(
     client: AsyncClient,
-    auth_headers: dict[str, str],
+    admin_headers: dict[str, str],
 ):
     for name, cat, wid in [
         ("Notre-Dame d'Afrique", "religious", 31),
@@ -144,7 +144,7 @@ async def test_filter_pois_by_wilaya_and_category(
         await client.post(
             "/api/v1/pois",
             json={"name": name, "category": cat, "wilaya_id": wid},
-            headers=auth_headers,
+            headers=admin_headers,
         )
 
     resp = await client.get("/api/v1/pois", params={"wilaya_id": 31, "category": "religious"})

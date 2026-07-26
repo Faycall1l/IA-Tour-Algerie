@@ -1,12 +1,14 @@
 import hashlib
 import logging
+import secrets
+import time
 import uuid
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_twilio
+from app.api.deps import get_current_user, get_twilio
 from app.core.exceptions import BadRequestException, UnauthorizedException
 from app.core.limiter import limiter
 from app.core.security import (
@@ -27,6 +29,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 _otp_store: dict[str, dict] = {}
+_OTP_TTL_SECONDS = 300  # 5 minutes
+_OTP_MAX_STORE = 1000
+
+
+def _cleanup_otp_store() -> None:
+    now = time.time()
+    expired = [k for k, v in _otp_store.items() if now - v["created_at"] > _OTP_TTL_SECONDS]
+    for k in expired:
+        del _otp_store[k]
+    if len(_otp_store) > _OTP_MAX_STORE:
+        oldest = sorted(_otp_store, key=lambda k: _otp_store[k]["created_at"])[:len(_otp_store) - _OTP_MAX_STORE]
+        for k in oldest:
+            del _otp_store[k]
 
 
 @router.post("/send-otp", response_model=OTPSendResponse)
@@ -43,10 +58,11 @@ async def send_otp(
             return OTPSendResponse(message="OTP sent successfully")
         logger.warning("Twilio send failed, falling back for %s", body.phone)
 
-    code = "123456"
-    _otp_store[body.phone] = {"code": code}
-    logger.info("OTP (fallback) sent to %s", body.phone)
-    return OTPSendResponse(message="OTP sent successfully", otp=code)
+    _cleanup_otp_store()
+    code = "".join(secrets.choice("0123456789") for _ in range(6))
+    _otp_store[body.phone] = {"code": code, "created_at": time.time()}
+    logger.info("OTP (fallback) generated for %s (NOT returned in response)", body.phone)
+    return OTPSendResponse(message="OTP sent successfully")
 
 
 @router.post("/verify-otp", response_model=TokenResponse)
@@ -148,17 +164,16 @@ async def register_provider(
     body: ProviderRegisterRequest,
     request: Request,  # noqa: ARG001 — required by slowapi
     db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    existing = await db.execute(select(User).where(User.phone == body.phone))
-    if existing.scalar_one_or_none():
-        raise BadRequestException(message="Phone already registered")
+    if current_user.role not in ("traveler", "admin"):
+        raise BadRequestException(message="Already registered as a provider")
 
-    user = User(phone=body.phone, role=body.provider_type)
-    db.add(user)
+    current_user.role = body.provider_type
     await db.flush()
 
     profile = ProviderProfile(
-        user_id=user.id,
+        user_id=current_user.id,
         provider_type=body.provider_type,
         company_name=body.company_name,
         property_name=body.property_name,
@@ -172,9 +187,9 @@ async def register_provider(
     await db.refresh(profile)
 
     return ProviderRegisterResponse(
-        user_id=user.id,
+        user_id=current_user.id,
         profile_id=profile.id,
-        phone=user.phone,
+        phone=current_user.phone,
         provider_type=profile.provider_type,
         company_name=profile.company_name,
         property_name=profile.property_name,

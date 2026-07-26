@@ -1,10 +1,12 @@
 import logging
+import uuid
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
+from app.core.exceptions import NotFoundException
 from app.models.recommendation import Recommendation
 from app.models.user import User
 from app.schemas.recommendation import (
@@ -70,16 +72,13 @@ async def derive_preferences(
 
 @router.post("/{rec_id}/feedback", response_model=RecommendationRead)
 async def submit_feedback(
-    rec_id: str,
+    rec_id: uuid.UUID,
     body: RecommendationFeedback,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    from uuid import UUID
-
-    rec = await db.get(Recommendation, UUID(rec_id))
+    rec = await db.get(Recommendation, rec_id)
     if not rec or rec.user_id != current_user.id:
-        from app.core.exceptions import NotFoundException
         raise NotFoundException(message="Recommendation not found")
 
     rec.feedback = body.feedback

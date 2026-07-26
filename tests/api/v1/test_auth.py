@@ -1,6 +1,8 @@
 import pytest
 from httpx import AsyncClient
 
+from app.api.v1.endpoints.auth import _otp_store
+
 
 @pytest.mark.asyncio
 async def test_send_otp(client: AsyncClient):
@@ -10,17 +12,18 @@ async def test_send_otp(client: AsyncClient):
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["otp"] == "123456"
     assert data["message"] == "OTP sent successfully"
+    assert "+213555123456" in _otp_store
 
 
 @pytest.mark.asyncio
 async def test_verify_otp_creates_user(client: AsyncClient):
     phone = "+213555999999"
     await client.post("/api/v1/auth/send-otp", json={"phone": phone})
+    code = _otp_store[phone]["code"]
     resp = await client.post(
         "/api/v1/auth/verify-otp",
-        json={"phone": phone, "code": "123456"},
+        json={"phone": phone, "code": code},
     )
     assert resp.status_code == 200
     data = resp.json()
@@ -43,9 +46,10 @@ async def test_verify_otp_bad_code(client: AsyncClient):
 async def test_refresh_token(client: AsyncClient):
     phone = "+213555888888"
     await client.post("/api/v1/auth/send-otp", json={"phone": phone})
+    code = _otp_store[phone]["code"]
     login = await client.post(
         "/api/v1/auth/verify-otp",
-        json={"phone": phone, "code": "123456"},
+        json={"phone": phone, "code": code},
     )
     refresh_token = login.json()["refresh_token"]
 

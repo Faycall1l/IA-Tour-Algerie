@@ -16,4 +16,3 @@ class TokenRefresh(BaseModel):
 
 class OTPSendResponse(BaseModel):
     message: str
-    otp: str | None = None

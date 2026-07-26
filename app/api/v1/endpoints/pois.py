@@ -22,7 +22,7 @@ router = APIRouter(prefix="/pois", tags=["Points of Interest"])
 @router.post("", response_model=POIRead, status_code=201)
 async def create_poi(
     body: POICreate,
-    _current_user: User = Depends(get_current_user),
+    _current_user: User = Depends(get_provider_or_admin),
     db: AsyncSession = Depends(get_db),
     vector_search: VectorSearchService = Depends(get_vector_search),
 ):
@@ -44,7 +44,7 @@ async def create_poi(
 async def upload_poi_photo(
     poi_id: uuid.UUID,
     photo: UploadFile = File(...),
-    _current_user: User = Depends(get_current_user),
+    _current_user: User = Depends(get_provider_or_admin),
     db: AsyncSession = Depends(get_db),
     storage: StorageService = Depends(get_storage),
 ):
