@@ -148,9 +148,6 @@ PUT    /api/v1/admin/users/{id}/verify         # Toggle user verified
 GET    /api/v1/admin/providers                 # List provider profiles
 PUT    /api/v1/admin/providers/{id}/approve    # Approve provider
 DELETE /api/v1/admin/experiences/{id}          # Delete any experience
-
-# Providers
-GET    /api/v1/providers/dashboard             # Provider dashboard data
 ```
 
 ## Naming Conventions
