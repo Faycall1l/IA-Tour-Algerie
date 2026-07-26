@@ -41,16 +41,18 @@ VLLM_MODEL = settings.agent.vllm.model or "Gemma-4-31B-it"
 WILAYA_NAMES: dict[int, str] = {}
 
 SYSTEM_PROMPT = """You write fun facts for Algerian tourist attractions.
-Given a POI name, category, wilaya (province), and OSM tags, write ONE short, specific, interesting fun fact.
+Given a POI name, category, wilaya (province), and available data, write ONE short, specific, interesting fun fact.
 
 Rules:
 - Write in English
 - 1-2 sentences, under 200 characters
 - Be specific: include dates, numbers, names, or superlatives when possible
-- Only state things you are confident about — do NOT invent dates or statistics
-- If you cannot think of a specific interesting fact, respond with just: SKIP
-- Do NOT write generic filler like "a beautiful place to visit" or "one of Algeria's hidden gems"
-- Focus on what makes THIS place unique or noteworthy"""
+- You MAY use your general knowledge about Algeria, its history, culture, and geography to write accurate facts
+- You MAY infer reasonable details from the place name, category, and location (e.g., "Tlemcen is known for..." for a mosque in Tlemcen)
+- Do NOT invent specific dates, statistics, or claims you are unsure about
+- Do NOT write generic filler like "a beautiful place to visit" or "one of Algeria's hidden gems" or "worth visiting"
+- Focus on what makes THIS place unique or noteworthy
+- Always respond with a fact, never SKIP"""
 
 CATEGORY_CONTEXT = {
     "historical": "This is a historical/archaeological site.",
@@ -124,7 +126,7 @@ async def call_llm_batch(client: httpx.AsyncClient, prompts: list[str]) -> list[
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user", "content": prompt},
                     ],
-                    "temperature": 0.3,
+                    "temperature": 0.5,
                     "max_tokens": 150,
                 },
                 headers={"Authorization": f"Bearer {VLLM_API_KEY}"},
@@ -142,14 +144,14 @@ async def call_llm_batch(client: httpx.AsyncClient, prompts: list[str]) -> list[
 
 def validate_fact(fact: str) -> str | None:
     """Validate that a generated fact is useful and not garbage."""
-    if not fact or len(fact) < 15:
+    if not fact or len(fact) < 20:
         return None
     if fact.strip().upper() == "SKIP":
         return None
     lower = fact.lower()
 
     skip_phrases = [
-        "skip", "i don't know", "i cannot", "no information",
+        "i don't know", "i cannot", "no information",
         "i'm not sure", "uncertain", "no specific",
     ]
     if any(phrase in lower for phrase in skip_phrases):
@@ -167,6 +169,13 @@ def validate_fact(fact: str) -> str | None:
         "algeria's hidden",
         "a popular destination",
         "a great spot",
+        "worth a visit",
+        "beautiful destination",
+        "perfect for",
+        "great for visitors",
+        "lovely spot",
+        "great destination",
+        "a great place",
     ]
     if any(phrase in lower for phrase in generic_phrases):
         return None
@@ -201,23 +210,16 @@ async def fetch_target_pois(db: AsyncSession, limit: int, offset: int) -> list[d
               AND name NOT LIKE '%Bibliotheque%'
               AND name NOT LIKE '%mactab%'
               AND name NOT LIKE '%مكتبة%'
+              AND name NOT LIKE '%ONAT%'
+              AND name NOT LIKE '%ديوان%'
               AND category = ANY(:cats)
-              AND (
-                (description IS NOT NULL AND LENGTH(description) > 100)
-                OR (name_en IS NOT NULL AND name_en ~ '[A-Z][a-z]')
-                OR (osm_tags::text LIKE '%heritage%')
-                OR (osm_tags::text LIKE '%start_date%')
-                OR (osm_tags::text LIKE '%historic%')
-                OR (is_featured = true AND name NOT LIKE '%ONAT%' AND name NOT LIKE '%ديوان%')
-              )
             ORDER BY
-                (osm_tags::text LIKE '%heritage%') DESC,
-                (osm_tags::text LIKE '%start_date%') DESC,
-                (osm_tags::text LIKE '%historic%') DESC,
-                (name_en IS NOT NULL AND name_en ~ '^[A-Z][a-z]' AND LENGTH(name_en) > 8) DESC,
-                (description IS NOT NULL AND LENGTH(description) > 150) DESC,
-                category IN ('museum','natural','mountain','park','religious','beach','historical') DESC,
+                (description IS NOT NULL AND LENGTH(description) > 200) DESC,
+                (description IS NOT NULL AND LENGTH(description) > 100) DESC,
                 is_featured DESC,
+                (name_en IS NOT NULL AND LENGTH(name_en) > 5) DESC,
+                category IN ('museum','natural','mountain','park','religious','beach','historical') DESC,
+                (osm_tags::text LIKE '%heritage%') DESC,
                 name
             LIMIT :limit OFFSET :offset
         """),
@@ -272,6 +274,12 @@ async def enrich(batch_size: int = 10, dry_run: bool = False, max_total: int = 0
               AND name NOT LIKE '%Unnamed%'
               AND name NOT LIKE '%unknown%'
               AND name NOT LIKE '%Inconnu%'
+              AND name NOT LIKE '%Bibliothèque%'
+              AND name NOT LIKE '%Bibliotheque%'
+              AND name NOT LIKE '%mactab%'
+              AND name NOT LIKE '%مكتبة%'
+              AND name NOT LIKE '%ONAT%'
+              AND name NOT LIKE '%ديوان%'
               AND category = ANY(:cats)
         """), {"cats": list(TARGET_CATEGORIES)})
         total = count_q.scalar() or 0
