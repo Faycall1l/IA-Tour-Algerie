@@ -1,7 +1,14 @@
+"""Admin endpoints for platform management.
+
+Provides: user management, provider approval, content moderation,
+data verification, stats dashboard, and agent observability.
+"""
+
 import logging
 import uuid
 
 from fastapi import APIRouter, Depends, Query
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -312,4 +319,60 @@ async def get_verification_stats(
         message=f"POI data quality stats: {total} total, {with_phone} with phone, "
                 f"{with_website} with website, {with_hours} with hours, "
                 f"{short_desc} with short descriptions"
+    )
+
+
+# ── Agent Observability ────────────────────────────────────────────
+
+
+class AgentTraceSummary(BaseModel):
+    trace_id: str
+    agent_name: str
+    duration_ms: float
+    tokens: int
+    tool_calls: int
+    success: bool
+    error: str | None = None
+
+
+class AgentObservabilityStats(BaseModel):
+    total: int = 0
+    successes: int = 0
+    failures: int = 0
+    success_rate: float = 0.0
+    total_tokens: int = 0
+    avg_duration_ms: float = 0.0
+    recent_traces: list[AgentTraceSummary] = Field(default_factory=list)
+
+
+@router.get("/agent/stats", response_model=AgentObservabilityStats)
+async def agent_observability_stats(
+    limit: int = Query(20, ge=1, le=100, description="Number of recent traces to return"),
+    _current_user: User = Depends(get_current_admin),
+):
+    """View agent observability: success rates, token usage, recent traces."""
+    from app.agents.observability import trace_store
+
+    stats = trace_store.stats()
+    recent = trace_store.recent(limit=limit)
+
+    return AgentObservabilityStats(
+        total=stats.get("total", 0),
+        successes=stats.get("successes", 0),
+        failures=stats.get("failures", 0),
+        success_rate=stats.get("success_rate", 0.0),
+        total_tokens=stats.get("total_tokens", 0),
+        avg_duration_ms=stats.get("avg_duration_ms", 0.0),
+        recent_traces=[
+            AgentTraceSummary(
+                trace_id=t.trace_id[:16],
+                agent_name=t.agent_name,
+                duration_ms=round(t.duration_ms, 1),
+                tokens=t.total_tokens,
+                tool_calls=t.tool_calls,
+                success=t.success,
+                error=t.error,
+            )
+            for t in recent
+        ],
     )

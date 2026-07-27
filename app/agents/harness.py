@@ -22,6 +22,8 @@ from typing import Any
 
 from pydantic import BaseModel, ValidationError
 
+from app.agents.observability import Trace, trace_store
+
 logger = logging.getLogger(__name__)
 
 
@@ -215,9 +217,9 @@ def agent_harness(
             ...
     """
     def decorator(func):
-        async def wrapper(user_input: str, *args, **kwargs) -> tuple[Any, AgentTrace]:
-            trace = AgentTrace(
-                trace_id=str(uuid.uuid4()),
+        async def wrapper(user_input: str, *args, **kwargs) -> tuple[Any, Trace]:
+            trace = Trace(
+                trace_id=uuid.uuid4().hex,
                 agent_name=agent_name,
                 start_time=time.time(),
             )
@@ -225,18 +227,16 @@ def agent_harness(
 
             # ── Circuit breaker check ──
             if not cb.allow_request():
-                trace.success = False
-                trace.error = f"Circuit breaker OPEN for {agent_name}"
-                trace.end_time = time.time()
+                trace.finish(success=False, error=f"Circuit breaker OPEN for {agent_name}")
+                trace_store.record(trace)
                 logger.warning("Agent %s blocked by circuit breaker", agent_name)
                 return None, trace
 
             # ── Input validation ──
             is_valid, error = validate_input(user_input)
             if not is_valid:
-                trace.success = False
-                trace.error = error
-                trace.end_time = time.time()
+                trace.finish(success=False, error=error)
+                trace_store.record(trace)
                 logger.warning("Agent %s input rejected: %s", agent_name, error)
                 return None, trace
 
@@ -250,17 +250,17 @@ def agent_harness(
                     timeout=30.0,
                 )
                 cb.record_success()
-                trace.success = True
+                trace.finish(success=True)
             except asyncio.TimeoutError:
                 cb.record_failure()
-                trace.success = False
-                trace.error = f"Agent {agent_name} timed out after 30s"
+                trace.finish(success=False, error=f"Agent {agent_name} timed out after 30s")
+                trace_store.record(trace)
                 logger.warning("Agent %s timed out", agent_name)
                 return None, trace
             except Exception as e:
                 cb.record_failure()
-                trace.success = False
-                trace.error = str(e)[:500]
+                trace.finish(success=False, error=str(e)[:500])
+                trace_store.record(trace)
                 logger.error("Agent %s failed: %s", agent_name, e)
                 return None, trace
 
@@ -268,21 +268,20 @@ def agent_harness(
             if output_schema and result is not None:
                 is_valid, error = validate_output(result, output_schema)
                 if not is_valid:
-                    trace.success = False
-                    trace.error = error
+                    trace.finish(success=False, error=error)
+                    trace_store.record(trace)
                     logger.warning("Agent %s output invalid: %s", agent_name, error)
                     return None, trace
 
-            # ── Cost estimation ──
-            trace.end_time = time.time()
+            # ── Token/cost estimation ──
             trace.output_tokens = estimate_tokens(str(result))
-            trace.cost_usd = estimate_cost(0, trace.output_tokens, agent_name)
 
             logger.info(
-                "Agent %s [trace=%s] completed in %.0fms, ~%d tokens, $%.4f",
+                "Agent %s [trace=%s] completed in %.0fms, ~%d tokens",
                 agent_name, trace.trace_id[:8], trace.duration_ms,
-                trace.total_tokens, trace.cost_usd,
+                trace.total_tokens,
             )
+            trace_store.record(trace)
 
             return result, trace
 

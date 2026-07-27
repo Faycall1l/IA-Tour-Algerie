@@ -1,5 +1,6 @@
-"""Tests for the agent harness — input validation, circuit breaker, security."""
+"""Tests for the agent harness — input validation, circuit breaker, security, observability."""
 
+import time
 import pytest
 from pydantic import BaseModel, Field
 
@@ -16,6 +17,7 @@ from app.agents.harness import (
     validate_output,
     agent_harness,
 )
+from app.agents.observability import Span, Trace, TraceStore, trace_store
 from app.agents.security import (
     ToolRisk,
     can_use_tool,
@@ -203,3 +205,98 @@ class TestToolPermissions:
     def test_all_tools_classified(self):
         for tool_name in TOOL_RISK_MAP:
             assert isinstance(get_tool_risk(tool_name), ToolRisk)
+
+
+# ── Observability: Trace / Span / TraceStore ──
+
+class TestSpan:
+    def test_create_and_finish(self):
+        span = Span(span_id="abc123", name="llm_call", start_time=time.time())
+        assert span.end_time is None
+        assert span.duration_ms == 0.0
+        span.finish()
+        assert span.end_time is not None
+        assert span.duration_ms >= 0.0
+
+    def test_to_dict(self):
+        span = Span(span_id="abc123", name="tool_call", start_time=time.time())
+        span.finish()
+        d = span.to_dict()
+        assert d["span_id"] == "abc123"
+        assert d["name"] == "tool_call"
+        assert "duration_ms" in d
+
+    def test_error_status(self):
+        span = Span(span_id="x", name="fail", start_time=time.time())
+        span.finish(status="ERROR")
+        assert span.status == "ERROR"
+
+
+class TestTrace:
+    def test_create_and_finish(self):
+        trace = Trace(trace_id="t1", agent_name="test_agent")
+        assert trace.success is True
+        assert trace.end_time is None
+        trace.finish(success=False, error="boom")
+        assert trace.success is False
+        assert trace.error == "boom"
+        assert trace.duration_ms >= 0.0
+
+    def test_spans(self):
+        trace = Trace(trace_id="t2", agent_name="test")
+        s1 = trace.start_span("llm_call")
+        assert len(trace.spans) == 1
+        s1.finish()
+        s2 = trace.start_span("tool_call")
+        s2.finish()
+        assert len(trace.spans) == 2
+
+    def test_token_counting(self):
+        trace = Trace(trace_id="t3", agent_name="test")
+        trace.input_tokens = 100
+        trace.output_tokens = 200
+        assert trace.total_tokens == 300
+
+
+class TestTraceStore:
+    def test_record_and_recent(self):
+        store = TraceStore(max_size=5)
+        for i in range(3):
+            t = Trace(trace_id=f"t{i}", agent_name="test")
+            t.finish()
+            store.record(t)
+        recent = store.recent(limit=2)
+        assert len(recent) == 2
+        assert recent[0].trace_id == "t1"
+
+    def test_max_size_eviction(self):
+        store = TraceStore(max_size=3)
+        for i in range(5):
+            t = Trace(trace_id=f"t{i}", agent_name="test")
+            t.finish()
+            store.record(t)
+        assert len(store.recent(limit=10)) == 3
+
+    def test_stats_empty(self):
+        store = TraceStore()
+        stats = store.stats()
+        assert stats["total"] == 0
+
+    def test_stats_populated(self):
+        store = TraceStore()
+        for i in range(5):
+            t = Trace(trace_id=f"t{i}", agent_name="test")
+            t.input_tokens = 100
+            t.output_tokens = 50
+            t.finish(success=(i < 3))
+            store.record(t)
+        stats = store.stats()
+        assert stats["total"] == 5
+        assert stats["successes"] == 3
+        assert stats["failures"] == 2
+        assert stats["success_rate"] == 60.0
+        assert stats["total_tokens"] == 750
+
+    def test_global_trace_store_singleton(self):
+        assert trace_store is not None
+        assert isinstance(trace_store, TraceStore)

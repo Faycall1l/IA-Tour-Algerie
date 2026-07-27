@@ -6,7 +6,12 @@ Three agents are available:
 - `/search` — unified POI/stay/experience search (30 req/hour)
 
 All require JWT auth. Returns 503 if no API key is configured.
+Every call is traced via the observability system for P1 monitoring.
 """
+
+import logging
+import time
+import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -15,10 +20,13 @@ from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.deps import TravelAgentDeps
+from app.agents.harness import detect_injection, sanitize_input, validate_input
+from app.agents.observability import Trace, trace_store
 from app.api import deps
 from app.db.session import get_db
 from app.models.user import User
 
+logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/agent", tags=["agents"])
 limiter = Limiter(key_func=get_remote_address)
 
@@ -59,6 +67,44 @@ class AgentSearchResponse(BaseModel):
     total: int = 0
 
 
+# ── Trace helper ──
+
+async def _run_agent_traced(agent, message: str, agent_deps: TravelAgentDeps, agent_name: str) -> str:
+    """Run an agent with full observability tracing, input validation, and PII redaction."""
+    trace = Trace(
+        trace_id=uuid.uuid4().hex,
+        agent_name=agent_name,
+        user_id=str(agent_deps.user.id),
+        start_time=time.time(),
+    )
+
+    # Input validation
+    is_valid, error = validate_input(message)
+    if not is_valid:
+        trace.finish(success=False, error=error)
+        trace_store.record(trace)
+        raise HTTPException(status_code=400, detail=error)
+
+    # PII redaction
+    sanitized = sanitize_input(message)
+
+    try:
+        result = await agent.run(sanitized, deps=agent_deps)
+        output = str(result.output)
+        trace.output_tokens = len(output) // 4
+        trace.finish(success=True)
+    except HTTPException:
+        raise
+    except Exception as e:
+        trace.finish(success=False, error=str(e)[:500])
+        trace_store.record(trace)
+        logger.error("Agent %s failed: %s", agent_name, e)
+        raise HTTPException(status_code=500, detail=f"Agent error: {e}")
+
+    trace_store.record(trace)
+    return output
+
+
 # ── Dependency: extract agent from app.state ──
 
 def _get_agent(request: Request, name: str):
@@ -93,10 +139,8 @@ async def agent_chat(
     """Ask the travel assistant any Algeria travel question."""
     agent = _get_agent(request, "travel_agent")
     agent_deps = _make_deps(current_user, db, request)
-    result = await agent.run(body.message, deps=agent_deps)
-    return AgentChatResponse(
-        reply=str(result.output),
-    )
+    reply = await _run_agent_traced(agent, body.message, agent_deps, "travel_agent")
+    return AgentChatResponse(reply=reply)
 
 
 @router.post("/plan-trip", response_model=TripPlanResponse)
@@ -116,8 +160,7 @@ async def agent_plan_trip(
     )
     if body.interests.strip():
         prompt += f"\nInterests: {body.interests}"
-    result = await agent.run(prompt, deps=agent_deps)
-    reply = str(result.output)
+    reply = await _run_agent_traced(agent, prompt, agent_deps, "itinerary_agent")
     return TripPlanResponse(plan=reply)
 
 
@@ -132,5 +175,5 @@ async def agent_search(
     """Unified search across POIs, stays, and experiences via agent."""
     agent = _get_agent(request, "search_agent")
     agent_deps = _make_deps(current_user, db, request)
-    result = await agent.run(body.query, deps=agent_deps)
-    return AgentSearchResponse(results=[], total=0, reply=str(result.output))
+    reply = await _run_agent_traced(agent, body.query, agent_deps, "search_agent")
+    return AgentSearchResponse(results=[], total=0, reply=reply)
