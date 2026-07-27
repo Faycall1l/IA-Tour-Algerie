@@ -15,7 +15,7 @@ from app.agents.eval import (
 
 class TestGoldenSet:
     def test_golden_set_has_cases(self):
-        assert len(GOLDEN_SET) >= 10
+        assert len(GOLDEN_SET) >= 50
 
     def test_quick_set_smaller(self):
         assert len(QUICK_SET) == 5
