@@ -26,7 +26,6 @@ from app.agents.travel_agent import (
     create_search_agent,
     create_travel_agent,
 )
-from app.services.agent.agents.coordinator import get_coordinator
 from app.services.embeddings import EmbeddingService
 from app.services.response_cache import ResponseCache
 from app.services.storage import StorageService
@@ -54,13 +53,6 @@ async def lifespan(app: FastAPI):
     app.state.trip_brief_generator = TripBriefGenerator(transport_service=app.state.transport)
     app.state.twilio = TwilioService()
     app.state.response_cache = ResponseCache(ttl=300)
-    if settings.agent.enabled:
-        coordinator = get_coordinator()
-        app.state.coordinator_agent = coordinator
-        if coordinator:
-            logger.info("Agent layer initialized (enabled=%s)", settings.agent.enabled)
-        else:
-            logger.warning("Agent layer enabled but failed to initialize")
 
     # Initialize Pydantic AI travel agents (vLLM)
     bu = settings.agent.vllm.base_url

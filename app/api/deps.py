@@ -90,9 +90,5 @@ async def get_twilio(request: Request) -> TwilioService:
     return request.app.state.twilio
 
 
-async def get_coordinator_agent(request: Request):
-    return getattr(request.app.state, "coordinator_agent", None)
-
-
 async def get_transit_routing(request: Request) -> TransitRoutingService:
     return request.app.state.transit_routing
