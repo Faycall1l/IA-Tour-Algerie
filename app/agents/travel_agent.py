@@ -165,3 +165,34 @@ def create_search_agent(base_url: str = "", api_key: str = "", model_name: str =
     )
     _register_search_tools(agent)
     return agent
+
+
+def create_transport_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+    """Create the transport specialist agent — routes, schedules, contacts."""
+    if not api_key:
+        return None
+    agent = Agent[TravelAgentDeps](
+        model=_make_model(base_url, api_key, model_name),
+        instructions=_dynamic_instructions("travel_agent.transport"),
+        model_settings={"temperature": 0.2, "max_tokens": 2048},
+    )
+    agent.tool(get_transport_route)
+    agent.tool(get_operator_contacts)
+    agent.tool(search_pois)
+    return agent
+
+
+def create_events_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+    """Create the events/festivals specialist agent."""
+    if not api_key:
+        return None
+    agent = Agent[TravelAgentDeps](
+        model=_make_model(base_url, api_key, model_name),
+        instructions=_dynamic_instructions("travel_agent.events"),
+        model_settings={"temperature": 0.3, "max_tokens": 2048},
+    )
+    agent.tool(find_events)
+    agent.tool(search_pois)
+    agent.tool(search_stays)
+    agent.tool(get_weather)
+    return agent

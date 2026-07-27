@@ -98,6 +98,20 @@ class TestGlobalRegistry:
         p = registry.get("travel_agent.search")
         assert "search" in p.template.lower()
 
+    def test_transport_prompt(self):
+        p = registry.get("travel_agent.transport")
+        assert "transport" in p.template.lower()
+        assert "SNTF" in p.template
+
+    def test_events_prompt(self):
+        p = registry.get("travel_agent.events")
+        assert "events" in p.template.lower() or "festivals" in p.template.lower()
+
+    def test_all_agents_have_context_placeholder(self):
+        for item in registry.list_prompts():
+            p = registry.get(item["name"])
+            assert "{context}" in p.template, f"{item['name']} missing {{context}}"
+
 
 class TestAgentContext:
     def test_empty_context(self):

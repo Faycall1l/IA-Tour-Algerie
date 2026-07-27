@@ -1,9 +1,11 @@
 """Pydantic AI agent endpoints for travel planning.
 
-Three agents are available:
+Five agents are available:
 - `/chat` — general travel assistant (20 req/hour)
 - `/plan-trip` — structured itinerary planner (10 req/hour)
 - `/search` — unified POI/stay/experience search (30 req/hour)
+- `/transport` — transport specialist: routes, schedules, contacts (20 req/hour)
+- `/events` — events & festivals specialist (20 req/hour)
 
 All require JWT auth. Returns 503 if no API key is configured.
 Every call is traced via the observability system for P1 monitoring.
@@ -48,6 +50,17 @@ class PlanTripRequest(BaseModel):
 class AgentSearchRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500)
     wilaya_id: int | None = None
+
+
+class TransportQueryRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=500, description="Transport question")
+    from_wilaya: int | None = Field(None, ge=1, le=58)
+    to_wilaya: int | None = Field(None, ge=1, le=58)
+
+
+class EventsQueryRequest(BaseModel):
+    query: str = Field(..., min_length=1, max_length=500, description="Events/festivals question")
+    wilaya_id: int | None = Field(None, ge=1, le=58)
 
 
 # ── Response schemas ──
@@ -177,3 +190,33 @@ async def agent_search(
     agent_deps = _make_deps(current_user, db, request)
     reply = await _run_agent_traced(agent, body.query, agent_deps, "search_agent")
     return AgentSearchResponse(results=[], total=0, reply=reply)
+
+
+@router.post("/transport", response_model=AgentChatResponse)
+@limiter.limit("20/hour")
+async def agent_transport(
+    body: TransportQueryRequest,
+    request: Request,  # noqa: ARG001 — required by slowapi
+    current_user: User = Depends(deps.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Ask the transport specialist about routes, schedules, or contacts."""
+    agent = _get_agent(request, "transport_agent")
+    agent_deps = _make_deps(current_user, db, request)
+    reply = await _run_agent_traced(agent, body.query, agent_deps, "transport_agent")
+    return AgentChatResponse(reply=reply)
+
+
+@router.post("/events", response_model=AgentChatResponse)
+@limiter.limit("20/hour")
+async def agent_events(
+    body: EventsQueryRequest,
+    request: Request,  # noqa: ARG001 — required by slowapi
+    current_user: User = Depends(deps.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Ask the events specialist about festivals and cultural activities."""
+    agent = _get_agent(request, "events_agent")
+    agent_deps = _make_deps(current_user, db, request)
+    reply = await _run_agent_traced(agent, body.query, agent_deps, "events_agent")
+    return AgentChatResponse(reply=reply)

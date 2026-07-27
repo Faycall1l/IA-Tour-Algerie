@@ -22,8 +22,10 @@ from app.core.limiter import (
 )
 from app.core.logging import setup_logging
 from app.agents.travel_agent import (
+    create_events_agent,
     create_itinerary_agent,
     create_search_agent,
+    create_transport_agent,
     create_travel_agent,
 )
 from app.services.embeddings import EmbeddingService
@@ -61,6 +63,8 @@ async def lifespan(app: FastAPI):
     app.state.travel_agent = create_travel_agent(base_url=bu, api_key=ak, model_name=mn)
     app.state.itinerary_agent = create_itinerary_agent(base_url=bu, api_key=ak, model_name=mn)
     app.state.search_agent = create_search_agent(base_url=bu, api_key=ak, model_name=mn)
+    app.state.transport_agent = create_transport_agent(base_url=bu, api_key=ak, model_name=mn)
+    app.state.events_agent = create_events_agent(base_url=bu, api_key=ak, model_name=mn)
     if ak:
         logger.info("Pydantic AI agents initialized: %s @ %s", mn, bu)
     else:
