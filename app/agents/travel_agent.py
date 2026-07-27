@@ -7,6 +7,10 @@ This agent helps users plan trips to Algeria by:
 
 Every tool has Pydantic-validated inputs AND outputs.
 Agent instances are created at app startup via the factory functions.
+
+Prompts are versioned via app.agents.prompts — see prompts.py for the
+canonical prompt text. The instructions below are fallback defaults;
+in production, use build_prompt() to inject user context.
 """
 
 from pydantic import BaseModel, Field
@@ -15,6 +19,7 @@ from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.deps import TravelAgentDeps
+from app.agents.prompts import build_prompt, registry as prompt_registry
 from app.agents.tools import (
     ArtisanSearchOutput,
     ArtisanSearchParams,
@@ -77,79 +82,13 @@ class TravelSearchResult(BaseModel):
     summary: str = Field(..., description="Natural language summary of findings")
 
 
-AGENT_INSTRUCTIONS = (
-    "You are ATHAR, a friendly and knowledgeable Algerian travel planning assistant. "
-    "You help travelers discover Algeria's 58 wilayas — from the Sahara to the Mediterranean coast."
+# ── Prompts (sourced from versioned registry) ──
+# These are the canonical prompts. The registry is the source of truth.
+# They're re-exported here for backward compatibility with tests.
 
-    "\n\nYOUR CAPABILITIES:"
-    "\n- Search points of interest (historical sites, museums, beaches, mountains, parks, etc.)"
-    "\n- Find accommodations (hotels, guesthouses, hostels) with pricing"
-    "\n- Discover tours, activities, and cultural experiences"
-    "\n- Find local artisans and craftspeople (pottery, weaving, jewelry, leatherwork, etc.)"
-    "\n- Get a curated wilaya travel guide with featured attractions per category"
-    "\n- Find transport options (bus, taxi, train, plane, multi-hop) between two wilayas"
-    "\n- Look up operator contacts (SNTF, Air Algérie, SOGRAL, etc.) with phone numbers"
-    "\n- Search cultural events and festivals by wilaya, category, and month"
-    "\n- Check weather forecasts for destinations"
-    "\n- Look up the user's saved collections/wishlists"
-
-    "\n\nTOOL USAGE RULES:"
-    "\n1. ALWAYS use `search_pois` with the `query` param describing what the user wants"
-    "\n2. ALWAYS use `search_stays` when the user asks about accommodation"
-    "\n3. Use `get_wilaya_guide` when the user asks 'what to see' in a specific wilaya"
-    "\n4. Use `get_transport_route` when the user asks how to get between two wilayas — it returns train (direct + multi-hop), bus, taxi, and flight options with schedules and pricing"
-    "\n5. Use `get_operator_contacts` when the user asks for phone numbers or contact info for transport companies"
-    "\n6. Use `find_events` when the user asks about festivals, events, or seasonal activities"
-    "\n7. Use `get_weather` when the user asks about weather or when planning outdoor activities"
-    "\n8. Use `search_artisans` when the user asks about local crafts, workshops, or buying souvenirs"
-    "\n9. Combine multiple tools to give comprehensive answers"
-    "\n10. If a tool returns no results, say so honestly and suggest alternatives"
-    "\n11. Always mention wilaya names when citing places"
-
-    "\n\nRESPONSE STYLE:"
-    "\n- Be concise but informative"
-    "\n- Always include price/cost info when available"
-    "\n- Mention the wilaya ID for every location"
-    "\n- Suggest nearby or related places when relevant"
-    "\n- Use natural language, not bullet points in the summary field"
-)
-
-ITINERARY_INSTRUCTIONS = (
-    "You are an expert Algerian travel itinerary planner. "
-    "Given a destination, duration, budget, and interests, create a detailed day-by-day plan."
-
-    "\n\nPLANNING RULES:"
-    "\n1. Search for POIs in the destination using `search_pois` to find real attractions"
-    "\n2. Search for stays using `search_stays` to find real accommodations"
-    "\n3. Get the curated travel guide using `get_wilaya_guide` for a structured overview"
-    "\n4. Check transport between cities using `get_transport_route` if the trip spans multiple wilayas"
-    "\n5. Check weather using `get_weather` to include in your recommendations"
-    "\n6. Search for events using `find_events` if the user mentions festivals or timing"
-    "\n7. Balance each day: 1 major attraction (morning) + 1-2 smaller activities (afternoon) + dining (evening)"
-    "\n8. Include realistic travel times between locations"
-    "\n9. Respect prayer times (suggest breaks around noon on Fridays)"
-    "\n10. Include local food recommendations"
-
-    "\n\nBUDGET GUIDELINES (per person, per day):"
-    "\n- Budget: 2000–5000 DZD"
-    "\n- Mid-range: 5000–12000 DZD"
-    "\n- Luxury: 12000+ DZD"
-
-    "\n\nAlways provide estimated costs and practical tips."
-)
-
-SEARCH_INSTRUCTIONS = (
-    "You are ATHAR's search assistant. Your job is to find the best "
-    "POIs, stays, and experiences matching the user's query."
-
-    "\n\nRULES:"
-    "\n1. Call search_pois, search_stays, and search_experiences as needed"
-    "\n2. Use get_wilaya_guide for 'what to see' in a wilaya"
-    "\n3. Use find_events for festival/event queries"
-    "\n4. If the query mentions weather, get_weather for the location"
-    "\n5. Summarize findings in the `summary` field"
-    "\n6. Be honest if nothing is found — suggest broadening the search"
-)
+AGENT_INSTRUCTIONS = prompt_registry.get("travel_agent.main").template
+ITINERARY_INSTRUCTIONS = prompt_registry.get("travel_agent.itinerary").template
+SEARCH_INSTRUCTIONS = prompt_registry.get("travel_agent.search").template
 
 
 def _register_search_tools(agent: Agent) -> None:
@@ -177,13 +116,25 @@ def _make_model(base_url: str, api_key: str, model_name: str) -> OpenAIChatModel
     )
 
 
+def _dynamic_instructions(prompt_name: str):
+    """Return a callable that renders the prompt with runtime context."""
+    from app.agents.prompts import AgentContext, registry as reg
+
+    def _render(ctx: RunContext[TravelAgentDeps]) -> str:
+        prompt = reg.get(prompt_name)
+        agent_ctx = AgentContext.from_user(ctx.deps.user)
+        return prompt.render(context=agent_ctx.render())
+
+    return _render
+
+
 def create_travel_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
     """Create the main travel planning agent."""
     if not api_key:
         return None
     agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
-        instructions=AGENT_INSTRUCTIONS,
+        instructions=_dynamic_instructions("travel_agent.main"),
         model_settings={"temperature": 0.3, "max_tokens": 2048},
     )
     _register_all_tools(agent)
@@ -196,7 +147,7 @@ def create_itinerary_agent(base_url: str = "", api_key: str = "", model_name: st
         return None
     agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
-        instructions=ITINERARY_INSTRUCTIONS,
+        instructions=_dynamic_instructions("travel_agent.itinerary"),
         model_settings={"temperature": 0.5, "max_tokens": 4096},
     )
     _register_all_tools(agent)
@@ -209,7 +160,7 @@ def create_search_agent(base_url: str = "", api_key: str = "", model_name: str =
         return None
     agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
-        instructions=SEARCH_INSTRUCTIONS,
+        instructions=_dynamic_instructions("travel_agent.search"),
         model_settings={"temperature": 0.2, "max_tokens": 1024},
     )
     _register_search_tools(agent)
