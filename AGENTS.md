@@ -68,7 +68,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - **POI graph service** (`app/services/poi_graph.py`): Networkx-based tourist routing with singleton pattern — 34,787 tourism POIs, 535,237 walking edges within 5km. Tour optimization with density-based cluster detection: Oran 9 POIs (4.1km), Tlemcen 10 (2.3km), Algiers 10 (3.2km), Blida 9 (0.8km), Batna 9 (5.5km), Constantine 7 (1.2km). API endpoints: `/pois/tour/optimize`, `/clusters`, `/hubs`.
 - **Trip optimizer wired to POI graph** (`trip_optimizer.py`): `optimize_day()` uses POIGraphService walking times (haversine fallback). `detect_gaps()` and `suggest_fillers()` also use POI graph for cluster-based recommendations.
 - **POI durations recalibrated**: historical 30min (was 90), museum 45min (was 120), natural 45min (was 180), mountain 90min (was 240) for realistic walking tours.
-- **Fun facts enrichment** (`enrich_fun_facts.py` + `enrich_fun_facts_genai.py`): 583 POIs with fun facts from Wikidata (16), OSM tags (304), category templates (263). GenAI enrichment via vLLM Gemma 4 in progress — 97.9% success rate (was 0.2% with old prompt), ~20 POIs/min. Migration 031: `fun_fact` + `fun_fact_source` columns.
+- **Fun facts enrichment** (`enrich_fun_facts.py` + `enrich_fun_facts_genai.py`): **2,911 POIs** with fun facts — 22 from Wikidata/Wikipedia, 2,889 from GenAI via vLLM Gemma 4 (97.9% success rate, 1,971 enriched in final run). Migration 031: `fun_fact` + `fun_fact_source` columns.
 - **Real artisan data** (commit `ad715fa`): **3,744 artisan shops** extracted from OSM Overpass API across 52/58 wilayas (craft=*, shop=craft/pottery/carpet/leather/jewelry). All geolocated with wilaya_id. Top: Tlemcen 1,710, Algiers 311, Ain Temouchent 273. DB seeded: 3,752 total (8 existing + 3,744 new).
 - **Social media bloat killed** (commit `d1472d7`): Discussion threads, live posts, WhatsApp bot, mock visa OCR — all removed.
 - **Bookings, circuits, notifications killed** (commit `180cd78`): 0 rows, not core to travel guide.
@@ -96,7 +96,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 2. **⬅️ More photos for remaining historical/cultural POIs**: 7,010 POIs now have MinIO photos — remaining ~46K have no matching Commons/Wikipedia content
 3. ~~⬜ **Expand schedule/pricing**~~ — **DONE**: 854/855 transport lines have schedule + pricing data (walking excluded)
 4. ⬜ **Add operator contacts for remaining wilaya taxi unions** — currently only national operators seeded; wilaya-level taxi phone numbers needed
-5. **⬅️ More fun facts via GenAI** — enrichment script running in background via vLLM Gemma 4 (97.9% success rate, ~20/min). ~1,565/2,000 eligible POIs enriched so far.
+5. **⬅️ More fun facts via GenAI** — **DONE**: 2,911/52,997 POIs have fun facts (22 Wikidata/Wikipedia + 2,889 GenAI). Enrichment script completed successfully.
 6. ⬜ **Frontend** — the API is complete; needs a mobile/web frontend to be actually usable
 
 ## Critical Context
@@ -108,7 +108,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - App has trip optimizer combining POIs + transport + stays + restaurants + experiences, now wired to POI graph for walking times
 - **POI graph service**: 34,787 tourism POIs, 535,237 walking edges. Tour optimization works: Oran 9 POIs (4.1km), Tlemcen 10 (2.3km), Algiers 10 (3.2km), Blida 9 (0.8km), Batna 9 (5.5km), Constantine 7 (1.2km)
 - MultiModalRouter loads 444 multi-wilaya transport lines with 3,918 adjacency edges
-- **Fun facts enrichment**: 583 POIs with real fun facts — 20 hand-curated (Timgad, Casbah, Fort Santa Cruz, etc.) + 563 via Wikidata/OSM/templates. GenAI enrichment running via vLLM Gemma 4 (97.9% success rate, ~20/min)
+- **Fun facts enrichment**: **2,911 POIs** with real fun facts — 22 from Wikidata/Wikipedia (Timgad, Casbah, Fort Santa Cruz, etc.) + 2,889 generated via vLLM Gemma 4 (97.9% success rate)
 - Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `enrich_poi_descriptions.py`, `enrich_fun_facts.py`, `enrich_fun_facts_genai.py`, `migrate_photos_minio.py`, `extract_osm_artisans.py`
 
 ## Relevant Files
