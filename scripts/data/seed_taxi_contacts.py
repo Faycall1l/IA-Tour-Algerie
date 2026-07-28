@@ -81,7 +81,7 @@ WILAYA_CONTACTS = {
     38: (None,          None,                    None,                   "Gare routière SOGRAL Tissemsilt"),
     39: (None,          None,                    None,                   "Gare routière SOGRAL El Oued"),
     40: (None,          None,                    None,                   "Gare routière SOGRAL Khenchela"),
-    41: (None,          None,                    None,                   "Gare routière Souk Ahras"),
+    41: ("037 71 57 72", None,                    None,                   "Gare SOGRAL Souk Ahras: 037 71 57 72 (Laaraibia Mubarek Ben El Boussiri)"),
     42: (None,          None,                    None,                   ""),
     43: (None,          None,                    None,                   ""),
     44: (None,          None,                    None,                   "DTW Ain Defla"),
