@@ -39,7 +39,7 @@ def _extract_tool_calls(result) -> list[str]:
 async def run_eval_single(agent, case: EvalCase, deps: TravelAgentDeps) -> EvalResult:
     """Run one eval case and return the result. Retries on transient errors."""
     max_retries = 3
-    case_timeout = 60.0  # 60s per case max
+    case_timeout = 120.0  # 120s per case max (vLLM can be slow on complex calls)
     for attempt in range(max_retries):
         start = time.time()
         try:
