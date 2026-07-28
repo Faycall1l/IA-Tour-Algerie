@@ -39,10 +39,14 @@ def _extract_tool_calls(result) -> list[str]:
 async def run_eval_single(agent, case: EvalCase, deps: TravelAgentDeps) -> EvalResult:
     """Run one eval case and return the result. Retries on transient errors."""
     max_retries = 3
+    case_timeout = 60.0  # 60s per case max
     for attempt in range(max_retries):
         start = time.time()
         try:
-            result = await agent.run(case.input, deps=deps)
+            result = await asyncio.wait_for(
+                agent.run(case.input, deps=deps),
+                timeout=case_timeout,
+            )
             output = str(result.output)
             duration = (time.time() - start) * 1000
 
@@ -53,13 +57,23 @@ async def run_eval_single(agent, case: EvalCase, deps: TravelAgentDeps) -> EvalR
             eval_result.output_preview = output[:500]
             return eval_result
 
+        except asyncio.TimeoutError:
+            duration = (time.time() - start) * 1000
+            if attempt < max_retries - 1:
+                print(f"\n         Timeout (attempt {attempt+1}/{max_retries}), retrying...", end=" ", flush=True)
+                await asyncio.sleep(5)
+                continue
+            return EvalResult(
+                case_id=case.id, case_name=case.name, passed=False, score=0.0,
+                duration_ms=round(duration, 1), error=f"Timeout after {case_timeout}s",
+                output_preview="TIMEOUT",
+            )
         except Exception as e:
             duration = (time.time() - start) * 1000
             error_str = str(e)
-            # Retry on transient errors (307 redirect, 429 rate limit, timeout)
             is_transient = any(code in error_str for code in ["307", "429", "503", "timeout", "Timeout"])
             if is_transient and attempt < max_retries - 1:
-                wait = (attempt + 1) * 10  # 10s, 20s backoff
+                wait = (attempt + 1) * 10
                 print(f"\n         Transient error (attempt {attempt+1}/{max_retries}), retrying in {wait}s...", end=" ", flush=True)
                 await asyncio.sleep(wait)
                 continue
