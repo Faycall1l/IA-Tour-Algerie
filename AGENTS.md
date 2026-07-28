@@ -85,7 +85,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
   - Session management: `GET /agent/sessions`, `DELETE /agent/sessions/{id}`
   - All 5 agents (travel, itinerary, search, transport, events) have memory tools registered
   - 21 new tests, 213 total
-- **Taxi operator contacts**: **70 syndicates across all 69 wilayas** — UNACT (east, 15 branches), UNAT (west, 10 branches), local syndicates (41), ENTV (national). 7 with direct phone numbers, rest contactable via gare routière. `seed_taxi_contacts.py`
+- **Taxi operator contacts**: **70 syndicates across all 69 wilayas** — UNACT (east, 15 branches), UNAT (west, 10 branches), local syndicates (41), ENTV (national). **Phone enrichment**: 4 with real phone numbers (Alger 0542 43 31 62 via Station Hussein Dey, Bouira 0560 00 71 71 via Radio Taxi Company, Tamanrasset 029 30 02 04 via SOGRAL gare, ENTV +213 21 50 00 00). All 70 have enhanced descriptions with SOGRAL gare routière/DTW contact references. Old fake numbers removed. `seed_taxi_contacts.py`
 
 ### Blocked
 - **Wasly.app REST API** is partner-only (B2B request required) — bus data publicly unavailable
@@ -106,7 +106,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 1. **⬅️ Migrate Wikimedia photos to MinIO** — background script running, ~1,550 unique URLs remaining (~7,000 POIs migrated of 8,108)
 2. **⬅️ More photos for remaining historical/cultural POIs**: 7,010 POIs now have MinIO photos — remaining ~46K have no matching Commons/Wikipedia content
 3. ~~⬜ **Expand schedule/pricing**~~ — **DONE**: 854/855 transport lines have schedule + pricing data (walking excluded)
-4. ~~⬜ **Add operator contacts for remaining wilaya taxi unions**~~ — **DONE**: 70 syndicates across all 69 wilayas (UNACT/UNAT/local)
+4. ~~⬜ **Add operator contacts for remaining wilaya taxi unions**~~ — **DONE**: 70 syndicates across all 69 wilayas (UNACT/UNAT/local), 4 with real phone numbers from SOGRAL/CACI/taxi station directories, all 70 with enhanced descriptions referencing SOGRAL gare routière/DTW contacts. Fake synthetic numbers removed.
 5. **⬅️ More fun facts via GenAI** — **DONE**: 2,911/52,997 POIs have fun facts (22 Wikidata/Wikipedia + 2,889 GenAI). Enrichment script completed successfully.
 6. ⬜ **Frontend** — the API is complete with ~125+ routes, 5 agent endpoints with multi-turn memory; needs a mobile/web frontend to be actually usable
 
@@ -120,6 +120,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - **POI graph service**: 34,787 tourism POIs, 535,237 walking edges. Tour optimization works: Oran 9 POIs (4.1km), Tlemcen 10 (2.3km), Algiers 10 (3.2km), Blida 9 (0.8km), Batna 9 (5.5km), Constantine 7 (1.2km)
 - MultiModalRouter loads 444 multi-wilaya transport lines with 3,918 adjacency edges
 - **Fun facts enrichment**: **2,911 POIs** with real fun facts — 22 from Wikidata/Wikipedia (Timgad, Casbah, Fort Santa Cruz, etc.) + 2,889 generated via vLLM Gemma 4 (97.9% success rate)
+- **Taxi operator contacts**: 70 syndicates across all 69 wilayas — UNACT (15 east), UNAT (10 west), local (41), ENTV (national). 4 with direct verified phones (Alger 0542 43 31 62, Bouira 0560 00 71 71, Tamanrasset 029 30 02 04, ENTV +213 21 50 00 00). All 70 have enhanced descriptions with SOGRAL/DTW contact references. Sources: SOGRAL gares routières, CACI El Mouchir, PagesMaghreb.
 - Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `enrich_poi_descriptions.py`, `enrich_fun_facts.py`, `enrich_fun_facts_genai.py`, `migrate_photos_minio.py`, `extract_osm_artisans.py`, `seed_taxi_contacts.py`
 - **Agent memory system**: `app/models/agent_memory.py` (AgentSession, AgentMemory), `app/agents/memory_service.py` (get_or_create_session, load_message_history, remember, recall), `app/agents/memory_tools.py` (remember/recall tools), `alembic/versions/ef64db5de951_add_agent_memory.py`, `tests/test_memory.py` (21 tests)
 

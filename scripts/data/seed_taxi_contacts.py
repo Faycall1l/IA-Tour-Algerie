@@ -25,22 +25,107 @@ from app.core.config import settings
 
 # Real taxi syndicate contacts per wilaya
 # Format: (name_fr, name_ar, phone, headquarters_wilaya_id, region)
-# Phone numbers from published gare routière / SNTV directories
+# Phone numbers from published gare routière / DTW / transport authority directories
+#
+# Sources:
+# - SOGRAL gares routières: www.sogral.dz (official bus station operator)
+# - CACI El Mouchir: www.elmouchir.caci.dz (Chamber of Commerce directory)
+# - PagesMaghreb: www.pagesmaghreb.com (business directory)
+# - DTW: Direction des Transports de Wilaya (wilaya transport directorates)
+# - taxi-algerie.com: taxi driver directory
+# - Petit Fute Algeria guide
+#
+# Where no direct syndicate phone exists, the SOGRAL gare routière or
+# DTW number is provided as a contact point in the description.
+
+# Additional contact info per wilaya (phone, gare_routiere, dtw)
+WILAYA_CONTACTS = {
+    # (wilaya_id): (phone, gare_number, dtw_number, notes)
+    1:  (None,          None,                    None,                   "Gare routière SOGRAL Adrar"),
+    2:  (None,          None,                    None,                   "Gare routière SOGRAL Chlef"),
+    3:  (None,          None,                    None,                   "Gare routière SOGRAL Laghouat"),
+    4:  (None,          None,                    None,                   ""),
+    5:  (None,          None,                    None,                   ""),
+    6:  (None,          "034 21 19 02",          "034 21 19 02",         "Gare SOGRAL Bejaïa / DTW: 034 21 19 02"),
+    7:  (None,          None,                    None,                   "Gare routière SOGRAL Biskra"),
+    8:  (None,          None,                    None,                   "Gare routière SOGRAL Béchar"),
+    9:  (None,          None,                    None,                   "Gare routière SOGRAL Blida"),
+    10: ("0560 00 71 71", "026 93 92 00",        "026 93 92 00",         "Radio Taxi Company Bouira: 0560 00 71 71 / Gare Antar: 026 93 92 00"),
+    11: ("029 30 02 04", None,                   None,                   "Gare routière SOGRAL Tamanrasset: 029 30 02 04"),
+    12: (None,          None,                    None,                   "Gare SOGRAL Hocine Ait Ahmed, Tébessa"),
+    13: (None,          None,                    None,                   "Gare SOGRAL Yahia Bachir, Tlemcen"),
+    14: (None,          None,                    None,                   ""),
+    15: (None,          "026 22 27 82",          "026 22 27 82",         "DTW Tizi Ouzou: 026 22 27 82"),
+    16: ("0542 43 31 62", "021 77 00 77",        None,                   "Station Hussein Dey: 0542 43 31 62 / SOGRAL: 021 77 00 77 / EGCTU: 0550 22 99 80"),
+    17: (None,          None,                    None,                   "Gare routière SOGRAL Djelfa"),
+    18: (None,          None,                    None,                   ""),
+    19: (None,          None,                    None,                   "Gare SOGRAL Mohamed Boudiaf, Sétif"),
+    20: (None,          None,                    None,                   ""),
+    21: (None,          None,                    None,                   ""),
+    22: (None,          None,                    None,                   "Gare routière Sidi Bel Abbes"),
+    23: (None,          None,                    None,                   "Gare routière Annaba"),
+    24: (None,          None,                    None,                   ""),
+    25: (None,          None,                    None,                   "Gares SOGRAL Ali Mendjili / Sahraoui Tahar, Constantine"),
+    26: (None,          None,                    None,                   "Gare routière SOGRAL Médéa"),
+    27: (None,          None,                    None,                   "Gare SOGRAL 5 Juillet 1962, Mostaganem / Hôtel AZ: 045 42 02 60"),
+    28: (None,          None,                    None,                   ""),
+    29: (None,          None,                    "045 81 24 72",         "DTW Mascara: 045 81 24 72"),
+    30: (None,          None,                    None,                   "Gare routière SOGRAL Ouargla"),
+    31: (None,          None,                    "041 24 00 69",         "DTW Oran: 041 24 00 69 / Stations USTO & El Hamri"),
+    32: (None,          None,                    None,                   ""),
+    33: (None,          None,                    None,                   ""),
+    34: (None,          None,                    None,                   ""),
+    35: (None,          None,                    None,                   "DTW Boumerdes"),
+    36: (None,          None,                    None,                   ""),
+    37: (None,          None,                    None,                   "Gare routière SOGRAL Tindouf"),
+    38: (None,          None,                    None,                   "Gare routière SOGRAL Tissemsilt"),
+    39: (None,          None,                    None,                   "Gare routière SOGRAL El Oued"),
+    40: (None,          None,                    None,                   "Gare routière SOGRAL Khenchela"),
+    41: (None,          None,                    None,                   "Gare routière Souk Ahras"),
+    42: (None,          None,                    None,                   ""),
+    43: (None,          None,                    None,                   ""),
+    44: (None,          None,                    None,                   "DTW Ain Defla"),
+    45: (None,          None,                    None,                   "Gare routière SOGRAL Naâma"),
+    46: (None,          None,                    None,                   "Gare routière Ain Témouchent"),
+    47: (None,          None,                    None,                   "Gare routière SOGRAL Ghardaïa"),
+    48: (None,          None,                    None,                   "Gare SOGRAL Bendaoued, Relizane / Protection civile: 046 76 34 22"),
+    49: (None,          None,                    None,                   ""),
+    50: (None,          None,                    None,                   ""),
+    51: (None,          None,                    None,                   "Gare SOGRAL In Salah"),
+    52: (None,          None,                    None,                   ""),
+    53: (None,          None,                    None,                   ""),
+    54: (None,          None,                    None,                   ""),
+    55: (None,          None,                    None,                   ""),
+    56: (None,          None,                    None,                   ""),
+    57: (None,          None,                    None,                   "Gare routière Ouled Djellal"),
+    58: (None,          None,                    None,                   ""),
+    59: (None,          None,                    None,                   "Gare SOGRAL Aflou"),
+    60: (None,          None,                    None,                   ""),
+    61: (None,          None,                    None,                   ""),
+    62: (None,          None,                    None,                   ""),
+    63: (None,          None,                    None,                   ""),
+    64: (None,          None,                    None,                   "Gare SOGRAL Boussaâda"),
+    65: (None,          None,                    None,                   "Gare SOGRAL Bir El Ater"),
+    66: (None,          None,                    None,                   ""),
+    67: (None,          None,                    None,                   ""),
+    68: (None,          None,                    None,                   "Gare SOGRAL Ain Oussera"),
+    69: (None,          None,                    None,                   "Gare SOGRAL Messaâd"),
+}
 
 TAXI_SYNDICATES = [
     # ── National unions ──
     # ENTV (already seeded), UNACT, UNAT are already in the DB
 
     # ── Eastern region (UNACT branches) ──
-    ("UNACT Annaba", "اتحاد نقل المسافرين عنابة", "+213 38 85 00 00", 23, "regional"),
-    ("UNACT Batna", "اتحاد نقل المسافرين باتنة", "+213 33 81 00 00", 5, "regional"),
-    ("UNACT Bejaia", "اتحاد نقل المسافرين بجاية", "+213 34 20 00 00", 6, "regional"),
-    ("UNACT Biskra", "اتحاد نقل المسافرين بسكرة", "+213 33 74 00 00", 7, "regional"),
+    ("UNACT Annaba", "اتحاد نقل المسافرين عنابة", None, 23, "regional"),
+    ("UNACT Batna", "اتحاد نقل المسافرين باتنة", None, 5, "regional"),
+    ("UNACT Bejaia", "اتحاد نقل المسافرين بجاية", None, 6, "regional"),
+    ("UNACT Biskra", "اتحاد نقل المسافرين بسكرة", None, 7, "regional"),
     ("UNACT Constantine", "اتحاد نقل المسافرين قسنطينة", None, 25, "regional"),
     ("UNACT Guelma", "اتحاد نقل المسافرين قالمة", None, 24, "regional"),
     ("UNACT Jijel", "اتحاد نقل المسافرين جيجل", None, 18, "regional"),
     ("UNACT Mila", "اتحاد نقل المسافرين ميلة", None, 43, "regional"),
-    ("UNACT Setif", "اتحاد نقل المسافرين سطيف", "+213 36 66 00 00", 19, "regional"),
+    ("UNACT Setif", "اتحاد نقل المسافرين سطيف", None, 19, "regional"),
     ("UNACT Skikda", "اتحاد نقل المسافرين سكيكدة", None, 21, "regional"),
     ("UNACT Souk Ahras", "اتحاد نقل المسافرين سوق أهراس", None, 41, "regional"),
     ("UNACT Tebessa", "اتحاد نقل المسافرين تبسة", None, 12, "regional"),
@@ -61,7 +146,7 @@ TAXI_SYNDICATES = [
     ("UNAT El Bayadh", "اتحاد نقل المسافرين البيض", None, 32, "regional"),
 
     # ── Central / Algiers region ──
-    ("Syndicat des Taxieurs Alger", "نقابة سائقي الأجرة الجزائر", "+213 21 50 00 00", 16, "regional"),
+    ("Syndicat des Taxieurs Alger", "نقابة سائقي الأجرة الجزائر", None, 16, "city"),
     ("Syndicat des Taxieurs Blida", "نقابة سائقي الأجرة البليدة", None, 9, "city"),
     ("Syndicat des Taxieurs Boumerdes", "نقابة سائقي الأجرة بومرداس", None, 35, "city"),
     ("Syndicat des Taxieurs Tipaza", "نقابة سائقي الأجرة تيبازة", None, 42, "city"),
@@ -137,11 +222,43 @@ async def seed():
                 skipped += 1
                 continue
 
-            description = f"Syndicat des taxieurs de la wilaya — "
-            if phone:
-                description += f"Contact direct."
+            # Check for additional contact info from WILAYA_CONTACTS
+            contact_info = WILAYA_CONTACTS.get(wid, (None, None, None, ""))
+            c_phone, c_gare, c_dtw, c_notes = contact_info
+
+            # Use real phone if available from contacts lookup
+            effective_phone = c_phone if c_phone else phone
+
+            # Build informative description
+            parts = ["Syndicat des taxieurs de la wilaya"]
+            if effective_phone:
+                parts.append(f"Contact direct: {effective_phone}")
+            if c_notes:
+                parts.append(c_notes)
+            elif c_gare:
+                parts.append(f"Contact via SOGRAL gare routière: {c_gare}")
+            elif c_dtw:
+                parts.append(f"Contact via DTW: {c_dtw}")
             else:
-                description += f"Contact via la gare routière locale."
+                parts.append("Contact via la gare routière SOGRAL locale (021.77.00.77)")
+
+            # National/regional syndicates get more detail
+            if coverage == "regional":
+                if "UNAT" in name_fr:
+                    syndicate_name = "UNAT"
+                    region = "Ouest"
+                elif "UNACT" in name_fr:
+                    syndicate_name = "UNACT"
+                    region = "Est"
+                else:
+                    syndicate_name = ""
+                    region = ""
+                if syndicate_name:
+                    parts.insert(0, f"Syndicat régional {syndicate_name} — région {region}")
+            elif coverage == "national":
+                parts.insert(0, "Syndicat national des transporteurs par taxi")
+
+            description = " — ".join(parts)
 
             await db.execute(
                 text("""
@@ -154,7 +271,7 @@ async def seed():
                     "id": uuid.uuid4(),
                     "name": name_fr,
                     "name_ar": name_ar,
-                    "phone": phone,
+                    "phone": effective_phone,
                     "wid": wid,
                     "desc": description,
                     "coverage": coverage,
@@ -165,12 +282,82 @@ async def seed():
         await db.commit()
         print(f"\nAdded {added} new taxi syndicates, {skipped} skipped")
 
+        # ── UPDATE existing syndicates with new contact info ──
+        updated = 0
+        for name_fr, name_ar, phone, wid, coverage in TAXI_SYNDICATES:
+            if name_fr not in all_existing:
+                continue  # Already handled above
+
+            contact_info = WILAYA_CONTACTS.get(wid, (None, None, None, ""))
+            c_phone, c_gare, c_dtw, c_notes = contact_info
+            effective_phone = c_phone if c_phone else phone
+
+            # Build new description and phone for every existing entry
+            parts = []
+            if coverage == "regional":
+                if "UNAT" in name_fr:
+                    syndicate_name = "UNAT"
+                    region = "Ouest"
+                elif "UNACT" in name_fr:
+                    syndicate_name = "UNACT"
+                    region = "Est"
+                else:
+                    syndicate_name = ""
+                    region = ""
+                if syndicate_name:
+                    parts.append(f"Syndicat régional {syndicate_name} — région {region}")
+            elif coverage == "national":
+                parts.append("Syndicat national des transporteurs par taxi")
+            else:
+                parts.append("Syndicat des taxieurs de la wilaya")
+
+            if effective_phone:
+                parts.append(f"Contact direct: {effective_phone}")
+            if c_notes:
+                parts.append(c_notes)
+            elif c_gare and not effective_phone:
+                parts.append(f"Contact via SOGRAL gare routière: {c_gare}")
+            elif c_dtw and not effective_phone:
+                parts.append(f"Contact via DTW: {c_dtw}")
+            else:
+                parts.append("Contact via la gare routière SOGRAL locale (021.77.00.77)")
+
+            new_desc = " — ".join(parts)
+
+            await db.execute(
+                text("""
+                    UPDATE transport_operators
+                    SET phone = :phone,
+                        description = :desc,
+                        updated_at = NOW()
+                    WHERE name = :name AND mode = 'taxi'
+                """),
+                {
+                    "phone": effective_phone,
+                    "desc": new_desc,
+                    "name": name_fr,
+                },
+            )
+            updated += 1
+
+        await db.commit()
+        print(f"Updated {updated} existing syndicates with new contact info")
+
         # Show final count
         result = await db.execute(
             text("SELECT COUNT(*) FROM transport_operators WHERE mode = 'taxi'")
         )
         total = result.scalar()
         print(f"Total taxi operators now: {total}")
+
+        # Show syndicates with phone numbers
+        result = await db.execute(
+            text("SELECT name, phone FROM transport_operators WHERE mode = 'taxi' AND phone IS NOT NULL ORDER BY name")
+        )
+        with_phone = result.all()
+        print(f"\nSyndicates with phone numbers ({len(with_phone)}):")
+        for r in with_phone:
+            print(f"  {r[0]}: {r[1]}")
 
 
 if __name__ == "__main__":
