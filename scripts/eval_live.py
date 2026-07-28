@@ -37,31 +37,42 @@ def _extract_tool_calls(result) -> list[str]:
 
 
 async def run_eval_single(agent, case: EvalCase, deps: TravelAgentDeps) -> EvalResult:
-    """Run one eval case and return the result."""
-    start = time.time()
-    try:
-        result = await agent.run(case.input, deps=deps)
-        output = str(result.output)
-        duration = (time.time() - start) * 1000
+    """Run one eval case and return the result. Retries on transient errors."""
+    max_retries = 3
+    for attempt in range(max_retries):
+        start = time.time()
+        try:
+            result = await agent.run(case.input, deps=deps)
+            output = str(result.output)
+            duration = (time.time() - start) * 1000
 
-        tools_called = _extract_tool_calls(result)
+            tools_called = _extract_tool_calls(result)
 
-        eval_result = score_response(case, output, tools_called)
-        eval_result.duration_ms = round(duration, 1)
-        eval_result.output_preview = output[:500]
-        return eval_result
+            eval_result = score_response(case, output, tools_called)
+            eval_result.duration_ms = round(duration, 1)
+            eval_result.output_preview = output[:500]
+            return eval_result
 
-    except Exception as e:
-        duration = (time.time() - start) * 1000
-        return EvalResult(
-            case_id=case.id,
-            case_name=case.name,
-            passed=False,
-            score=0.0,
-            duration_ms=round(duration, 1),
-            error=str(e)[:500],
-            output_preview=f"ERROR: {e}",
-        )
+        except Exception as e:
+            duration = (time.time() - start) * 1000
+            error_str = str(e)
+            # Retry on transient errors (307 redirect, 429 rate limit, timeout)
+            is_transient = any(code in error_str for code in ["307", "429", "503", "timeout", "Timeout"])
+            if is_transient and attempt < max_retries - 1:
+                wait = (attempt + 1) * 10  # 10s, 20s backoff
+                print(f"\n         Transient error (attempt {attempt+1}/{max_retries}), retrying in {wait}s...", end=" ", flush=True)
+                await asyncio.sleep(wait)
+                continue
+
+            return EvalResult(
+                case_id=case.id,
+                case_name=case.name,
+                passed=False,
+                score=0.0,
+                duration_ms=round(duration, 1),
+                error=error_str[:500],
+                output_preview=f"ERROR: {e}",
+            )
 
 
 async def main():
@@ -125,7 +136,7 @@ async def main():
                 print(f"         Error: {eval_result.error[:120]}")
             # Rate limit: wait between cases to avoid hitting vLLM request_limit
             if i < len(cases) - 1:
-                await asyncio.sleep(5.0)
+                await asyncio.sleep(8.0)
 
     # Generate report
     from app.agents.eval import EvalReport

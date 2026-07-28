@@ -25,6 +25,38 @@ def _truncate(text_str: str | None, max_len: int = 200) -> str | None:
     return text_str[:max_len - 3] + "..."
 
 
+def _estimate_tokens(text: str) -> int:
+    """Rough token estimate: ~4 chars per token."""
+    return len(text) // 4
+
+
+def _fit_to_budget(results: list, budget_tokens: int = 6000) -> list:
+    """Truncate a list of results to fit within a token budget.
+
+    Keeps removing the least important results (lowest featured_order / last items)
+    until the total fits within the budget.
+    """
+    import json
+    if not results:
+        return results
+
+    serialized = json.dumps([r.model_dump() for r in results], default=str)
+    if _estimate_tokens(serialized) <= budget_tokens:
+        return results
+
+    # Binary search: find how many results fit
+    lo, hi = 1, len(results)
+    while lo < hi:
+        mid = (lo + hi + 1) // 2
+        candidate = json.dumps([r.model_dump() for r in results[:mid]], default=str)
+        if _estimate_tokens(candidate) <= budget_tokens:
+            lo = mid
+        else:
+            hi = mid - 1
+
+    return results[:lo]
+
+
 # ── POI Search ──
 
 class POISearchParams(BaseModel):
@@ -589,7 +621,7 @@ async def get_weather(ctx: RunContext[TravelAgentDeps], params: WeatherParams) -
 
 class WilayaGuideParams(BaseModel):
     wilaya_id: int = Field(..., ge=1, le=58, description="Wilaya ID (1-58)")
-    top_per_category: int = Field(10, ge=1, le=50, description="Max POIs per category")
+    top_per_category: int = Field(3, ge=1, le=10, description="Max POIs per category (keep small to avoid context overflow)")
 
 
 class GuidePOIOutput(BaseModel):
@@ -726,9 +758,9 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
             FROM pois
             WHERE wilaya_id = :wid AND is_featured = true
             ORDER BY featured_order NULLS LAST
-            LIMIT :top
+            LIMIT 5
         """),
-        {"wid": wid, "top": top},
+        {"wid": wid},
     )
     featured_pois = [
         GuidePOIOutput(
@@ -751,6 +783,7 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
             WHERE wilaya_id = :wid AND is_featured = false
             GROUP BY category
             ORDER BY cnt DESC
+            LIMIT 5
         """),
         {"wid": wid},
     )
@@ -792,7 +825,7 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
             FROM stays
             WHERE wilaya_id = :wid AND is_active = TRUE
             ORDER BY price_per_night_dzd
-            LIMIT 5
+            LIMIT 3
         """),
         {"wid": wid},
     )
@@ -812,7 +845,7 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
             FROM experiences
             WHERE wilaya_id = :wid AND status = 'active'
             ORDER BY created_at DESC
-            LIMIT 5
+            LIMIT 3
         """),
         {"wid": wid},
     )
@@ -835,7 +868,7 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
             FROM events
             WHERE wilaya_id = :wid AND month IN (:m1, :m2)
             ORDER BY month, title
-            LIMIT 5
+            LIMIT 3
         """),
         {"wid": wid, "m1": current_month, "m2": next_month},
     )
