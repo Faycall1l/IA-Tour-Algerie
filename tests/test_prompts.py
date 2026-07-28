@@ -88,7 +88,7 @@ class TestGlobalRegistry:
     def test_travel_agent_main_prompt(self):
         p = registry.get("travel_agent.main")
         assert "ATHAR" in p.template
-        assert p.version == "1.0.0"
+        assert p.version == "2.0.0"
 
     def test_itinerary_prompt(self):
         p = registry.get("travel_agent.itinerary")
@@ -142,7 +142,7 @@ class TestAgentContext:
 
 class TestBuildPrompt:
     def test_build_with_version(self):
-        p = build_prompt("travel_agent.main", version="1.0.0")
+        p = build_prompt("travel_agent.main", version="2.0.0")
         assert "ATHAR" in p
 
     def test_build_injects_context(self):
