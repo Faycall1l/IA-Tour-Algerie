@@ -16,6 +16,15 @@ from sqlalchemy import text
 from app.agents.deps import TravelAgentDeps
 
 
+def _truncate(text_str: str | None, max_len: int = 200) -> str | None:
+    """Truncate long text fields to keep tool results compact for the LLM context window."""
+    if not text_str:
+        return text_str
+    if len(text_str) <= max_len:
+        return text_str
+    return text_str[:max_len - 3] + "..."
+
+
 # ── POI Search ──
 
 class POISearchParams(BaseModel):
@@ -24,7 +33,7 @@ class POISearchParams(BaseModel):
     category: str | None = Field(None, description="Filter by category (historical, natural, cultural, museum, beach, etc.)")
     min_price: float | None = Field(None, ge=0, description="Min entry fee in DZD")
     max_price: float | None = Field(None, ge=0, description="Max entry fee in DZD")
-    limit: int = Field(10, ge=1, le=50, description="Max results to return")
+    limit: int = Field(5, ge=1, le=20, description="Max results to return (keep small to avoid context overflow)")
 
 
 class POISearchResult(BaseModel):
@@ -133,7 +142,7 @@ async def search_pois(ctx: RunContext[TravelAgentDeps], params: POISearchParams)
             POISearchResult(
                 id=str(r[0]), name=r[1], name_ar=r[2], name_en=r[3],
                 category=r[4], subtype=r[5], wilaya_id=r[6], commune=r[7],
-                description=r[8],
+                description=_truncate(r[8], 200),
                 latitude=float(r[9]) if r[9] else None,
                 longitude=float(r[10]) if r[10] else None,
                 photo_url=r[11],
@@ -157,7 +166,7 @@ class StaySearchParams(BaseModel):
     property_type: str | None = Field(None, description="hotel, guesthouse, hostel, eco_lodge, riad, apartment")
     min_price: float | None = Field(None, ge=0, description="Min price per night in DZD")
     max_price: float | None = Field(None, ge=0, description="Max price per night in DZD")
-    limit: int = Field(10, ge=1, le=50)
+    limit: int = Field(5, ge=1, le=20, description="Max results (keep small for context)")
 
 
 class StaySearchResult(BaseModel):
@@ -258,7 +267,7 @@ async def search_stays(ctx: RunContext[TravelAgentDeps], params: StaySearchParam
             StaySearchResult(
                 id=str(r[0]), name=r[1], property_type=r[2],
                 wilaya_id=r[3], price_per_night_dzd=float(r[4]),
-                description=r[5], address=r[6],
+                description=_truncate(r[5]), address=r[6],
                 latitude=float(r[7]) if r[7] else None,
                 longitude=float(r[8]) if r[8] else None,
                 photo_url=r[9][0] if r[9] else None,
@@ -279,7 +288,7 @@ class ExperienceSearchParams(BaseModel):
     season: str | None = Field(None, description="spring, summer, autumn, winter (or month number 1-12)")
     min_price: float | None = Field(None, ge=0, description="Min price in DZD")
     max_price: float | None = Field(None, ge=0, description="Max price in DZD")
-    limit: int = Field(10, ge=1, le=50)
+    limit: int = Field(5, ge=1, le=20, description="Max results (keep small for context)")
 
 
 class ExperienceSearchResult(BaseModel):
@@ -393,7 +402,7 @@ class ArtisanSearchParams(BaseModel):
     wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by wilaya ID")
     craft_type: str | None = Field(None, description="Filter by craft type (pottery, carpet_weaving, jewelry, etc.)")
     has_workshop: bool | None = Field(None, description="Only show artisans with workshops")
-    limit: int = Field(10, ge=1, le=50, description="Max results to return")
+    limit: int = Field(5, ge=1, le=20, description="Max results (keep small for context)")
 
 
 class ArtisanSearchResult(BaseModel):
@@ -724,7 +733,7 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
     featured_pois = [
         GuidePOIOutput(
             id=str(r[0]), name=r[1], category=r[2], subtype=r[3],
-            description=r[4], is_featured=r[5],
+            description=_truncate(r[4]), is_featured=r[5],
             entry_fee_dzd=float(r[6]) if r[6] else None,
             price_level=r[7], suggested_duration_min=r[8],
             photo_url=r[9],
@@ -766,7 +775,7 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
             pois=[
                 GuidePOIOutput(
                     id=str(r[0]), name=r[1], category=r[2], subtype=r[3],
-                    description=r[4], is_featured=r[5],
+                    description=_truncate(r[4]), is_featured=r[5],
                     entry_fee_dzd=float(r[6]) if r[6] else None,
                     price_level=r[7], suggested_duration_min=r[8],
                     photo_url=r[9],
@@ -1023,7 +1032,7 @@ async def get_operator_contacts(ctx: RunContext[TravelAgentDeps], params: Operat
             OperatorContactResult(
                 name=r[0], name_ar=r[1], mode=r[2], phone=r[3],
                 website=r[4], email=r[5], headquarters_wilaya=r[6],
-                description=r[7], coverage_type=r[8],
+                description=_truncate(r[7]), coverage_type=r[8],
             )
             for r in rows.all()
         ],
@@ -1037,7 +1046,7 @@ class EventSearchParams(BaseModel):
     category: str | None = Field(None, description="Filter by category: cultural, food, music, religious, adventure, hiking, beach")
     month: int | None = Field(None, ge=1, le=12, description="Filter by month (1-12)")
     query: str | None = Field(None, max_length=200, description="Text search on title/description")
-    limit: int = Field(20, ge=1, le=50, description="Max results to return")
+    limit: int = Field(5, ge=1, le=20, description="Max results (keep small for context)")
 
 
 class EventResult(BaseModel):
@@ -1104,7 +1113,7 @@ async def find_events(ctx: RunContext[TravelAgentDeps], params: EventSearchParam
         results=[
             EventResult(
                 id=str(r[0]), title=r[1], wilaya_id=r[2], category=r[3],
-                description=r[4], month=r[5],
+                description=_truncate(r[4]), month=r[5],
                 duration_days=r[6], is_recurring=r[7],
                 photo_url=r[8],
             )

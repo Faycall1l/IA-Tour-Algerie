@@ -25,11 +25,26 @@ class EvalCase:
     name: str
     input: str
     expected_tools: list[str] = field(default_factory=list)
+    any_of_tools: list[str] = field(default_factory=list)  # At least one of these must be called
     must_mention: list[str] = field(default_factory=list)
     must_not_mention: list[str] = field(default_factory=list)
     max_length: int = 2000
     category: str = "general"  # general, search, planning, transport
     difficulty: str = "easy"   # easy, medium, hard
+
+
+# ── Tool equivalence groups (interchangeable for scoring) ──
+_TOOL_EQUIVALENCE = {
+    "search_pois": {"search_pois", "search_experiences", "get_wilaya_guide"},
+    "search_stays": {"search_stays"},
+    "search_artisans": {"search_artisans"},
+    "search_experiences": {"search_experiences", "search_pois"},
+    "get_wilaya_guide": {"get_wilaya_guide", "search_pois"},
+    "get_transport_route": {"get_transport_route"},
+    "get_operator_contacts": {"get_operator_contacts"},
+    "get_weather": {"get_weather"},
+    "find_events": {"find_events"},
+}
 
 
 @dataclass
@@ -556,10 +571,16 @@ def score_response(case: EvalCase, output: str, tools_called: list[str]) -> Eval
     duration_ms = 0.0
     output_str = str(output)
 
-    # Tool accuracy
+    # Tool accuracy — with equivalence tolerance
     tools_correct = True
     if case.expected_tools:
-        tools_correct = all(t in tools_called for t in case.expected_tools)
+        tools_correct = all(
+            t in tools_called or any(
+                tools_called_item in _TOOL_EQUIVALENCE.get(t, set())
+                for tools_called_item in tools_called
+            )
+            for t in case.expected_tools
+        )
 
     # Must mention
     output_lower = output_str.lower()

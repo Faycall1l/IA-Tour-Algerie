@@ -1,0 +1,833 @@
+{
+  "agent": "travel_agent",
+  "total": 50,
+  "passed": 46,
+  "failed": 4,
+  "avg_score": 0.902,
+  "avg_duration_ms": 16948.6,
+  "tool_accuracy": 0.932,
+  "results": [
+    {
+      "case_id": "easy_01",
+      "case_name": "Basic POI search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 15997.8,
+      "tools_called": [
+        "search_pois",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Tlemcen is one of Algeria's most historic cities, known as the \"Pearl of the Maghreb.\" While my current database has limited specific entries for Tlemcen, it is world-renowned for its Andalusian and Zayyanid heritage.\n\nIf you are visiting Tlemcen (Wilaya 42), I highly recommend looking for these iconic sites:\n\n*   **The Great Mosque of Tlemcen:** A masterpiece of Almoravid architecture.\n*   **El Mechouar Palace:** A stunning royal residence that showcases the city's imperial past.\n*   **Mansoura"
+    },
+    {
+      "case_id": "easy_02",
+      "case_name": "Weather check",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 2988.4,
+      "tools_called": [
+        "get_weather"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "The weather in Algiers (Wilaya 16) is currently lovely and mainly clear, with temperatures ranging between 25\u00b0C and 30\u00b0C. It's a great day to explore the city! \n\nLooking ahead, the clear skies will continue through the end of the month, though it will get significantly warmer starting August 1st, with highs reaching up to 36\u00b0C and some foggy conditions."
+    },
+    {
+      "case_id": "easy_03",
+      "case_name": "Stay search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 4014.3,
+      "tools_called": [
+        "search_stays"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "I found a few hotel options in Constantine (Wilaya 25) that are under 5,000 DZD per night:\n\n*   **\u0641\u0646\u062f\u0642 \u0627\u0644\u0631\u0641\u064a\u0639 (Hotel El Rafie)**: This is the most affordable option at **3,205 DZD** per night. It's a great choice if you're looking for relaxation, as it features a pool, spa, and gym.\n*   **Hotel El Mountazeh**: Priced at **3,675 DZD** per night, this hotel offers an on-site restaurant serving refined local cuisine and free WiFi.\n*   **H\u00f4tel militaire**: Also available at **3,681 DZD** per night, "
+    },
+    {
+      "case_id": "easy_04",
+      "case_name": "Events search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 1831.4,
+      "tools_called": [
+        "find_events"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "In Oran (Wilaya 31), you can experience the **Festival des Danses Populaires** this month. It is a wonderful cultural event featuring traditional Oranese dances and music, perfect for anyone looking to dive into the local heritage."
+    },
+    {
+      "case_id": "easy_05",
+      "case_name": "Artisan search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 9339.3,
+      "tools_called": [
+        "search_artisans",
+        "search_pois",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "I couldn't find a specific registered pottery artisan or a dedicated ceramics shop in my current database for Tlemcen (Wilaya 42). \n\nHowever, Tlemcen is renowned for its rich Andalusian heritage and traditional crafts. To find authentic pottery, I highly recommend visiting the **traditional markets (souks) in the city center**, particularly around the **Mechouar Palace** area. The local artisans there often sell handcrafted ceramics and pottery that reflect the region's unique artistic style.\n\nI"
+    },
+    {
+      "case_id": "med_01",
+      "case_name": "Wilaya guide",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 11329.4,
+      "tools_called": [
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Batna (Wilaya 5) is a stunning destination that blends ancient Roman history with the rugged beauty of the Aur\u00e8s Mountains. Here are the must-see attractions:\n\n### \ud83c\udfdb\ufe0f Historical & Cultural Highlights\n*   **Ruines Romaines de Timgad**: One of the most significant Roman sites in North Africa, often called the \"Pompeii of Africa.\" It's a must-visit for any history enthusiast.\n*   **Mus\u00e9e Lapidaire d'El Kantara**: A specialized museum focusing on stone inscriptions and artifacts (Entry: 254 DZD).\n* "
+    },
+    {
+      "case_id": "med_02",
+      "case_name": "Transport query",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 10447.1,
+      "tools_called": [
+        "get_transport_route"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "You can easily travel from Algiers (Wilaya 16) to Oran (Wilaya 31) by train via the **SNTF** (Soci\u00e9t\u00e9 Nationale des Transports Ferroviaires).\n\n**Train Details:**\n*   **Duration:** Approximately 4 hours.\n*   **Frequency:** Trains run daily, with departures starting from 05:00 and the last one around 22:00.\n*   **Pricing:** \n    *   **2nd Class:** 1,500 DZD\n    *   **1st Class:** 2,500 DZD\n\n**Contact Information:**\nIf you need to book tickets or check real-time schedules, you can contact SNTF:\n*  "
+    },
+    {
+      "case_id": "med_03",
+      "case_name": "Multi-category search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 7902.7,
+      "tools_called": [
+        "search_pois"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "While Algiers (Wilaya 16) has many historical sites, finding specific \"kids-only\" museums can be tricky. However, there are several cultural and historical spots that are great for families to explore together.\n\nFor a mix of history and exploration, I recommend:\n\n**Museums & History**\n*   **Mus\u00e9e de Tamentfoust - Le Fort Turc (Wilaya 16):** A fascinating fort that kids often enjoy exploring due to its architecture. Entry is approximately 345 DZD.\n*   **Religious Sites:** There are several signif"
+    },
+    {
+      "case_id": "med_04",
+      "case_name": "Operator contacts",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 1915.1,
+      "tools_called": [
+        "get_operator_contacts"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "You can reach SNTF (Soci\u00e9t\u00e9 Nationale des Transports Ferroviaires) customer service at **+213 21 71 88 88**. \n\nIf you prefer, you can also visit their website at [www.sntf.dz](https://www.sntf.dz) or send an email to info@sntf.dz."
+    },
+    {
+      "case_id": "med_05",
+      "case_name": "Accommodation with price",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 10894.6,
+      "tools_called": [
+        "search_stays",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "I couldn't find a specific guesthouse located directly next to the Timgad ruins, but I have some budget-friendly options for you in the region.\n\nSince Timgad is located in the **Batna** area, but many travelers also explore the nearby **T\u00e9bessa (Wilaya 12)** region, I've found some very affordable hostel-style accommodations in T\u00e9bessa that might suit a budget traveler:\n\n*   **\u0641\u0646\u062f\u0642 5 \u062f\u064a\u0646\u0627\u0631 (Hotel 5 Dinar)**: A very budget-friendly hostel at approximately **1,325 DZD per night** (Wilaya 12).\n*   "
+    },
+    {
+      "case_id": "hard_01",
+      "case_name": "Full trip plan",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 22241.6,
+      "tools_called": [
+        "get_wilaya_guide",
+        "search_experiences",
+        "search_pois"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Tlemcen is one of Algeria's most elegant cities, known as the \"Pearl of the Maghreb.\" While my current database is showing some overlap with other regions, I can certainly help you structure a classic 3-day itinerary based on Tlemcen's world-famous landmarks.\n\n### \ud83d\uddd3\ufe0f 3-Day Tlemcen Itinerary\n\n**Day 1: The Heart of the City & Andalusian Heritage**\n*   **Morning:** Start your trip at the **Great Mosque of Tlemcen**, a masterpiece of Almoravid architecture. Its intricate carvings and historical sign"
+    },
+    {
+      "case_id": "hard_02",
+      "case_name": "Multi-wilaya transport",
+      "passed": false,
+      "score": 0.0,
+      "duration_ms": 285277.4,
+      "tools_called": [],
+      "tools_correct": false,
+      "mentions_correct": false,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": "status_code: 400, model_name: Gemma-4-31B-it, body: {'message': \"This model's maximum context length is 65536 tokens. However, you requested 2048 output tokens and your prompt contains at least 63489 input tokens, for a total of at least 65537 tokens. Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_tokens, value=63489)\", 'type': 'BadRequestError', 'param': 'input_tokens', 'code': 400}",
+      "output_preview": "ERROR: status_code: 400, model_name: Gemma-4-31B-it, body: {'message': \"This model's maximum context length is 65536 tokens. However, you requested 2048 output tokens and your prompt contains at least 63489 input tokens, for a total of at least 65537 tokens. Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_tokens, value=63489)\", 'type': 'BadRequestError', 'param': 'input_tokens', 'code': 400}"
+    },
+    {
+      "case_id": "hard_03",
+      "case_name": "Sahara adventure planning",
+      "passed": true,
+      "score": 0.833,
+      "duration_ms": 31446.6,
+      "tools_called": [
+        "get_wilaya_guide"
+      ],
+      "tools_correct": false,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Gharda\u00efa (Wilaya 28) is one of the most enchanting gateways to the Algerian Sahara, famous for its unique M'zabite architecture and deep cultural heritage.\n\n### \ud83c\udffa What to See & Do\nGharda\u00efa is a living museum. I recommend exploring the **Pentapolis** (the five traditional cities), where you can admire the fortified Ksar architecture.\n*   **Cultural Exploration:** Wander through the traditional markets to find local crafts.\n*   **Nature:** Visit the surrounding palm groves and the dramatic desert "
+    },
+    {
+      "case_id": "hard_04",
+      "case_name": "Budget comparison",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 10650.6,
+      "tools_called": [
+        "search_stays"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "In Algiers (Wilaya 16), the accommodation landscape offers a clear distinction between budget-friendly stays and luxury experiences, with value often depending on whether you prioritize proximity to the city center or resort-style amenities.\n\n### Luxury Options\nFor those seeking high-end comfort, luxury hotels in Algiers typically range from **12,000 DZD to 15,000 DZD per night**. These establishments focus on comprehensive wellness and dining:\n*   **Hotel Ikhlidjen (~14,372 DZD):** A top-tier c"
+    },
+    {
+      "case_id": "hard_05",
+      "case_name": "Cultural deep dive",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 22362.6,
+      "tools_called": [
+        "get_wilaya_guide",
+        "search_artisans",
+        "search_experiences"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Kabylie is the heartland of Berber (Amazigh) culture in Algeria, characterized by its rugged mountains, resilient spirit, and vibrant traditions. To truly experience it, I recommend focusing on the **Tizi Ouzou (Wilaya 15)** and **Bejaia (Wilaya 06)** regions.\n\n### \ud83c\udfd8\ufe0f Villages & Places to Visit\nThe best way to experience Kabylie is through its \"perched villages\" (villages accroch\u00e9s) that overlook the Djurdjura mountains.\n\n*   **Tizi Ouzou (Wilaya 15):**\n    *   **Djurdjura National Park:** A mus"
+    },
+    {
+      "case_id": "easy_06",
+      "case_name": "Beach search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 12912.0,
+      "tools_called": [
+        "search_pois",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Jijel (Wilaya 18) is renowned for its stunning coastline where the mountains meet the Mediterranean. While there are many hidden gems, here are the best ways to experience the beaches and nature in the region:\n\n### \ud83c\udfd6\ufe0f Featured Beach\n*   **Plage Lemzaier (\u0634\u0627\u0637\u0626 \u0644\u0645\u0632\u0627\u064a\u0631)**: A beautiful spot known for its natural charm. Access is free, and it's a great place to spend a few hours relaxing by the sea.\n\n### \ud83d\udea3 Recommended Beach Experiences\nIf you want to discover the most pristine and hard-to-reach spots"
+    },
+    {
+      "case_id": "easy_07",
+      "case_name": "Museum search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 5227.8,
+      "tools_called": [
+        "search_pois"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Yes, there are several museums in Constantine (Wilaya 25) that you can visit. Here are the top options:\n\n*   **Mus\u00e9e El Moudjahid**: A featured museum dedicated to the history of the Algerian struggle for independence. Entry is approximately 385 DZD, and a visit typically takes about 45 minutes.\n*   **\u0645\u062a\u062d\u0641 \u0645\u062c\u0645\u0639 \u0627\u0644\u0645\u062c\u0627\u0647\u062f (Mujahid Complex Museum)**: Another significant site focusing on national history, with an entry fee of around 404 DZD.\n*   **\u0645\u0642\u0627\u0645 \u0627\u0644\u0634\u0647\u062f\u0627\u0621 (Martyrs' Memorial Museum)**: A museum h"
+    },
+    {
+      "case_id": "easy_08",
+      "case_name": "Mountain search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 7310.1,
+      "tools_called": [
+        "search_experiences",
+        "search_pois"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "The Djurdjura massif offers some of the most stunning hiking experiences in Algeria, primarily centered around the National Park. Most of the activities are concentrated in **Tizi Ouzou (Wilaya 15)** and **Bouira (Wilaya 10)**.\n\nHere are the best hiking options available:\n\n**Day Trips & Short Treks**\n*   **Tikjda Hiking (Tizi Ouzou, Wilaya 15):** A classic 6-hour trek through the National Park featuring cedar forests, alpine lakes, and snow patches, reaching peaks of up to 2,300m. It costs aroun"
+    },
+    {
+      "case_id": "easy_09",
+      "case_name": "Religious site search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 16243.8,
+      "tools_called": [
+        "search_pois",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "I couldn't find a specific list of mosques and religious sites for Tlemcen in my current database. However, Tlemcen is historically known as the \"Pearl of the Maghreb\" and is famous for its rich Islamic architecture and spiritual heritage.\n\nIf you are planning a visit, I highly recommend looking for these iconic sites (which are staples of Tlemcen's religious landscape):\n*   **The Great Mosque of Tlemcen**: One of the most important historical mosques in Algeria.\n*   **Sidi Boumediene Complex**:"
+    },
+    {
+      "case_id": "easy_10",
+      "case_name": "Stay search by price",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 3830.8,
+      "tools_called": [
+        "search_stays"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "I found a couple of options in Annaba (Wilaya 23) that fit your budget of under 4,000 DZD per night:\n\n*   **Hotel et Complexe Thermal Bouchahrine** (Wilaya 23) \u2013 Located in Ouled Ali, this hotel costs approximately **3,592 DZD per night**. It features a restaurant serving local cuisine, free WiFi, air conditioning, and parking.\n*   **Mimosa (\u0645\u064a\u0645\u0648\u0632\u0627)** (Wilaya 23) \u2013 Located in the city of Annaba, this hotel is priced at around **3,333 DZD per night**. It offers 24h reception, room service, a rest"
+    },
+    {
+      "case_id": "med_06",
+      "case_name": "Experience search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 11392.0,
+      "tools_called": [
+        "search_experiences",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "While there aren't many traditional \"sightseeing\" guided tours currently listed in the database for Algiers (Wilaya 16), there is a unique cultural experience available:\n\n*   **Music & Nightlife Guide**: A 3-hour tour focusing on where to find concerts and live music in Algiers. It covers spots like the Op\u00e9ra d'Alger, Palais de la Culture, and jazz clubs in El Biar and Hydra. \n    *   **Price**: 1,200 DZD\n    *   **Language**: French\n    *   **Meeting Point**: Alger centre\n\n**Planning your own t"
+    },
+    {
+      "case_id": "med_07",
+      "case_name": "Taxi route",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 6559.5,
+      "tools_called": [
+        "get_transport_route"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Yes, you can definitely take a taxi from S\u00e9tif (Wilaya 19) to Batna (Wilaya 5). Depending on whether you want a private ride or a shared one, the costs vary:\n\n*   **Private Taxi:** A private trip costs approximately **2,560 DZD**. This is the fastest option, taking about 1 hour and 47 minutes to cover the 128 km distance.\n*   **Shared Taxi:** If you prefer a shared taxi (collective), the cost is much lower, at approximately **320 DZD per person**.\n\nIf you are looking for the most budget-friendly"
+    },
+    {
+      "case_id": "med_08",
+      "case_name": "Weather + POI combo",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 14574.0,
+      "tools_called": [
+        "get_weather",
+        "search_experiences",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "The weather in Oran (Wilaya 31) for this coming weekend looks quite pleasant, though a bit overcast.\n\n**Weather Forecast:**\n*   **Friday (July 29):** Overcast with a high of 30.4\u00b0C and a low of 24.3\u00b0C.\n*   **Saturday (July 30):** Foggy conditions with a high of 29.6\u00b0C and a low of 24.6\u00b0C.\n*   **Sunday (July 31):** Foggy with a high of 31.0\u00b0C and a low of 24.1\u00b0C.\n\nSince it will be warm but not excessively hot, it's a great time for outdoor exploration. Here are some recommended activities:\n\n**Hig"
+    },
+    {
+      "case_id": "med_09",
+      "case_name": "Food search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 9733.0,
+      "tools_called": [
+        "search_pois",
+        "search_experiences",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "While I don't have a specific \"best couscous\" ranking in my database, Algiers (Wilaya 16) has over 500 restaurants where you can enjoy this national dish. \n\nFor the most authentic experience, I recommend exploring the **Casbah of Algiers**, where many small, family-run eateries serve traditional home-style couscous. \n\nIf you are looking for a more structured dining experience, you can explore the various restaurants in the city center. While my current list includes several fast-food and local s"
+    },
+    {
+      "case_id": "med_10",
+      "case_name": "Park search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 10771.9,
+      "tools_called": [
+        "search_pois",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "The most prominent national park near Tizi Ouzou (Wilaya 15) is the **Parc National du Djurdjura**. \n\nLocated in the heart of the Grande Kabylie region, this park is famous for its spectacular mountainous landscapes, limestone cliffs, and diverse wildlife. It is a paradise for hikers and nature lovers, offering breathtaking views of the Djurdjura massif.\n\nIn addition to the national park, if you are looking for other natural escapes in the Tizi Ouzou area, you might enjoy:\n*   **For\u00eat d'Averane "
+    },
+    {
+      "case_id": "hard_06",
+      "case_name": "Weekend trip plan",
+      "passed": false,
+      "score": 0.0,
+      "duration_ms": 18412.6,
+      "tools_called": [],
+      "tools_correct": false,
+      "mentions_correct": false,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": "status_code: 400, model_name: Gemma-4-31B-it, body: {'message': \"This model's maximum context length is 65536 tokens. However, you requested 2048 output tokens and your prompt contains at least 63489 input tokens, for a total of at least 65537 tokens. Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_tokens, value=63489)\", 'type': 'BadRequestError', 'param': 'input_tokens', 'code': 400}",
+      "output_preview": "ERROR: status_code: 400, model_name: Gemma-4-31B-it, body: {'message': \"This model's maximum context length is 65536 tokens. However, you requested 2048 output tokens and your prompt contains at least 63489 input tokens, for a total of at least 65537 tokens. Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_tokens, value=63489)\", 'type': 'BadRequestError', 'param': 'input_tokens', 'code': 400}"
+    },
+    {
+      "case_id": "hard_07",
+      "case_name": "Multi-transport comparison",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 12543.8,
+      "tools_called": [
+        "get_transport_route"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "To travel from Algiers (Wilaya 16) to Gharda\u00efa (Wilaya 28), you have several options. Please note that because Gharda\u00efa is located deep in the M'zab valley, direct rail access is limited, and most journeys involve a combination of transport or long road trips.\n\n### \u2708\ufe0f Flight (Fastest)\nThe most efficient way to reach Gharda\u00efa is by air. \n*   **Operator:** Air Alg\u00e9rie\n*   **Experience:** This is the fastest option, significantly reducing travel time compared to road or rail.\n*   **Contact:** +213 "
+    },
+    {
+      "case_id": "hard_08",
+      "case_name": "Family trip planning",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 35659.1,
+      "tools_called": [
+        "get_wilaya_guide",
+        "search_pois"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Tlemcen (Wilaya 13) is a fantastic choice for a family trip! It blends rich history with stunning nature, making it engaging for both a 5-year-old and a 10-year-old.\n\nHere is a curated 4-day itinerary designed to be family-friendly:\n\n### Day 1: The Heart of the City (History & Culture)\nStart your trip by exploring the architectural gems of the city center.\n*   **Morning: El Mechouar Palace.** Visit the **Terrace el-Mechouar** (Entry: 484 DZD). The vast courtyards and beautiful gardens are great "
+    },
+    {
+      "case_id": "hard_09",
+      "case_name": "Artisan + cultural tour",
+      "passed": true,
+      "score": 0.833,
+      "duration_ms": 19994.8,
+      "tools_called": [
+        "search_artisans",
+        "search_pois",
+        "get_wilaya_guide",
+        "search_experiences"
+      ],
+      "tools_correct": false,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Tlemcen is one of Algeria's most artistic cities, renowned for its Andalusian influence and exquisite craftsmanship. While specific individual workshop addresses aren't always listed in the digital directory, the best way to experience a craft shopping tour is to focus on the historic heart of the city.\n\n### Where to Go for Crafts\nFor pottery, carpets, and leather, you should head to the **Old Medina (The Casbah)** and the surrounding traditional markets. This is where the majority of artisans a"
+    },
+    {
+      "case_id": "hard_10",
+      "case_name": "Sahara multi-day plan",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 19131.0,
+      "tools_called": [
+        "get_transport_route",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Since you have 5 days and want to reach the Sahara from Algiers, the most efficient and rewarding route is to head to **Tamanrasset (Wilaya 11)**, the gateway to the Hoggar Mountains. Driving is not recommended for a 5-day trip as it takes nearly 28 hours of pure driving time.\n\n### \u2708\ufe0f Transport: Algiers to Tamanrasset\nThe best option is a flight with **Air Alg\u00e9rie**.\n- **Cost:** ~12,000 DZD (Economy)\n- **Duration:** 1 hour\n- **Contact:** +213 21 66 33 33\n\n---\n\n### \ud83d\uddd3\ufe0f 5-Day Sahara Itinerary\n\n####"
+    },
+    {
+      "case_id": "edge_01",
+      "case_name": "Non-existent wilaya query",
+      "passed": true,
+      "score": 0.833,
+      "duration_ms": 1187.7,
+      "tools_called": [],
+      "tools_correct": false,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "I'm sorry, but Algeria has 58 wilayas. There is no wilaya 99. \n\nIf you are looking for a specific city or region, please let me know the name, or if you'd like to explore one of the existing 58 wilayas, I'd be happy to provide a guide for you!"
+    },
+    {
+      "case_id": "edge_02",
+      "case_name": "Very broad query",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 5826.8,
+      "tools_called": [],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Algeria is a land of breathtaking contrasts, being the largest country in Africa and the Mediterranean basin. From the turquoise waters of the northern coast to the golden dunes of the Sahara, it offers an incredible diversity of landscapes, history, and culture.\n\nTo give you the best experience, I can help you explore it in several ways:\n\n**1. The Mediterranean North**\nYou'll find vibrant cities like **Algiers** (the \"White City\"), the historic streets of **Constantine** (the \"City of Bridges\")"
+    },
+    {
+      "case_id": "edge_03",
+      "case_name": "Specific price range",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 6348.4,
+      "tools_called": [
+        "search_stays"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "I found several hotels in Oran (Wilaya 31) that fit your budget of 3,000 to 6,000 DZD and offer parking:\n\n*   **LB Suites Hotel**: A great budget-friendly option at **3,175 DZD** per night. It's located at Rond point des 3 cliniques and features a restaurant and 24h reception.\n*   **\u0646\u0632\u0644 \u0631\u062c\u0627\u0621 (Nouzal Raja)**: Priced at **4,575 DZD** per night, this hotel offers more leisure amenities including a pool, spa, and gym.\n*   **\u0641\u0646\u062f\u0642 \u0627\u0644\u0631\u0626\u064a\u0633 (Hotel El Rais)**: Available for **4,950 DZD** per night, offeri"
+    },
+    {
+      "case_id": "edge_04",
+      "case_name": "Opening hours query",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 4419.0,
+      "tools_called": [
+        "search_pois"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "I couldn't find a specific entry for a \"National Museum of Algiers\" in my database for Algiers (Wilaya 16). \n\nHowever, if you are looking for museums in Algiers, I found a few other options such as the **Mus\u00e9e de Tamentfoust - Le Fort Turc** (Wilaya 16), which has an entry fee of 345 DZD. Unfortunately, the specific opening hours for these locations aren't listed in my current records.\n\nCould you please double-check the name of the museum or let me know if you're looking for a different site? I'"
+    },
+    {
+      "case_id": "edge_05",
+      "case_name": "Operator phone number",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 1847.1,
+      "tools_called": [
+        "get_operator_contacts"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "You can contact Air Alg\u00e9rie for flight bookings through the following channels:\n\n*   **Phone:** +213 21 66 33 33\n*   **Website:** [www.airalgerie.dz](https://www.airalgerie.dz)\n*   **Email:** contact@airalgerie.dz\n\nTheir headquarters are located in Algiers (Wilaya 16)."
+    },
+    {
+      "case_id": "trans_01",
+      "case_name": "Train schedule",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 6996.6,
+      "tools_called": [
+        "get_transport_route"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "The last train from Algiers (Wilaya 16) to Oran (Wilaya 31) departs daily at **22:00**.\n\nThe journey is operated by SNTF and takes approximately 4 hours. Tickets are priced at 1,500 DZD for 2nd class and 2,500 DZD for 1st class.\n\nIf you need to confirm your booking or check for real-time updates, you can contact SNTF at **+213 21 71 88 88** or visit their website at [sntf.dz](https://www.sntf.dz)."
+    },
+    {
+      "case_id": "trans_02",
+      "case_name": "Bus alternative",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 9138.8,
+      "tools_called": [
+        "get_transport_route"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "If you cannot find a direct train from S\u00e9tif (Wilaya 19) to Constantine (Wilaya 25), you have several reliable alternatives to make the trip:\n\n**1. Shared Taxi (Place Taxi)**\nThis is often the most popular and flexible option between these two cities. \n*   **Cost:** Approximately **710 DZD** per person.\n*   **Experience:** Fast and frequent, departing as soon as the vehicle is full.\n\n**2. Bus (SOGRAL/Local Operators)**\nBuses run regularly between S\u00e9tif and Constantine.\n*   **Cost:** Approximatel"
+    },
+    {
+      "case_id": "trans_03",
+      "case_name": "Flight search",
+      "passed": true,
+      "score": 0.767,
+      "duration_ms": 26629.0,
+      "tools_called": [
+        "get_transport_route"
+      ],
+      "tools_correct": true,
+      "mentions_correct": false,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Yes, there are flights from Algiers (Wilaya 16) to Bechar (Wilaya 2). \n\nThe primary operator for this route is **Air Alg\u00e9rie**. While specific flight schedules can vary, they typically operate regular domestic flights connecting the capital to the southwest.\n\nFor the most accurate and up-to-date booking information, you can contact Air Alg\u00e9rie directly:\n- **Phone:** +213 21 66 33 33\n- **Website:** [www.airalgerie.dz](https://www.airalgerie.dz)\n- **Email:** contact@airalgerie.dz"
+    },
+    {
+      "case_id": "evt_01",
+      "case_name": "Festival by month",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 3086.3,
+      "tools_called": [
+        "find_events"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "I couldn't find any specific cultural festivals listed for Tlemcen (Wilaya 42) for the month of July in my current database. \n\nHowever, Tlemcen is renowned for its rich Andalusian heritage and often hosts various cultural activities and music performances during the summer months. I recommend checking with the local tourism office or the \"Direction de la Culture\" of Tlemcen for the most up-to-date local schedules.\n\nWould you like me to look for other activities, historical sites, or perhaps a ge"
+    },
+    {
+      "case_id": "evt_02",
+      "case_name": "Events in wilaya",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 2629.2,
+      "tools_called": [
+        "find_events"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Yes, there is an exciting event coming up! In August, you can attend the **Djemila International Festival** in S\u00e9tif (Wilaya 19). It is a cultural celebration featuring music and dance, held right at the stunning Roman site of Djemila.\n\nSince you're interested in the area, would you like me to find some hotels in S\u00e9tif or perhaps a guide on the best things to see at the Djemila ruins?"
+    },
+    {
+      "case_id": "art_01",
+      "case_name": "Carpet shopping",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 12251.2,
+      "tools_called": [
+        "search_artisans",
+        "search_pois",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "While I couldn't find a specific registered artisan or a dedicated \"carpet market\" in my current database for Tlemcen (Wilaya 42), Tlemcen is historically one of Algeria's most renowned centers for traditional arts and crafts.\n\nTo find high-quality traditional Algerian carpets in Tlemcen, I recommend visiting the following areas:\n\n1.  **The Old Medina (El Medina):** This is the heart of traditional commerce. Wander through the narrow streets and souks where you will find many family-owned shops "
+    },
+    {
+      "case_id": "art_02",
+      "case_name": "Jewelry artisans",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 6572.8,
+      "tools_called": [
+        "search_artisans"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "For authentic Kabyle jewelry, I recommend visiting artisans in the heart of the Kabylie region or specialized boutiques in Algiers.\n\n**Top Recommendation:**\nIf you are in Algiers (Wilaya 16), **Bijouterie El Madina** is a highly recommended, verified artisan. Founded by Ismail Elias, they specialize specifically in Berber jewelry and artisanal silverware. They have a workshop and are located in the Kouba area.\n*   **Contact:** +213 21 58 72 67\n*   **Website:** bijouterieelmadina.com\n\n**Visiting "
+    },
+    {
+      "case_id": "hard_11",
+      "case_name": "Coastal road trip",
+      "passed": true,
+      "score": 0.833,
+      "duration_ms": 29414.3,
+      "tools_called": [
+        "get_transport_route",
+        "get_wilaya_guide",
+        "search_pois"
+      ],
+      "tools_correct": false,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Driving from Algiers to Annaba along the Mediterranean coast is a stunning journey covering approximately 550 km. To make the most of it over 5 days, I recommend a slow-paced trip that balances beach relaxation, historical exploration, and local gastronomy.\n\n### \ud83d\ude97 5-Day Coastal Itinerary: Algiers to Annaba\n\n#### Day 1: Algiers (Wilaya 16) - The White City\n*   **Activity:** Start your trip by visiting the **Monument aux Martyrs** for a panoramic view of the bay. Head to the coast for a relaxing a"
+    },
+    {
+      "case_id": "hard_12",
+      "case_name": "Historical tour",
+      "passed": false,
+      "score": 0.0,
+      "duration_ms": 4421.9,
+      "tools_called": [],
+      "tools_correct": false,
+      "mentions_correct": false,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": "status_code: 400, model_name: Gemma-4-31B-it, body: {'message': \"This model's maximum context length is 65536 tokens. However, you requested 2048 output tokens and your prompt contains at least 63489 input tokens, for a total of at least 65537 tokens. Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_tokens, value=63489)\", 'type': 'BadRequestError', 'param': 'input_tokens', 'code': 400}",
+      "output_preview": "ERROR: status_code: 400, model_name: Gemma-4-31B-it, body: {'message': \"This model's maximum context length is 65536 tokens. However, you requested 2048 output tokens and your prompt contains at least 63489 input tokens, for a total of at least 65537 tokens. Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_tokens, value=63489)\", 'type': 'BadRequestError', 'param': 'input_tokens', 'code': 400}"
+    },
+    {
+      "case_id": "hard_13",
+      "case_name": "Budget backpacking",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 28885.3,
+      "tools_called": [
+        "get_transport_route",
+        "get_wilaya_guide",
+        "search_stays"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Traveling from Oran to Tlemcen on a budget of 3,000 DZD per day is definitely possible if you stick to local transport and budget stays. Here is a curated plan for your trip:\n\n### \ud83d\ude86 Transport: Oran to Tlemcen\nThe most budget-friendly way to travel between these two cities is by **train (SNTF)** or **shared taxi**.\n*   **Train:** Approximately **1,500 DZD** for a 2nd class ticket.\n*   **Shared Taxi:** Usually the fastest and most flexible option, costing around **700\u20131,000 DZD** per person.\n\n### "
+    },
+    {
+      "case_id": "hard_14",
+      "case_name": "Winter Sahara trip",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 14599.8,
+      "tools_called": [
+        "get_weather",
+        "search_stays",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Yes, December is actually one of the **best times to visit the Algerian Sahara**, including Djanet. \n\n### Why visit in December?\nDuring the summer, temperatures in the Sahara can be extreme, making exploration difficult. In December, the weather is much more pleasant for hiking and sightseeing. \n\n**Weather Expectations:**\nWhile I don't have the specific December forecast for 2026 yet, typically in December:\n*   **Days:** Mild and sunny, perfect for trekking through the Tassili n'Ajjer plateau.\n*"
+    },
+    {
+      "case_id": "hard_15",
+      "case_name": "Photography tour",
+      "passed": false,
+      "score": 0.0,
+      "duration_ms": 1818.3,
+      "tools_called": [],
+      "tools_correct": false,
+      "mentions_correct": false,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": "status_code: 400, model_name: Gemma-4-31B-it, body: {'message': \"This model's maximum context length is 65536 tokens. However, you requested 2048 output tokens and your prompt contains at least 63489 input tokens, for a total of at least 65537 tokens. Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_tokens, value=63489)\", 'type': 'BadRequestError', 'param': 'input_tokens', 'code': 400}",
+      "output_preview": "ERROR: status_code: 400, model_name: Gemma-4-31B-it, body: {'message': \"This model's maximum context length is 65536 tokens. However, you requested 2048 output tokens and your prompt contains at least 63489 input tokens, for a total of at least 65537 tokens. Please reduce the length of the input prompt or the number of requested output tokens. (parameter=input_tokens, value=63489)\", 'type': 'BadRequestError', 'param': 'input_tokens', 'code': 400}"
+    },
+    {
+      "case_id": "easy_11",
+      "case_name": "Cafe search",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 3912.0,
+      "tools_called": [
+        "search_pois"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "In Blida (Wilaya 9), you have several options for a coffee break. Depending on what you're looking for, here are a few recommendations:\n\n*   **Tea (\u0634\u0627\u064a)**: This is a great choice if you're looking for more than just coffee, as they offer cakes, crepes, and tea. It's open 24/7, making it very convenient. You can contact them at +213791613414 or visit their Facebook page.\n*   **Sahel (\u0633\u0627\u062d\u0644)**: Another convenient option that is open 24/7.\n*   **Al-Shabab (\u0627\u0644\u0634\u0628\u0627\u0628)**, **Lcariya (\u0627\u0644\u0643\u0627\u0631\u064a\u0629)**, and **Kha"
+    },
+    {
+      "case_id": "med_11",
+      "case_name": "Nightlife/restaurants",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 7601.6,
+      "tools_called": [
+        "search_pois",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Based on the available information for Algiers (Wilaya 16), one of the recommended spots for seafood is:\n\n**\u0645\u0637\u0639\u0645 \u0646\u0633\u0645\u0629 \u0627\u0644\u0628\u062d\u0631 (Nesma El Bahr Restaurant)**\nThis restaurant is specifically known for its fish cuisine. While pricing is not listed, it is a dedicated seafood option in the capital.\n\nSince Algiers is a coastal city, I highly recommend exploring the areas near the **Place des Martyrs** or the **port**, where many local seafood eateries are concentrated, offering fresh catches from the Medi"
+    },
+    {
+      "case_id": "hard_16",
+      "case_name": "Wedding venue planning",
+      "passed": true,
+      "score": 1.0,
+      "duration_ms": 16906.6,
+      "tools_called": [
+        "search_pois",
+        "search_stays",
+        "search_artisans",
+        "get_wilaya_guide"
+      ],
+      "tools_correct": true,
+      "mentions_correct": true,
+      "mentions_wrong": false,
+      "length_ok": true,
+      "error": null,
+      "output_preview": "Congratulations on your upcoming wedding! Tlemcen is one of the most romantic and culturally rich cities in Algeria, making it a perfect choice for a wedding.\n\nWhile my current database for Tlemcen (Wilaya 46) is limited, I can provide you with a curated guide based on the city's famous traditions and typical options available there.\n\n### \ud83c\udff0 Traditional Venues\nTlemcen is known for its Andalusian architecture. For a traditional wedding, I recommend looking into:\n*   **Traditional Riads & Palaces:*"
+    }
+  ]
+}
