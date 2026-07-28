@@ -118,6 +118,11 @@ def download_and_upload(
                 time.sleep(wait)
                 continue
 
+            # 4xx client errors (e.g., 400 bad thumbnail URL) will not succeed on retry
+            if 400 <= resp.status_code < 500:
+                log.warning("Client error %d for %s: skipping", resp.status_code, url[:80])
+                return None, ".jpg"
+
             resp.raise_for_status()
 
             content_type = resp.headers.get("content-type", "")
@@ -145,6 +150,19 @@ def download_and_upload(
                         url[:60], attempt + 1, wait, e)
             time.sleep(wait)
             continue
+        except httpx.HTTPStatusError as e:
+            status = e.response.status_code if e.response else 0
+            if 400 <= status < 500:
+                log.warning("Client error %d for %s: skipping", status, url[:80])
+                return None, ".jpg"
+            if attempt < 2:
+                wait = min(30, 3 * (attempt + 1) + random.uniform(0, 2))
+                log.warning("HTTP error %d for %s (attempt %d), retrying after %.1fs: %s",
+                            status, url[:60], attempt + 1, wait, e)
+                time.sleep(wait)
+                continue
+            log.warning("Failed %s after 3 attempts: %s", url[:80], e)
+            return None, ".jpg"
         except Exception as e:
             if attempt < 2:
                 wait = min(30, 3 * (attempt + 1) + random.uniform(0, 2))
