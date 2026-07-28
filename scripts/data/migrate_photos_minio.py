@@ -160,6 +160,50 @@ def _is_wikimedia(url: str | None) -> bool:
     return bool(url and ("commons.wikimedia" in url or "upload.wikimedia" in url))
 
 
+def _normalize_wikimedia_url(url: str) -> str:
+    """Normalize Wikimedia URLs to avoid slow redirects.
+
+    - http://commons.wikimedia.org -> https://commons.wikimedia.org
+    - Special:FilePath spaces (%20) -> underscores
+    - Special:FilePath -> direct upload.wikimedia.org URL using MD5 hash dirs
+      (avoids the slow commons.wikimedia.org redirect server)
+    """
+    import urllib.parse
+
+    if url.startswith("http://commons.wikimedia.org/"):
+        url = "https" + url[4:]
+
+    direct = _direct_upload_url(url)
+    if direct:
+        return direct
+
+    if "commons.wikimedia.org/wiki/Special:FilePath/" in url:
+        prefix = "commons.wikimedia.org/wiki/Special:FilePath/"
+        idx = url.index(prefix) + len(prefix)
+        filename = url[idx:].replace("%20", "_")
+        url = url[:idx] + filename
+    return url
+
+
+def _direct_upload_url(url: str) -> str | None:
+    """Convert a Wikimedia Commons Special:FilePath URL to a direct upload.wikimedia.org URL.
+
+    Wikimedia file URL scheme: /wikipedia/commons/{md5[0]}/{md5[0:2]}/{filename}
+    Filename must use underscores for spaces.
+    """
+    import urllib.parse
+
+    if "Special:FilePath/" not in url:
+        return None
+    idx = url.index("Special:FilePath/") + len("Special:FilePath/")
+    filename = urllib.parse.unquote(url[idx:])
+    filename = filename.replace(" ", "_")
+    if not filename:
+        return None
+    h = hashlib.md5(filename.encode("utf-8")).hexdigest()
+    return f"https://upload.wikimedia.org/wikipedia/commons/{h[0]}/{h[0:2]}/{filename}"
+
+
 async def fetch_url_groups(db: AsyncSession, limit: int, offset: int) -> list[tuple[str, set[str], set[str], int]]:
     """Fetch unique Wikimedia URLs and the POI IDs referencing them.
 
@@ -187,7 +231,7 @@ async def fetch_url_groups(db: AsyncSession, limit: int, offset: int) -> list[tu
 
     groups: dict[str, tuple[set[str], set[str], int]] = {}
     for r in photo_url_rows.all():
-        url = r[0]
+        url = _normalize_wikimedia_url(r[0])
         ids = set(r[1])
         groups.setdefault(url, (set(), set(), 0))
         photo_url_ids, photo_urls_ids, cnt = groups[url]
@@ -195,7 +239,7 @@ async def fetch_url_groups(db: AsyncSession, limit: int, offset: int) -> list[tu
         groups[url] = (photo_url_ids, photo_urls_ids, cnt + len(ids))
 
     for r in photo_urls_rows.all():
-        url = r[0]
+        url = _normalize_wikimedia_url(r[0])
         ids = set(r[1])
         cnt = r[2]
         groups.setdefault(url, (set(), set(), 0))
