@@ -1,3 +1,4 @@
+from app.models.agent_memory import AgentMemory, AgentSession
 from app.models.artisan import Artisan
 from app.models.collection import Collection, CollectionItem
 from app.models.event import Event
@@ -15,6 +16,8 @@ from app.models.wilaya import Wilaya
 from app.models.wilaya_distance import WilayaDistance
 
 __all__ = [
+    "AgentMemory",
+    "AgentSession",
     "Artisan",
     "User",
     "Wilaya",

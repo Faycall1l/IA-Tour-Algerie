@@ -19,6 +19,7 @@ from pydantic_ai.models.openai import OpenAIChatModel
 from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.deps import TravelAgentDeps
+from app.agents.memory_tools import recall, remember
 from app.agents.prompts import build_prompt, registry as prompt_registry
 from app.agents.tools import (
     ArtisanSearchOutput,
@@ -102,9 +103,16 @@ def _register_search_tools(agent: Agent) -> None:
     agent.tool(find_events)
 
 
+def _register_memory_tools(agent: Agent) -> None:
+    """Register memory tools (remember/recall) on an agent."""
+    agent.tool(remember)
+    agent.tool(recall)
+
+
 def _register_all_tools(agent: Agent) -> None:
-    """Register every tool including transport routing."""
+    """Register every tool including transport routing and memory."""
     _register_search_tools(agent)
+    _register_memory_tools(agent)
     agent.tool(get_transport_route)
     agent.tool(get_operator_contacts)
 
@@ -117,13 +125,20 @@ def _make_model(base_url: str, api_key: str, model_name: str) -> OpenAIChatModel
 
 
 def _dynamic_instructions(prompt_name: str):
-    """Return a callable that renders the prompt with runtime context."""
+    """Return a callable that renders the prompt with runtime context.
+
+    Injects message_history (previous conversation turns) into the
+    system prompt so the agent has memory of the ongoing conversation.
+    """
     from app.agents.prompts import AgentContext, registry as reg
 
     def _render(ctx: RunContext[TravelAgentDeps]) -> str:
         prompt = reg.get(prompt_name)
         agent_ctx = AgentContext.from_user(ctx.deps.user)
-        return prompt.render(context=agent_ctx.render())
+        base = prompt.render(context=agent_ctx.render())
+        if ctx.deps.message_history:
+            base += "\n" + ctx.deps.message_history
+        return base
 
     return _render
 
@@ -176,6 +191,7 @@ def create_transport_agent(base_url: str = "", api_key: str = "", model_name: st
         instructions=_dynamic_instructions("travel_agent.transport"),
         model_settings={"temperature": 0.2, "max_tokens": 2048},
     )
+    _register_memory_tools(agent)
     agent.tool(get_transport_route)
     agent.tool(get_operator_contacts)
     agent.tool(search_pois)
@@ -191,6 +207,7 @@ def create_events_agent(base_url: str = "", api_key: str = "", model_name: str =
         instructions=_dynamic_instructions("travel_agent.events"),
         model_settings={"temperature": 0.3, "max_tokens": 2048},
     )
+    _register_memory_tools(agent)
     agent.tool(find_events)
     agent.tool(search_pois)
     agent.tool(search_stays)

@@ -76,6 +76,17 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - **8 dead features killed** (commit `9835797`): Price reports, price calendar, suggestions, visits, preferences, recommendations, stats, studio media — all 0 rows, not core.
 - **API security hardening** (commit `12faa19`): OTP no longer hardcoded (uses `secrets` module), not returned in response body, `_otp_store` has TTL (5min) + size cap (1000) + auto-cleanup. `create_poi`/`upload_poi_photo` require provider/admin role. `register_provider` requires authentication. UUID type annotations on events/recommendations endpoints.
 
+### Done (new)
+- **Agent memory system**: Three-tier persistent memory for multi-turn conversations:
+  - `agent_sessions` + `agent_memories` DB tables (migration `ef64db5de951`)
+  - Episodic memory: stores conversation turns per session, reconstructed as `message_history`
+  - Semantic memory: agent-controlled `remember(key, value)` / `recall(key)` tools
+  - Context compression via `build_message_history()` — injects previous turns as structured text preamble
+  - Session management: `GET /agent/sessions`, `DELETE /agent/sessions/{id}`
+  - All 5 agents (travel, itinerary, search, transport, events) have memory tools registered
+  - 21 new tests, 213 total
+- **Taxi operator contacts**: **70 syndicates across all 69 wilayas** — UNACT (east, 15 branches), UNAT (west, 10 branches), local syndicates (41), ENTV (national). 7 with direct phone numbers, rest contactable via gare routière. `seed_taxi_contacts.py`
+
 ### Blocked
 - **Wasly.app REST API** is partner-only (B2B request required) — bus data publicly unavailable
 - **Wasly SNTF schedule API** returns 404 without authentication
@@ -95,21 +106,22 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 1. **⬅️ Migrate Wikimedia photos to MinIO** — background script running, ~1,550 unique URLs remaining (~7,000 POIs migrated of 8,108)
 2. **⬅️ More photos for remaining historical/cultural POIs**: 7,010 POIs now have MinIO photos — remaining ~46K have no matching Commons/Wikipedia content
 3. ~~⬜ **Expand schedule/pricing**~~ — **DONE**: 854/855 transport lines have schedule + pricing data (walking excluded)
-4. ⬜ **Add operator contacts for remaining wilaya taxi unions** — currently only national operators seeded; wilaya-level taxi phone numbers needed
+4. ~~⬜ **Add operator contacts for remaining wilaya taxi unions**~~ — **DONE**: 70 syndicates across all 69 wilayas (UNACT/UNAT/local)
 5. **⬅️ More fun facts via GenAI** — **DONE**: 2,911/52,997 POIs have fun facts (22 Wikidata/Wikipedia + 2,889 GenAI). Enrichment script completed successfully.
-6. ⬜ **Frontend** — the API is complete; needs a mobile/web frontend to be actually usable
+6. ⬜ **Frontend** — the API is complete with ~125+ routes, 5 agent endpoints with multi-turn memory; needs a mobile/web frontend to be actually usable
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
 - All tourism tables now populated with real OSM and curated data
-- **API routes** (149 passing tests): `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/trips`, `/favorites`, `/collections`, `/artisans`, `/auth`, `/users`, `/admin`, `/providers`
+- **API routes** (213 passing tests): `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/trips`, `/favorites`, `/collections`, `/artisans`, `/auth`, `/users`, `/admin`, `/providers`, `/agent/sessions`
 - POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls[], subtype, name_ar/name_en, is_featured, average_score, total_reviews, fun_fact
 - Vector search (Qdrant) configured but needs Docker running to work
 - App has trip optimizer combining POIs + transport + stays + restaurants + experiences, now wired to POI graph for walking times
 - **POI graph service**: 34,787 tourism POIs, 535,237 walking edges. Tour optimization works: Oran 9 POIs (4.1km), Tlemcen 10 (2.3km), Algiers 10 (3.2km), Blida 9 (0.8km), Batna 9 (5.5km), Constantine 7 (1.2km)
 - MultiModalRouter loads 444 multi-wilaya transport lines with 3,918 adjacency edges
 - **Fun facts enrichment**: **2,911 POIs** with real fun facts — 22 from Wikidata/Wikipedia (Timgad, Casbah, Fort Santa Cruz, etc.) + 2,889 generated via vLLM Gemma 4 (97.9% success rate)
-- Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `enrich_poi_descriptions.py`, `enrich_fun_facts.py`, `enrich_fun_facts_genai.py`, `migrate_photos_minio.py`, `extract_osm_artisans.py`
+- Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `enrich_poi_descriptions.py`, `enrich_fun_facts.py`, `enrich_fun_facts_genai.py`, `migrate_photos_minio.py`, `extract_osm_artisans.py`, `seed_taxi_contacts.py`
+- **Agent memory system**: `app/models/agent_memory.py` (AgentSession, AgentMemory), `app/agents/memory_service.py` (get_or_create_session, load_message_history, remember, recall), `app/agents/memory_tools.py` (remember/recall tools), `alembic/versions/ef64db5de951_add_agent_memory.py`, `tests/test_memory.py` (21 tests)
 
 ## Relevant Files
 - `app/data/poi_nodes_enriched.json`: 53,948 standalone POI nodes
