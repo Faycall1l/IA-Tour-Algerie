@@ -185,11 +185,19 @@ def _normalize_wikimedia_url(url: str) -> str:
     - Special:FilePath spaces (%20) -> underscores
     - Special:FilePath -> direct upload.wikimedia.org URL using MD5 hash dirs
       (avoids the slow commons.wikimedia.org redirect server)
+    - Malformed thumbnail URLs (with _960px-... suffix) -> full-size upload.wikimedia.org URL
     """
     import urllib.parse
+    import re
 
     if url.startswith("http://commons.wikimedia.org/"):
         url = "https" + url[4:]
+
+    # Fix malformed thumbnail URLs like:
+    # /thumb/e/e3/Foo.jpg_960px-Foo/bar.jpg -> /e/e3/Foo.jpg
+    thumb_fix = _fix_thumbnail_url(url)
+    if thumb_fix:
+        return thumb_fix
 
     direct = _direct_upload_url(url)
     if direct:
@@ -201,6 +209,36 @@ def _normalize_wikimedia_url(url: str) -> str:
         filename = url[idx:].replace("%20", "_")
         url = url[:idx] + filename
     return url
+
+
+def _fix_thumbnail_url(url: str) -> str | None:
+    """Convert malformed Wikimedia thumbnail URLs to full-size upload.wikimedia.org URLs.
+
+    Some stored URLs are broken thumbnails like:
+        /wikipedia/commons/thumb/e/e3/Foo.jpg_960px-Foo/bar.jpg
+        /wikipedia/commons/thumb/e/e3/Foo.jpg/960px-thumbnail.jpg
+    The correct full-size URL is:
+        /wikipedia/commons/e/e3/Foo.jpg
+    """
+    import re
+
+    # _<width>px-.../... suffix
+    m = re.match(
+        r"^(https?://upload\.wikimedia\.org/wikipedia/commons)/thumb/([0-9a-f]/[0-9a-f]{2}/.+?)_\d+px-[^/]+(?:/[^/]+)?$",
+        url,
+    )
+    if m:
+        return f"{m.group(1)}/{m.group(2)}"
+
+    # /<width>px-.../... suffix
+    m = re.match(
+        r"^(https?://upload\.wikimedia\.org/wikipedia/commons)/thumb/([0-9a-f]/[0-9a-f]{2}/.+?)/\d+px-[^/]+(?:/[^/]+)?$",
+        url,
+    )
+    if m:
+        return f"{m.group(1)}/{m.group(2)}"
+
+    return None
 
 
 def _direct_upload_url(url: str) -> str | None:
