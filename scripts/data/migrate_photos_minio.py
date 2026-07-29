@@ -178,6 +178,80 @@ def _is_wikimedia(url: str | None) -> bool:
     return bool(url and ("commons.wikimedia" in url or "upload.wikimedia" in url))
 
 
+_URL_ENCODED_BYTES = {
+    # ASCII chars that are commonly percent-encoded in URLs
+    *range(0x20, 0x30),  # space, ! " # $ % & ' ( )
+    *range(0x3A, 0x41),  # : ; < = > ? @
+    *range(0x5B, 0x5F),  # [ \ ] ^
+    0x60,                 # `
+    *range(0x7B, 0x7F),  # { | } ~
+}
+
+
+def _decode_underscore_encoded(name: str) -> str:
+    """Decode Wikimedia filenames where % was replaced by _.
+
+    Examples:
+        Mus_C3_A9e_de_Tlemcen_12.jpg -> Musée_de_Tlemcen_12.jpg
+        Map_of_Tassili_n_27Ajjer_and_surroundings-en.jpg -> Map_of_Tassili_n'Ajjer_and_surroundings-en.jpg
+    """
+    import re
+
+    def _is_hex(s: str) -> bool:
+        return len(s) == 2 and all(c in "0123456789abcdefABCDEF" for c in s)
+
+    def _byte(s: str) -> int:
+        return int(s, 16)
+
+    result = []
+    i = 0
+    n = len(name)
+    while i < n:
+        if name[i] == "_" and i + 2 < n and _is_hex(name[i + 1 : i + 3]):
+            b = _byte(name[i + 1 : i + 3])
+            # Common single-byte encoded ASCII chars
+            if b in _URL_ENCODED_BYTES:
+                result.append(chr(b))
+                i += 3
+                continue
+            # UTF-8 multi-byte sequences
+            seq = bytes([b])
+            i2 = i + 3
+            if 0xC2 <= b <= 0xDF:
+                expected_len = 2
+            elif 0xE0 <= b <= 0xEF:
+                expected_len = 3
+            elif 0xF0 <= b <= 0xF4:
+                expected_len = 4
+            else:
+                expected_len = 1
+
+            while (
+                len(seq) < expected_len
+                and i2 + 2 < n
+                and name[i2] == "_"
+                and _is_hex(name[i2 + 1 : i2 + 3])
+                and 0x80 <= _byte(name[i2 + 1 : i2 + 3]) <= 0xBF
+            ):
+                seq += bytes([_byte(name[i2 + 1 : i2 + 3])])
+                i2 += 3
+
+            if len(seq) == expected_len and expected_len > 1:
+                try:
+                    result.append(seq.decode("utf-8"))
+                    i = i2
+                    continue
+                except Exception:
+                    pass
+            # Not a valid encoded sequence; keep the literal underscore
+            result.append(name[i])
+            i += 1
+        else:
+            result.append(name[i])
+            i += 1
+    return "".join(result)
+
+
 def _normalize_wikimedia_url(url: str) -> str:
     """Normalize Wikimedia URLs to avoid slow redirects.
 
@@ -186,15 +260,14 @@ def _normalize_wikimedia_url(url: str) -> str:
     - Special:FilePath -> direct upload.wikimedia.org URL using MD5 hash dirs
       (avoids the slow commons.wikimedia.org redirect server)
     - Malformed thumbnail URLs (with _960px-... suffix) -> full-size upload.wikimedia.org URL
+    - Underscore-encoded (% -> _) filenames are decoded back to proper characters
     """
     import urllib.parse
-    import re
 
     if url.startswith("http://commons.wikimedia.org/"):
         url = "https" + url[4:]
 
-    # Fix malformed thumbnail URLs like:
-    # /thumb/e/e3/Foo.jpg_960px-Foo/bar.jpg -> /e/e3/Foo.jpg
+    # Fix malformed thumbnail URLs and decode any underscore-encoded filenames
     thumb_fix = _fix_thumbnail_url(url)
     if thumb_fix:
         return thumb_fix
@@ -206,8 +279,17 @@ def _normalize_wikimedia_url(url: str) -> str:
     if "commons.wikimedia.org/wiki/Special:FilePath/" in url:
         prefix = "commons.wikimedia.org/wiki/Special:FilePath/"
         idx = url.index(prefix) + len(prefix)
-        filename = url[idx:].replace("%20", "_")
+        filename = urllib.parse.unquote(url[idx:])
+        filename = _decode_underscore_encoded(filename)
+        filename = filename.replace(" ", "_")
         url = url[:idx] + filename
+        return url
+
+    # Decode underscore-encoded upload.wikimedia.org URLs
+    if "upload.wikimedia.org" in url:
+        decoded = _decode_upload_wikimedia_url(url)
+        if decoded:
+            return decoded
     return url
 
 
@@ -221,6 +303,7 @@ def _fix_thumbnail_url(url: str) -> str | None:
         /wikipedia/commons/e/e3/Foo.jpg
     """
     import re
+    import urllib.parse
 
     # _<width>px-.../... suffix
     m = re.match(
@@ -228,7 +311,9 @@ def _fix_thumbnail_url(url: str) -> str | None:
         url,
     )
     if m:
-        return f"{m.group(1)}/{m.group(2)}"
+        filename = _decode_underscore_encoded(m.group(2))
+        encoded = urllib.parse.quote(filename.replace(" ", "_"), safe="_/()")
+        return f"{m.group(1)}/{encoded}"
 
     # /<width>px-.../... suffix
     m = re.match(
@@ -236,9 +321,33 @@ def _fix_thumbnail_url(url: str) -> str | None:
         url,
     )
     if m:
-        return f"{m.group(1)}/{m.group(2)}"
+        filename = _decode_underscore_encoded(m.group(2))
+        encoded = urllib.parse.quote(filename.replace(" ", "_"), safe="_/()")
+        return f"{m.group(1)}/{encoded}"
 
     return None
+
+
+def _decode_upload_wikimedia_url(url: str) -> str | None:
+    """Decode underscore-encoded full-size upload.wikimedia.org URLs.
+
+    Example:
+        https://upload.wikimedia.org/wikipedia/commons/e/eb/Mus_C3_A9e_public_...
+      -> https://upload.wikimedia.org/wikipedia/commons/e/eb/Mus%C3%A9e_public_...
+    """
+    import re
+    import urllib.parse
+
+    m = re.match(
+        r"^(https?://upload\.wikimedia\.org/wikipedia/commons/[0-9a-f]/[0-9a-f]{2}/)(.+)$",
+        url,
+    )
+    if not m:
+        return None
+    prefix, filename = m.group(1), m.group(2)
+    decoded = _decode_underscore_encoded(filename)
+    encoded = urllib.parse.quote(decoded.replace(" ", "_"), safe="_/()")
+    return f"{prefix}{encoded}"
 
 
 def _direct_upload_url(url: str) -> str | None:
@@ -253,6 +362,7 @@ def _direct_upload_url(url: str) -> str | None:
         return None
     idx = url.index("Special:FilePath/") + len("Special:FilePath/")
     filename = urllib.parse.unquote(url[idx:])
+    filename = _decode_underscore_encoded(filename)
     filename = filename.replace(" ", "_")
     if not filename:
         return None

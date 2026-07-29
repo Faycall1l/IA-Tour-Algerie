@@ -46,9 +46,10 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - **Transport graph organization** (`organize_transport.py`): taxi edges into 361 named routes, SOGRAL consolidated, 187 inter-city connections added, station line lists populated. **DB seeded**: 3,795 stations + 636 transport lines. Fixed column name mismatch (`station_type` vs `type`).
 - **Missing wilaya fix** (`fix_missing_wilaya.py`): 2,501/2,502 transit nodes assigned correct wilaya via nearest-center + name matching; remaining 10 are international airports/ferries outside Algeria. **DB stations all have wilaya_id** (0 NULLs).
 - **Destination enrichment** (`enrich_wikivoyage.py`, `enrich_descriptions_auto.py`): All 69 wilayas now have French destination descriptions (16 from FR Wikivoyage, 4 EN, 49 auto-generated from OSM data). New `description`/`description_en` columns on `wilayas` table.
-- **POI photo enrichment**: 4,738 POIs have valid Commons/Wikipedia photos (9.1%):
+- **POI photo enrichment**: 8,533 POIs have real MinIO-hosted photos (16.1%), 44,464 have category placeholders:
   - Phase 1 (`enrich_wikimedia_photos.py`): 131 original photos via Commons search
   - Phase 2 (`enrich_photos_bulk.py` + `enrich_photos_more.py`): 4,096 via Wikidata SPARQL matching + 511 via Wikipedia API pageimage search
+  - MinIO migration (`migrate_photos_minio.py`): 8,533 POIs migrated; **0 Wikimedia URLs remain** in DB. Added robust URL decoding for underscore-encoded filenames (`%` → `_`), malformed thumbnail URL reconstruction, and 429/timeout retry handling
 - **Featured attractions** (`enrich_featured_attractions.py`): 284 POIs across 62 wilayas ranked as featured/must-see based on OSM category + tag importance. New `featured_order`/`is_featured` columns on `pois`.
 - **Pricing & events** (`enrich_pricing_events.py`): All 999 stays now have real estimated pricing (800-15,000 DZD/night by type). 39,102 POIs have entry fees (0-500 DZD). **40 events/festivals** seeded in new `events` table.
 - **Comprehensive POI enrichment** (`enrich_poi_full.py`): All 52,997 POIs enriched from OSM JSON — 100% have subtype, osm_node_id, osm_type, has_parking, has_accessibility; 11,300 with name_en, 4,122 with name_ar, 930 with cuisine, 294 with operator. New columns added: `subtype`, `operator`, `has_parking`, `has_accessibility`, `name_ar`, `name_en`, `osm_node_id`, `osm_type`, `cuisine`.
@@ -103,8 +104,8 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - Checkpointed extraction (per-wilaya files) to survive timeouts/rate limits
 
 ## Next Steps
-1. **⬅️ Migrate Wikimedia photos to MinIO** — background script running, ~1,550 unique URLs remaining (~7,000 POIs migrated of 8,108)
-2. **⬅️ More photos for remaining historical/cultural POIs**: 7,010 POIs now have MinIO photos — remaining ~46K have no matching Commons/Wikipedia content
+1. ~~⬜ **Migrate Wikimedia photos to MinIO**~~ — **DONE**: 8,533 POIs migrated to MinIO; **0 Wikimedia URLs remain** in DB
+2. **⬅️ More photos for remaining historical/cultural POIs**: 8,533 POIs have real MinIO photos; 44,464 have generated placeholders — need real photos for the remaining cultural/historical POIs
 3. ~~⬜ **Expand schedule/pricing**~~ — **DONE**: 854/855 transport lines have schedule + pricing data (walking excluded)
 4. ~~⬜ **Add operator contacts for remaining wilaya taxi unions + major transport operators**~~ — **DONE**: 152 operators, 86 with real phones. Taxi: 95 syndicates/companies, 29 with real phones (up from 9). All 15 gobytaxi numbers verified on live pages. Added Air Algérie (22 agencies + Contact Center + Oran sub-agencies), SNTF (8 + Oran station phone), SOGRAL gares (2), ENTMV ferry (5), SETRAM (7 units — all with direct operational phones from setram.dz), taxi/VTC (22 via gobytaxi.com + guideoran.com), travel agencies (2). Fixed placeholder numbers on SOGRAL, ENTV, SNTF, ETUSA. `seed_operators.py` (auto-generated from DB)
 5. **⬅️ More fun facts via GenAI** — **DONE**: 2,911/52,997 POIs have fun facts (22 Wikidata/Wikipedia + 2,889 GenAI). Enrichment script completed successfully.
