@@ -361,12 +361,16 @@ async def migrate(batch_size: int = 100, dry_run: bool = False, max_total: int =
     engine = create_async_engine(url)
 
     async with AsyncSession(engine) as db:
-        purl_total, purls_total, total = await count_wikimedia_references(db)
-        log.info("Wikimedia references to migrate: %d unique photo_url URLs, %d unique photo_urls[1] URLs, %d combined unique URLs",
-                 purl_total, purls_total, total)
+        purl_total, purls_total, raw_total = await count_wikimedia_references(db)
+        # Fetch the full normalized/deduplicated list once so total matches what we iterate.
+        all_groups = await fetch_url_groups(db, 1000000, 0)
+        total = len(all_groups)
+        log.info("Wikimedia references to migrate: %d unique photo_url URLs, %d unique photo_urls[1] URLs, %d raw unique URLs, %d normalized unique URLs",
+                 purl_total, purls_total, raw_total, total)
 
         if max_total > 0:
             total = min(total, max_total)
+            all_groups = all_groups[:total]
 
         minio_client = get_minio_client()
         migrated = 0
@@ -382,7 +386,7 @@ async def migrate(batch_size: int = 100, dry_run: bool = False, max_total: int =
             return minio_url, wiki_url, photo_url_ids, photo_urls_ids
 
         while offset < total:
-            url_groups = await fetch_url_groups(db, batch_size, offset)
+            url_groups = all_groups[offset:offset + batch_size]
             if not url_groups:
                 break
 
