@@ -9,6 +9,7 @@ from app.db.session import get_db
 from app.models.user import User
 from app.services.storage import StorageService
 from app.services.transit_routing import TransitRoutingService
+from app.services.poi_transit_router import PoiTransitRouter
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.twilio import TwilioService
 from app.services.vector_search import VectorSearchService
@@ -92,3 +93,7 @@ async def get_twilio(request: Request) -> TwilioService:
 
 async def get_transit_routing(request: Request) -> TransitRoutingService:
     return request.app.state.transit_routing
+
+
+async def get_poi_transit_router(request: Request) -> PoiTransitRouter:
+    return request.app.state.poi_transit_router

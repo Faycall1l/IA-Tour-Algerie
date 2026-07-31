@@ -32,6 +32,7 @@ from app.services.embeddings import EmbeddingService
 from app.services.response_cache import ResponseCache
 from app.services.storage import StorageService
 from app.services.transit_routing import TransitRoutingService
+from app.services.poi_transit_router import PoiTransitRouter
 from app.services.transport import TransportService
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.twilio import TwilioService
@@ -48,6 +49,7 @@ async def lifespan(app: FastAPI):
     load_translations()
     app.state.transport = TransportService()
     app.state.transit_routing = TransitRoutingService()
+    app.state.poi_transit_router = PoiTransitRouter(transit_routing=app.state.transit_routing)
     app.state.storage = StorageService()
     app.state.embedder = EmbeddingService()
     app.state.vector_search = VectorSearchService(app.state.embedder)

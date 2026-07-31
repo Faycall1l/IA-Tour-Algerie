@@ -4,9 +4,10 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_db, get_transit_routing
+from app.api.deps import get_db, get_poi_transit_router, get_transit_routing
 from app.models.wilaya_distance import WilayaDistance
 from app.services.multimodal_router import MultiModalRouter
+from app.services.poi_transit_router import PoiTransitRouter
 from app.services.transit_routing import TransitRoutingService
 from app.services.transport import TransportService
 
@@ -163,14 +164,22 @@ async def plan_route(
     from_lng: float = Query(...),
     to_lat: float = Query(...),
     to_lng: float = Query(...),
+    from_name: str = Query("Your location"),
+    to_name: str = Query("Destination"),
     db: AsyncSession = Depends(get_db),
-    routing: TransitRoutingService = Depends(get_transit_routing),
+    router: PoiTransitRouter = Depends(get_poi_transit_router),
 ) -> dict:
-    """Plan a multi-modal public transit route between two GPS coordinates."""
-    result = await routing.find_route(db, from_lat, from_lng, to_lat, to_lng)
-    if result is None:
-        return {"error": "No route found between these locations"}
-    return result.model_dump(mode="json")
+    """Plan a multi-modal transit route with walking + transit turn-by-turn directions."""
+    plan = await router.route_to(
+        db=db,
+        from_lat=from_lat,
+        from_lng=from_lng,
+        from_name=from_name,
+        to_lat=to_lat,
+        to_lng=to_lng,
+        to_name=to_name,
+    )
+    return plan.as_dict()
 
 
 @router.get("/access/{poi_id}")
@@ -185,6 +194,48 @@ async def poi_access(
     """Get public transit access info for a POI: nearest stations + routing."""
     result = await routing.poi_access(db, poi_id, lat, lng, name)
     return result.model_dump(mode="json")
+
+
+@router.get("/route-to-poi/{poi_id}")
+async def route_to_poi(
+    poi_id: uuid.UUID,
+    from_lat: float = Query(...),
+    from_lng: float = Query(...),
+    from_name: str = Query("Your location"),
+    db: AsyncSession = Depends(get_db),
+    router: PoiTransitRouter = Depends(get_poi_transit_router),
+) -> dict:
+    """Compute turn-by-turn transit directions from a GPS point to a specific POI.
+
+    Returns walking + transit segments with milestones for mode changes.
+    Handles: walking-only routes, multi-leg transit, no-transit-available fallbacks.
+    """
+    try:
+        plan = await router.route_to_poi(
+            db=db,
+            poi_id=poi_id,
+            from_lat=from_lat,
+            from_lng=from_lng,
+            from_name=from_name,
+        )
+        access_info = await router.poi_access(
+            db=db,
+            poi_id=poi_id,
+            poi_lat=plan.to_lat,
+            poi_lng=plan.to_lng,
+            poi_name=plan.to_name,
+        )
+        return {
+            "poi_id": str(poi_id),
+            "poi_name": plan.to_name,
+            "poi_lat": plan.to_lat,
+            "poi_lng": plan.to_lng,
+            "from": {"lat": plan.from_lat, "lng": plan.from_lng, "name": plan.from_name},
+            "plan": plan.as_dict(),
+            "poi_access": access_info,
+        }
+    except ValueError as e:
+        return {"error": str(e)}
 
 
 # ── Transport operators ──────────────────────────────────────────────
