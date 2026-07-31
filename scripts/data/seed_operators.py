@@ -1,10 +1,11 @@
 """Seed real transport operator contacts.
 Auto-generated from DB state -- do not edit manually.
 """
+import os
 import uuid
 from sqlalchemy import create_engine, text
 
-engine = create_engine("postgresql://athar:athar_pass@localhost:5432/athar_db")
+engine = create_engine(os.getenv("DATABASE_URL", "postgresql://athar:athar_pass@localhost:5432/athar_db"))
 
 # 152 operators
 OPERATORS = [

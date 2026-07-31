@@ -68,5 +68,5 @@ class Experience(UUIDPkMixin, TimestampMixin, Base):
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR, Computed("to_tsvector('french', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(category, ''))"), nullable=True
     )
-    is_verified: Mapped[bool] = mapped_column(sa.Boolean, default=False)
-    completion_count: Mapped[int] = mapped_column(sa.Integer, default=0)
+    is_verified: Mapped[bool] = mapped_column(sa.Boolean, default=False, server_default=sa.false())
+    completion_count: Mapped[int] = mapped_column(sa.Integer, default=0, server_default=sa.text('0'))
