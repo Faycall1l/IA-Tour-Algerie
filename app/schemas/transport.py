@@ -58,6 +58,7 @@ class RouteSegment(BaseModel):
     mode: str
     operator: str
     line_name: str
+    line_id: uuid.UUID | None = None
     line_color: str | None = None
     from_station: str
     to_station: str

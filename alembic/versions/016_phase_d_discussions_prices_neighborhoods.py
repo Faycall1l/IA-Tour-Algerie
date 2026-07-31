@@ -62,6 +62,7 @@ def upgrade() -> None:
     op.create_index("ix_price_calendar_date", "price_calendar", ["date"])
 
     # Neighborhood index on pois for neighborhood browsing
+    op.add_column("pois", sa.Column("neighborhood", sa.String(200), nullable=True))
     op.create_index("ix_pois_neighborhood", "pois", ["neighborhood"])
 
 
@@ -70,3 +71,4 @@ def downgrade() -> None:
     op.drop_table("discussion_posts")
     op.drop_table("discussion_threads")
     op.drop_index("ix_pois_neighborhood", table_name="pois")
+    op.drop_column("pois", "neighborhood")

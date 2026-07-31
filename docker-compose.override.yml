@@ -1,0 +1,13 @@
+services:
+  db:
+    image: postgres:16-alpine
+    user: "0:0"
+    environment:
+      POSTGRES_PASSWORD: athar_pass
+      POSTGRES_PASSWORD_FILE: ""
+    ports:
+      - "127.0.0.1:5434:5432"
+
+  redis:
+    ports:
+      - "127.0.0.1:6381:6379"
