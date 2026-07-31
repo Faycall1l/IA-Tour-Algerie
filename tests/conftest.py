@@ -152,6 +152,7 @@ async def client() -> AsyncIterator[AsyncClient]:
     app.state.trip_optimizer = TripOptimizer()
     app.state.trip_brief_generator = TripBriefGenerator()
     app.state.transit_routing = AsyncMock()
+    app.state.poi_transit_router = AsyncMock()
     app.state.twilio = _MockTwilio()
 
     transport = ASGITransport(app=app)
