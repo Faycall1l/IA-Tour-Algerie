@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class StationRead(BaseModel):
@@ -94,3 +94,39 @@ class POIAccess(BaseModel):
     poi_name: str
     nearest_stations: list[NearestStation]
     route_to_poi: RouteResult | None = None
+
+
+# ── Turn-by-turn route plan schemas ──────────────────────────────────
+
+class RoutePlanCoordinate(BaseModel):
+    lat: float
+    lng: float
+    name: str
+
+
+class RoutePlanResponse(BaseModel):
+    from_point: RoutePlanCoordinate = Field(alias="from")
+    to: RoutePlanCoordinate
+    total_walking_km: float
+    total_transit_km: float
+    total_transfers: int
+    total_estimated_minutes: int
+    available_modes: list[str]
+    is_walking_only: bool = False
+    is_driving_recommended: bool = False
+    steps: list[dict] = []
+
+    model_config = {"populate_by_name": True}
+
+
+class POIRoutePlanResponse(BaseModel):
+    poi_id: uuid.UUID
+    poi_name: str
+    poi_lat: float
+    poi_lng: float
+    from_point: RoutePlanCoordinate = Field(alias="from")
+    plan: RoutePlanResponse | None = None
+    alternatives: list[RoutePlanResponse] = []
+    poi_access: dict | None = None
+
+    model_config = {"populate_by_name": True}
