@@ -213,6 +213,7 @@ def main():
     # Process each category
     total_new = 0
     all_matched_ids = set()
+    matched_urls = {}
 
     for cat in CATEGORIES:
         print(f"\n📂 Category: {cat}")
@@ -237,6 +238,7 @@ def main():
                         d = haversine(lat, lon, plon, plat)
                         if d <= MAX_DISTANCE_M:
                             all_matched_ids.add(pid)
+                            matched_urls[pid] = img_url
                             matched_this += 1
                             break
                     # break out of nested loops if matched
@@ -256,14 +258,19 @@ def main():
         for i in range(0, len(ids_list), batch_size):
             batch = ids_list[i : i + batch_size]
             for pid in batch:
-                # We need the URL - fetch it from a matched image
-                pass
-            # Actually let me rethink this...
-
-    # Actually, we need to store which image goes with which POI
-    # Let me restructure: match image -> POI and store the URL
-    conn.close()
-    print("Done")
+                url = matched_urls[pid]
+                cur.execute(
+                    """
+                    UPDATE pois
+                    SET photo_urls = ARRAY[%s],
+                        photo_url = COALESCE(photo_url, %s)
+                    WHERE id = %s AND (photo_urls IS NULL OR photo_urls = '{}')
+                    """,
+                    (url, url, pid),
+                )
+            conn.commit()
+            print(f"  Updated {min(i + batch_size, len(ids_list))}/{len(ids_list)}")
+        print("Done")
 
 
 if __name__ == "__main__":
