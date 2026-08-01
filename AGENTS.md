@@ -46,10 +46,10 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - **Transport graph organization** (`organize_transport.py`): taxi edges into 361 named routes, SOGRAL consolidated, 187 inter-city connections added, station line lists populated. **DB seeded**: 3,795 stations + 636 transport lines. Fixed column name mismatch (`station_type` vs `type`).
 - **Missing wilaya fix** (`fix_missing_wilaya.py`): 2,501/2,502 transit nodes assigned correct wilaya via nearest-center + name matching; remaining 10 are international airports/ferries outside Algeria. **DB stations all have wilaya_id** (0 NULLs).
 - **Destination enrichment** (`enrich_wikivoyage.py`, `enrich_descriptions_auto.py`): All 69 wilayas now have French destination descriptions (16 from FR Wikivoyage, 4 EN, 49 auto-generated from OSM data). New `description`/`description_en` columns on `wilayas` table.
-- **POI photo enrichment**: 8,533 POIs have real MinIO-hosted photos (16.1%), 44,464 have category placeholders:
-  - Phase 1 (`enrich_wikimedia_photos.py`): 131 original photos via Commons search
-  - Phase 2 (`enrich_photos_bulk.py` + `enrich_photos_more.py`): 4,096 via Wikidata SPARQL matching + 511 via Wikipedia API pageimage search
-  - MinIO migration (`migrate_photos_minio.py`): 8,533 POIs migrated; **0 Wikimedia URLs remain** in DB. Added robust URL decoding for underscore-encoded filenames (`%` → `_`), malformed thumbnail URL reconstruction, and 429/timeout retry handling
+- **POI photo enrichment** (post-reseed restore, commit `7c06a1d`): **4,734 POIs** have real MinIO-hosted photos (9.0%), 47,951 have category placeholders:
+  - **ATHAR MinIO restored** on `127.0.0.1:19000` (isolated from meddata's 9000), data dir `minio_data/` (gitignored, ~2.2GB, 1,777 objects), compose base file ports updated
+  - `migrate_photos_minio.py` fixed: raw URL tried first (no more mangling of legit filenames like `Aerial_2009`), double-encoded `%25C3` → `%C3` collapse, underscore-decode only as 404 fallback, SVG support, `<500` byte guard waived for SVG
+  - All 47,951 remaining POIs have category placeholders (`enrich_placeholders.py`)
 - **POI transit routing** (`PoiTransitRouter`): GPS→POI multimodal routing with turn-by-turn directions. Combines walking + transit via Dijkstra on the in-memory TransitGraph. Returns structured steps: walking, transit (schedule/pricing), transfers (milestones for line changes). Handles walking-only, no-station-nearby, driving-recommended. New endpoints: `GET /transport/route-to-poi/{poi_id}`, enhanced `GET /transport/plan` (now includes walking segments). Service at `app/services/poi_transit_router.py`.
 - **Featured attractions** (`enrich_featured_attractions.py`): 284 POIs across 62 wilayas ranked as featured/must-see based on OSM category + tag importance. New `featured_order`/`is_featured` columns on `pois`.
 - **Pricing & events** (`enrich_pricing_events.py`): All 999 stays now have real estimated pricing (800-15,000 DZD/night by type). 39,102 POIs have entry fees (0-500 DZD). **40 events/festivals** seeded in new `events` table.
@@ -105,8 +105,8 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - Checkpointed extraction (per-wilaya files) to survive timeouts/rate limits
 
 ## Next Steps
-1. ~~⬜ **Migrate Wikimedia photos to MinIO**~~ — **DONE**: 8,533 POIs migrated to MinIO; **0 Wikimedia URLs remain** in DB
-2. **⬅️ More photos for remaining historical/cultural POIs**: 8,533 POIs have real MinIO photos; 44,464 have generated placeholders — need real photos for the remaining cultural/historical POIs
+1. ~~⬜ **Migrate Wikimedia photos to MinIO**~~ — **DONE**: 4,734 POIs migrated to MinIO; **0 Wikimedia URLs remain** in DB
+2. **⬅️ More photos for remaining historical/cultural POIs**: 4,734 POIs have real MinIO photos; 47,951 have generated placeholders — need real photos for the remaining cultural/historical POIs
 3. ~~⬜ **Expand schedule/pricing**~~ — **DONE**: 854/855 transport lines have schedule + pricing data (walking excluded)
 4. ~~⬜ **Add operator contacts for remaining wilaya taxi unions + major transport operators**~~ — **DONE**: 152 operators, 86 with real phones. Taxi: 95 syndicates/companies, 29 with real phones (up from 9). All 15 gobytaxi numbers verified on live pages. Added Air Algérie (22 agencies + Contact Center + Oran sub-agencies), SNTF (8 + Oran station phone), SOGRAL gares (2), ENTMV ferry (5), SETRAM (7 units — all with direct operational phones from setram.dz), taxi/VTC (22 via gobytaxi.com + guideoran.com), travel agencies (2). Fixed placeholder numbers on SOGRAL, ENTV, SNTF, ETUSA. `seed_operators.py` (auto-generated from DB)
 5. **⬅️ More fun facts via GenAI** — **DONE**: 2,911/52,997 POIs have fun facts (22 Wikidata/Wikipedia + 2,889 GenAI). Enrichment script completed successfully.
