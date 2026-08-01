@@ -18,7 +18,21 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp"})
+ALLOWED_CONTENT_TYPES = frozenset(
+    {"image/jpeg", "image/png", "image/webp", "image/jpg"}
+)
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+
+
+def _sniffs_as_image(content: bytes) -> bool:
+    """Magic-byte check so arbitrary payloads can't pass as images."""
+    if content.startswith(b"\xff\xd8\xff"):  # JPEG
+        return True
+    if content.startswith(b"\x89PNG\r\n\x1a\n"):  # PNG
+        return True
+    if content.startswith(b"RIFF") and content[8:12] == b"WEBP":  # WebP
+        return True
+    return False
 
 
 class StorageService:
@@ -62,6 +76,8 @@ class StorageService:
         self.client.set_bucket_policy(self.bucket, json.dumps(policy))
 
     def _public_url(self, object_name: str) -> str:
+        if settings.minio.public_url:
+            return f"{settings.minio.public_url.rstrip('/')}/{self.bucket}/{object_name}"
         endpoint = settings.minio.endpoint
         scheme = "https" if settings.minio.secure else "http"
         return f"{scheme}://{endpoint}/{self.bucket}/{object_name}"
@@ -71,9 +87,9 @@ class StorageService:
         if ext not in ALLOWED_EXTENSIONS:
             allowed = ", ".join(sorted(ALLOWED_EXTENSIONS))
             raise BadRequestException(f"Unsupported file type '{ext}'. Allowed: {allowed}")
-        if file.size and file.size > MAX_FILE_SIZE:
-            max_mb = MAX_FILE_SIZE // 1024 // 1024
-            raise BadRequestException(f"File too large ({file.size} bytes). Max: {max_mb} MB")
+        ct = (file.content_type or "").split(";")[0].strip().lower()
+        if ct not in ALLOWED_CONTENT_TYPES:
+            raise BadRequestException(f"Unsupported content type '{ct}'. Allowed: image/*")
 
     async def upload(self, file: UploadFile, folder: str = "general") -> str:
         self._validate(file)
@@ -81,9 +97,17 @@ class StorageService:
         if not self.client:
             raise RuntimeError("MinIO not available")
 
+        content = await file.read()
+        if len(content) > MAX_FILE_SIZE:
+            max_mb = MAX_FILE_SIZE // 1024 // 1024
+            raise BadRequestException(
+                f"File too large ({len(content)} bytes). Max: {max_mb} MB"
+            )
+        if not _sniffs_as_image(content):
+            raise BadRequestException("File content is not a valid image")
+
         ext = Path(file.filename or "image.jpg").suffix.lower()
         object_name = f"{folder}/{uuid.uuid4().hex}{ext}"
-        content = await file.read()
 
         self.client.put_object(
             bucket_name=self.bucket,
