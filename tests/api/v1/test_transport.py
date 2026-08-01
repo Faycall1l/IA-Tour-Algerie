@@ -299,8 +299,17 @@ async def test_list_operators_empty(client: AsyncClient):
 @pytest.mark.asyncio
 async def test_plan_route_no_route(client: AsyncClient):
     from app.main import app
-    mock_routing = app.state.transit_routing
-    mock_routing.find_route = AsyncMock(return_value=None)
+    from app.services.poi_transit_router import RoutePlan
+
+    mock_router = app.state.poi_transit_router
+    mock_router.route_to = AsyncMock(return_value=RoutePlan(
+        from_lat=36.75, from_lng=3.06, from_name="Your location",
+        to_lat=35.69, to_lng=-0.63, to_name="Destination",
+        total_walking_km=120.0, total_transit_km=0.0,
+        total_transfers=0, total_estimated_minutes=1440,
+        available_modes=["walking"],
+        is_walking_only=True, is_driving_recommended=True,
+    ))
 
     resp = await client.get(
         "/api/v1/transport/plan",
@@ -311,7 +320,9 @@ async def test_plan_route_no_route(client: AsyncClient):
     )
     assert resp.status_code == 200
     data = resp.json()
-    assert data["error"] == "No route found between these locations"
+    assert data["is_walking_only"] is True
+    assert data["total_transit_km"] == 0
+    assert data["steps"] == []
 
 
 # ── GET /transport/access/{poi_id} ─────────────────────────────────
