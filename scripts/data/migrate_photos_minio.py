@@ -352,8 +352,7 @@ def _fix_thumbnail_url(url: str) -> str | None:
     )
     if m:
         filename = _decode_underscore_encoded(m.group(2))
-        encoded = urllib.parse.quote(filename.replace(" ", "_"), safe="_/()")
-        return f"{m.group(1)}/{encoded}"
+        return f"{m.group(1)}/{filename.replace(' ', '_')}"
 
     # /<width>px-.../... suffix
     m = re.match(
@@ -362,8 +361,7 @@ def _fix_thumbnail_url(url: str) -> str | None:
     )
     if m:
         filename = _decode_underscore_encoded(m.group(2))
-        encoded = urllib.parse.quote(filename.replace(" ", "_"), safe="_/()")
-        return f"{m.group(1)}/{encoded}"
+        return f"{m.group(1)}/{filename.replace(' ', '_')}"
 
     return None
 
