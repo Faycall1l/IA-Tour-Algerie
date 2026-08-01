@@ -13,7 +13,7 @@ from sqlalchemy import select
 from app.api.v1.router import router as v1_router
 from app.core.config import settings
 from app.core.error_middleware import ErrorMiddleware
-from app.core.i18n import LocaleMiddleware, load_translations
+from app.core.i18n import LocaleMiddleware
 from app.core.limiter import (
     METHOD_LIMITS,
     _rate_limit_exceeded_handler,
@@ -46,7 +46,6 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     setup_logging(debug=settings.debug)
-    load_translations()
     app.state.transport = TransportService()
     app.state.transit_routing = TransitRoutingService()
     app.state.poi_transit_router = PoiTransitRouter(transit_routing=app.state.transit_routing)
