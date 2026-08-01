@@ -64,12 +64,14 @@ def run_sparql():
     }
     data = urllib.parse.urlencode({"query": query}).encode()
     req = urllib.request.Request(SPARQL_URL, data=data, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=180) as r:
-            return json.loads(r.read())
-    except Exception as e:
-        print(f"SPARQL error: {e}")
-        return None
+    for attempt in range(4):
+        try:
+            with urllib.request.urlopen(req, timeout=300) as r:
+                return json.loads(r.read())
+        except Exception as e:
+            print(f"SPARQL error (attempt {attempt + 1}/4): {e}")
+            time.sleep(10 * (attempt + 1))
+    return None
 
 
 def main():
