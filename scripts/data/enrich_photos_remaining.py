@@ -208,6 +208,10 @@ def main():
             url = search_commons_direct(clean)
 
         if url:
+            if len(url) > 450:
+                import posixpath
+                base = url.rsplit("/", 1)[-1].split("?")[0]
+                url = "https://commons.wikimedia.org/wiki/Special:FilePath/" + urllib.parse.quote(base) + "?width=800"
             cur.execute(
                 "UPDATE pois SET photo_urls = ARRAY[%s], photo_url = COALESCE(photo_url, %s) WHERE id = %s AND (photo_urls IS NULL OR photo_urls = '{}')",
                 (url, url, str(pid))
