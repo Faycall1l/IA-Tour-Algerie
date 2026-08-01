@@ -36,4 +36,9 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
 
 EXPOSE 8000
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+# Trusted reverse proxy IPs for X-Forwarded-For (comma-separated).
+# Empty = only loopback trusted; spoofed headers cannot bypass rate limits.
+ENV FORWARDED_ALLOW_IPS=""
+
+CMD uvicorn app.main:app --host 0.0.0.0 --port 8000 --proxy-headers \
+    --forwarded-allow-ips "$FORWARDED_ALLOW_IPS"
