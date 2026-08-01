@@ -234,24 +234,26 @@ def run_sparql_v2():
     }
     data = urllib.parse.urlencode({"query": query}).encode()
     req = urllib.request.Request(SPARQL_URL, data=data, headers=headers)
-    try:
-        with urllib.request.urlopen(req, timeout=180) as r:
-            return json.loads(r.read())
-    except urllib.error.HTTPError as e:
-        print(f"  SPARQL HTTP {e.code}: will retry with smaller limit")
-        # Retry with smaller limit
-        query2 = query.replace("LIMIT 30000", "LIMIT 15000")
-        data2 = urllib.parse.urlencode({"query": query2}).encode()
-        req2 = urllib.request.Request(SPARQL_URL, data=data2, headers=headers)
+    for attempt in range(4):
         try:
-            with urllib.request.urlopen(req2, timeout=180) as r2:
-                return json.loads(r2.read())
-        except Exception as e2:
-            print(f"  SPARQL retry also failed: {e2}")
-            return None
-    except Exception as e:
-        print(f"  SPARQL error: {e}")
-        return None
+            with urllib.request.urlopen(req, timeout=300) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            print(f"  SPARQL HTTP {e.code}: will retry with smaller limit")
+            # Retry with smaller limit
+            query2 = query.replace("LIMIT 30000", "LIMIT 15000")
+            data2 = urllib.parse.urlencode({"query": query2}).encode()
+            req2 = urllib.request.Request(SPARQL_URL, data=data2, headers=headers)
+            try:
+                with urllib.request.urlopen(req2, timeout=300) as r2:
+                    return json.loads(r2.read())
+            except Exception as e2:
+                print(f"  SPARQL retry also failed: {e2}")
+                return None
+        except Exception as e:
+            print(f"  SPARQL error (attempt {attempt + 1}/4): {e}")
+            time.sleep(10 * (attempt + 1))
+    return None
 
 
 def phase2_sparql(conn, cur):
