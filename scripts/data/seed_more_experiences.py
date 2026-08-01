@@ -9,7 +9,7 @@ from sqlalchemy import create_engine, text
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://athar:athar_pass@localhost:5432/athar_db",
+    "postgresql://athar:athar_pass@localhost:5434/athar_db",
 )
 
 ADDITIONS = [

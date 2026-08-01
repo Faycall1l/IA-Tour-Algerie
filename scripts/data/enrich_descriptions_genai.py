@@ -142,7 +142,7 @@ async def update_descriptions(db: AsyncSession, updates: list[tuple[str, str]]):
 
 
 async def enrich(batch_size: int = 20, dry_run: bool = False, max_total: int = 0):
-    url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://athar:athar@localhost:5432/athar_db")
+    url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://athar:athar@localhost:5434/athar_db")
     engine = create_async_engine(url)
 
     async with AsyncSession(engine) as db:

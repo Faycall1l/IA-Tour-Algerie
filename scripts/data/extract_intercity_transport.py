@@ -21,7 +21,7 @@ from sqlalchemy import create_engine, text
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
 HEADERS = {"User-Agent": "ATHAR-Research/1.0 (tourism-data-collection)"}
 ALGERIA_BOX = "(30.0,-2.0,37.5,12.0)"
-DB_URL = "postgresql://athar:athar_pass@localhost:5432/athar_db"
+DB_URL = "postgresql://athar:athar_pass@localhost:5434/athar_db"
 
 WILAYA_CENTERS = {
     1: (27.8743, 0.2933), 2: (33.0833, -0.6333), 3: (36.3667, 2.8333),

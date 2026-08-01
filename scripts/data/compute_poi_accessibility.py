@@ -11,7 +11,7 @@ from collections import defaultdict
 import psycopg2
 import psycopg2.extras
 
-DB_CONFIG = {'host': 'localhost', 'port': 5432, 'dbname': 'athar_db', 'user': 'athar', 'password': 'athar_pass'}
+DB_CONFIG = {'host': 'localhost', 'port': 5434, 'dbname': 'athar_db', 'user': 'athar', 'password': 'athar_pass'}
 
 # Category importance weights (for ranking)
 CATEGORY_WEIGHT = {

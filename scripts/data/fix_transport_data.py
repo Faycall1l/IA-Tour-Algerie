@@ -12,7 +12,7 @@ from collections import defaultdict
 
 from sqlalchemy import create_engine, text
 
-engine = create_engine("postgresql://athar:athar_pass@localhost:5432/athar_db")
+engine = create_engine("postgresql://athar:athar_pass@localhost:5434/athar_db")
 
 
 def haversine(lat1, lon1, lat2, lon2):

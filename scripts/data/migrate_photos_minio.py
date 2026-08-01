@@ -53,6 +53,7 @@ EXTENSION_MAP = {
     "image/png": ".png",
     "image/webp": ".webp",
     "image/gif": ".gif",
+    "image/svg+xml": ".svg",
 }
 
 HEADERS = {"User-Agent": "ATHAR-Tourism/1.0 (https://athar-os.com; photo migration)"}
@@ -98,80 +99,113 @@ def download_and_upload(
     url: str,
 ) -> tuple[str | None, str]:
     """Download image from URL, upload to MinIO. Returns (minio_url, ext) or (None, ext)."""
-    for attempt in range(3):
-        try:
-            obj_name = object_name_from_url(url, ".jpg")
+    candidates = [url]
+    alt = _underscore_decoded_variant(url)
+    if alt and alt != url:
+        candidates.append(alt)
 
-            # Check if already uploaded
+    for cand in candidates:
+        for attempt in range(2):
             try:
-                client.stat_object(MINIO_BUCKET, obj_name)
-                return public_url(obj_name), ".jpg"
-            except Exception:
-                pass
+                obj_name = object_name_from_url(cand, ".jpg")
 
-            # Single request with follow_redirects — no double download
-            resp = http.get(url, headers=HEADERS, follow_redirects=True)
+                # Check if already uploaded
+                try:
+                    client.stat_object(MINIO_BUCKET, obj_name)
+                    return public_url(obj_name), ".jpg"
+                except Exception:
+                    pass
 
-            if resp.status_code == 429:
-                wait = min(60, 10 * (attempt + 1) + random.uniform(0, 5))
-                log.warning("Rate limited on %s, waiting %.1fs", url[:60], wait)
+                # Single request with follow_redirects — no double download
+                resp = http.get(cand, headers=HEADERS, follow_redirects=True)
+
+                if resp.status_code == 429:
+                    wait = min(60, 10 * (attempt + 1) + random.uniform(0, 5))
+                    log.warning("Rate limited on %s, waiting %.1fs", cand[:60], wait)
+                    time.sleep(wait)
+                    continue
+
+                # 4xx client errors: try the alternate decoded variant once
+                if 400 <= resp.status_code < 500:
+                    if cand is candidates[-1]:
+                        log.warning("Client error %d for %s: skipping", resp.status_code, cand[:80])
+                        return None, ".jpg"
+                    log.info("Client error %d on %s, trying decoded variant", resp.status_code, cand[:60])
+                    break
+
+                resp.raise_for_status()
+
+                content_type = resp.headers.get("content-type", "")
+                ct_main = content_type.split(";")[0].strip()
+                ext = EXTENSION_MAP.get(ct_main, ".jpg")
+
+                content = resp.content
+                if len(content) < 500 and "svg" not in ct_main:
+                    return None, ext
+
+                obj_name = object_name_from_url(cand, ext)
+
+                client.put_object(
+                    bucket_name=MINIO_BUCKET,
+                    object_name=obj_name,
+                    data=io.BytesIO(content),
+                    length=len(content),
+                    content_type=ct_main,
+                )
+                return public_url(obj_name), ext
+
+            except httpx.TimeoutException as e:
+                wait = min(60, 5 * (attempt + 1) + random.uniform(0, 3))
+                log.warning("Timeout downloading %s (attempt %d), retrying after %.1fs: %s",
+                            cand[:60], attempt + 1, wait, e)
                 time.sleep(wait)
                 continue
-
-            # 4xx client errors (e.g., 400 bad thumbnail URL) will not succeed on retry
-            if 400 <= resp.status_code < 500:
-                log.warning("Client error %d for %s: skipping", resp.status_code, url[:80])
+            except httpx.HTTPStatusError as e:
+                status = e.response.status_code if e.response else 0
+                if 400 <= status < 500:
+                    log.warning("Client error %d for %s: skipping", status, cand[:80])
+                    return None, ".jpg"
+                if attempt < 2:
+                    wait = min(30, 3 * (attempt + 1) + random.uniform(0, 2))
+                    log.warning("HTTP error %d for %s (attempt %d), retrying after %.1fs: %s",
+                                status, cand[:60], attempt + 1, wait, e)
+                    time.sleep(wait)
+                    continue
+                log.warning("Failed %s after 3 attempts: %s", cand[:80], e)
                 return None, ".jpg"
-
-            resp.raise_for_status()
-
-            content_type = resp.headers.get("content-type", "")
-            ct_main = content_type.split(";")[0].strip()
-            ext = EXTENSION_MAP.get(ct_main, ".jpg")
-
-            content = resp.content
-            if len(content) < 500:
-                return None, ext
-
-            obj_name = object_name_from_url(url, ext)
-
-            client.put_object(
-                bucket_name=MINIO_BUCKET,
-                object_name=obj_name,
-                data=io.BytesIO(content),
-                length=len(content),
-                content_type=ct_main,
-            )
-            return public_url(obj_name), ext
-
-        except httpx.TimeoutException as e:
-            wait = min(60, 5 * (attempt + 1) + random.uniform(0, 3))
-            log.warning("Timeout downloading %s (attempt %d), retrying after %.1fs: %s",
-                        url[:60], attempt + 1, wait, e)
-            time.sleep(wait)
-            continue
-        except httpx.HTTPStatusError as e:
-            status = e.response.status_code if e.response else 0
-            if 400 <= status < 500:
-                log.warning("Client error %d for %s: skipping", status, url[:80])
+            except Exception as e:
+                if attempt < 2:
+                    wait = min(30, 3 * (attempt + 1) + random.uniform(0, 2))
+                    log.warning("Retryable error for %s (attempt %d), waiting %.1fs: %s",
+                                cand[:60], attempt + 1, wait, e)
+                    time.sleep(wait)
+                    continue
+                log.warning("Failed %s after 3 attempts: %s", cand[:80], e)
                 return None, ".jpg"
-            if attempt < 2:
-                wait = min(30, 3 * (attempt + 1) + random.uniform(0, 2))
-                log.warning("HTTP error %d for %s (attempt %d), retrying after %.1fs: %s",
-                            status, url[:60], attempt + 1, wait, e)
-                time.sleep(wait)
-                continue
-            log.warning("Failed %s after 3 attempts: %s", url[:80], e)
-            return None, ".jpg"
-        except Exception as e:
-            if attempt < 2:
-                wait = min(30, 3 * (attempt + 1) + random.uniform(0, 2))
-                log.warning("Retryable error for %s (attempt %d), waiting %.1fs: %s",
-                            url[:60], attempt + 1, wait, e)
-                time.sleep(wait)
-                continue
-            log.warning("Failed %s after 3 attempts: %s", url[:80], e)
-            return None, ".jpg"
+    return None, ".jpg"
+
+
+def _underscore_decoded_variant(url: str) -> str | None:
+    """Underscore-decode a URL's filename as a fallback candidate.
+
+    Some legacy URLs stored 'Mus_C3_A9e' (underscore instead of %25). Only
+    offer a variant when the filename contains no '%' so legitimately
+    percent-encoded URLs are never mangled.
+    """
+    import re
+
+    m = re.match(
+        r"^(https?://upload\.wikimedia\.org/wikipedia/commons/[0-9a-f]/[0-9a-f]{2}/)(.+)$",
+        url,
+    )
+    if not m or "%" in m.group(2):
+        return None
+    decoded = _decode_underscore_encoded(m.group(2))
+    if decoded == m.group(2):
+        return None
+    import urllib.parse
+
+    return f"{m.group(1)}{urllib.parse.quote(decoded.replace(' ', '_'), safe='_/()')}"
 
 
 def _is_wikimedia(url: str | None) -> bool:
@@ -194,7 +228,13 @@ def _decode_underscore_encoded(name: str) -> str:
     Examples:
         Mus_C3_A9e_de_Tlemcen_12.jpg -> Musée_de_Tlemcen_12.jpg
         Map_of_Tassili_n_27Ajjer_and_surroundings-en.jpg -> Map_of_Tassili_n'Ajjer_and_surroundings-en.jpg
+
+    Only applied when the filename contains no literal '%' — if % is present
+    the URL is already percent-encoded and underscores are legit separators
+    (e.g. 'Wilaya_de_Batna', 'Aerial_2009').
     """
+    if "%" in name:
+        return name
     import re
 
     def _is_hex(s: str) -> bool:
@@ -329,11 +369,12 @@ def _fix_thumbnail_url(url: str) -> str | None:
 
 
 def _decode_upload_wikimedia_url(url: str) -> str | None:
-    """Decode underscore-encoded full-size upload.wikimedia.org URLs.
+    """Normalize upload.wikimedia.org URLs.
 
-    Example:
-        https://upload.wikimedia.org/wikipedia/commons/e/eb/Mus_C3_A9e_public_...
-      -> https://upload.wikimedia.org/wikipedia/commons/e/eb/Mus%C3%A9e_public_...
+    - URLs already percent-encoded (contain '%') are returned unchanged —
+      underscore-decoding would mangle legit filenames like 'Aerial_2009'.
+    - Double-encoded filenames (%25C3%25A8 -> %C3%A8) are collapsed once.
+    - Underscore-encoded filenames (Mus_C3_A9e -> Mus%C3%A9e) are decoded.
     """
     import re
     import urllib.parse
@@ -345,9 +386,16 @@ def _decode_upload_wikimedia_url(url: str) -> str | None:
     if not m:
         return None
     prefix, filename = m.group(1), m.group(2)
-    decoded = _decode_underscore_encoded(filename)
-    encoded = urllib.parse.quote(decoded.replace(" ", "_"), safe="_/()")
-    return f"{prefix}{encoded}"
+    # Double-encoded: collapse %25XX -> %XX once, then leave as-is
+    if "%25" in filename:
+        return f"{prefix}{urllib.parse.unquote(filename)}"
+    # Properly encoded: leave untouched
+    if "%" in filename:
+        return url
+    # No percent-encoding at all — keep as-is; underscore decoding is only
+    # applied as a download-time fallback to avoid mangling filenames that
+    # legitimately contain digits after underscores (e.g. 'Aerial_2009').
+    return url
 
 
 def _direct_upload_url(url: str) -> str | None:
@@ -467,7 +515,7 @@ async def count_wikimedia_references(db: AsyncSession) -> tuple[int, int, int]:
 
 
 async def migrate(batch_size: int = 100, dry_run: bool = False, max_total: int = 0):
-    url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://athar:athar@localhost:5432/athar_db")
+    url = os.environ.get("DATABASE_URL", "postgresql+asyncpg://athar:athar@localhost:5434/athar_db")
     engine = create_async_engine(url)
 
     async with AsyncSession(engine) as db:

@@ -23,7 +23,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 import requests
 from sqlalchemy import create_engine, text
 
-DB_URL = "postgresql://athar:athar_pass@localhost:5432/athar_db"
+DB_URL = "postgresql://athar:athar_pass@localhost:5434/athar_db"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
 WIKIPEDIA_API = "https://en.wikipedia.org/w/api.php"
 

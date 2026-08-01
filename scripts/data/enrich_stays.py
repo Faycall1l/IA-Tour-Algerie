@@ -14,7 +14,7 @@ from argparse import ArgumentParser
 
 from sqlalchemy import create_engine, text
 
-DATABASE_URL = "postgresql://athar:athar_pass@localhost:5432/athar_db"
+DATABASE_URL = "postgresql://athar:athar_pass@localhost:5434/athar_db"
 
 # Amenities by property type
 AMENITIES_BY_TYPE = {

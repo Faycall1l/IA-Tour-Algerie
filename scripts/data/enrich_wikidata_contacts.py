@@ -22,7 +22,7 @@ import urllib.request
 
 import psycopg2
 
-DB_DSN = os.getenv("DATABASE_URL", "postgresql://athar:athar_pass@localhost:5432/athar_db")
+DB_DSN = os.getenv("DATABASE_URL", "postgresql://athar:athar_pass@localhost:5434/athar_db")
 USER_AGENT = "ATHAR-Tourism/1.0 (faycal@athar.dz)"
 SPARQL_ENDPOINT = "https://query.wikidata.org/sparql"
 

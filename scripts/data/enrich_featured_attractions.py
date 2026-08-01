@@ -5,7 +5,7 @@ import psycopg2
 import re
 
 DB_CONFIG = {
-    "host": "localhost", "port": 5432,
+    "host": "localhost", "port": 5434,
     "dbname": "athar_db", "user": "athar", "password": "athar_pass",
 }
 

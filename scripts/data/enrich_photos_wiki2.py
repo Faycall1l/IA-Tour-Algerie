@@ -7,7 +7,7 @@ import json, re, sys, time, unicodedata, urllib.parse, urllib.request, os
 
 import psycopg2
 
-DB = {"host": "localhost", "port": 5432, "dbname": "athar_db", "user": "athar", "password": "athar_pass"}
+DB = {"host": "localhost", "port": 5434, "dbname": "athar_db", "user": "athar", "password": "athar_pass"}
 UA = "ATHAR-Tourism/1.3"
 API_FR = "https://fr.wikipedia.org/w/api.php"
 API_EN = "https://en.wikipedia.org/w/api.php"

@@ -16,7 +16,7 @@ NEW SOURCES discovered in this session:
 import uuid
 from sqlalchemy import create_engine, text
 
-engine = create_engine("postgresql://athar:athar_pass@localhost:5432/athar_db")
+engine = create_engine("postgresql://athar:athar_pass@localhost:5434/athar_db")
 
 UPDATES = [
     # ── FIX placeholder phone numbers ──

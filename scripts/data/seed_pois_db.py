@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent.parent
 POI_SRC = ROOT / "app" / "data" / "poi_nodes_enriched.json"
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://athar:athar_pass@localhost:5432/athar_db",
+    "postgresql://athar:athar_pass@localhost:5434/athar_db",
 )
 
 OSM_TO_DB_CATEGORY = {

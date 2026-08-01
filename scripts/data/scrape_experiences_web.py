@@ -24,7 +24,7 @@ import httpx
 import psycopg2
 from psycopg2.extras import execute_values
 
-DB_DSN = os.getenv("DATABASE_URL", "postgresql://athar:athar_pass@localhost:5432/athar_db")
+DB_DSN = os.getenv("DATABASE_URL", "postgresql://athar:athar_pass@localhost:5434/athar_db")
 USER_AGENT = "ATHAR-Tourism/1.0 (faycal@athar.dz)"
 CHECKPOINT_FILE = "scripts/data/.scraped_urls.json"
 

@@ -13,7 +13,7 @@ from datetime import date
 import psycopg2
 from psycopg2.extras import execute_values
 
-DB_DSN = "postgresql://athar:athar_pass@localhost:5432/athar_db"
+DB_DSN = "postgresql://athar:athar_pass@localhost:5434/athar_db"
 
 WILAYA_NAMES = {
     1: "Adrar", 2: "Chlef", 3: "Laghouat", 4: "Oum El Bouaghi",

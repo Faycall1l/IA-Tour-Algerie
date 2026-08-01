@@ -23,7 +23,7 @@ NODES_PATH = ROOT / "app" / "data" / "transit_nodes_enriched.json"
 EDGES_PATH = ROOT / "app" / "data" / "transit_edges_enriched.json"
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql://athar:athar_pass@localhost:5432/athar_db",
+    "postgresql://athar:athar_pass@localhost:5434/athar_db",
 )
 
 # Wilaya coordinates (id → lat, lon) for inter-city connectivity

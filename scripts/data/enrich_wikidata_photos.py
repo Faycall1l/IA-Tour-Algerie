@@ -13,7 +13,7 @@ import urllib.request
 import psycopg2
 
 DB_CONFIG = {
-    "host": "localhost", "port": 5432,
+    "host": "localhost", "port": 5434,
     "dbname": "athar_db", "user": "athar", "password": "athar_pass",
 }
 
