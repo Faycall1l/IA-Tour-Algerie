@@ -89,7 +89,7 @@ Response (200): Same as verify-otp (new token pair).
 ```
 
 - **Algorithm**: EdDSA (Ed25519) — asymmetric, per RFC 8725bis (June 2026 BCP).
-- **Key**: Ed25519 private key loaded from `AUTH__JWT_PRIVATE_KEY` env var. Auto-generated at startup if not set (tokens invalidated on restart).
+- **Key**: Ed25519 private key loaded from `ATHAR_AUTH__JWT_PRIVATE_KEY` env var. Auto-generated at startup if not set (tokens invalidated on restart).
 - **Access token**: 15 minutes.
 - **Refresh token**: 30 days.
 

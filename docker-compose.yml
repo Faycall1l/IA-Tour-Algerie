@@ -5,12 +5,12 @@ services:
     ports:
       - "127.0.0.1:8000:8000"
     environment:
-      DATABASE__URL: postgresql+asyncpg://athar:athar_pass@db:5432/athar_db?sslmode=disable
-      QDRANT__HOST: qdrant
-      QDRANT__API_KEY: "${QDRANT_API_KEY:-}"
-      REDIS__HOST: redis
-      MINIO__ENDPOINT: minio:9000
-      AUTH__JWT_PRIVATE_KEY: "${AUTH_JWT_PRIVATE_KEY:-}"
+      ATHAR_DATABASE__URL: postgresql+asyncpg://athar:athar_pass@db:5432/athar_db?sslmode=disable
+      ATHAR_QDRANT__HOST: qdrant
+      ATHAR_QDRANT__API_KEY: "${QDRANT_API_KEY:-}"
+      ATHAR_REDIS__HOST: redis
+      ATHAR_MINIO__ENDPOINT: minio:9000
+      ATHAR_AUTH__JWT_PRIVATE_KEY: "${AUTH_JWT_PRIVATE_KEY:-}"
     secrets:
       - db_password
     depends_on:

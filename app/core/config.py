@@ -67,7 +67,13 @@ class TwilioSettings(BaseModel):
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_nested_delimiter="__")
+    # ATHAR_ prefix isolates settings from ambient env vars (e.g. AGENT=1,
+    # DEBUG=1 set by CI/agent runtimes would otherwise collide with fields).
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_nested_delimiter="__",
+        env_prefix="ATHAR_",
+    )
 
     app_name: str = "ATHAR OS (أثر)"
     app_version: str = "0.3.0"

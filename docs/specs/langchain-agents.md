@@ -109,7 +109,7 @@ agent = create_agent(
         RetryMiddleware(max_retries=2),  # custom: retry on tool failures
     ],
     checkpointer=PostgresCheckpointer(
-        connection_string=settings.DATABASE__URL,
+        connection_string=settings.database.url,
     ),
     name="trip_agent",
 )

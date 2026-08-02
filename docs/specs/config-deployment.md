@@ -50,11 +50,11 @@ Settings
     └── verify_service_sid: str = ""
 ```
 
-All values overrideable via environment variables with double-underscore nesting:
-- `DATABASE__URL=postgresql+asyncpg://...`
-- `QDRANT__HOST=qdrant.internal`
-- `QDRANT__API_KEY=my-key`
-- `AUTH__JWT_PRIVATE_KEY=...` (Ed25519 PEM)
+All values overrideable via environment variables with double-underscore nesting (ATHAR_ prefix isolates from ambient env vars like `AGENT=1`/`DEBUG=1`):
+- `ATHAR_DATABASE__URL=postgresql+asyncpg://...`
+- `ATHAR_QDRANT__HOST=qdrant.internal`
+- `ATHAR_QDRANT__API_KEY=my-key`
+- `ATHAR_AUTH__JWT_PRIVATE_KEY=...` (Ed25519 PEM)
 
 ### Singleton Pattern
 
@@ -170,8 +170,8 @@ jobs:
       - run: pip install -r requirements.txt pytest httpx pytest-asyncio
       - run: pytest --cov=app --cov-report=term-missing -v
         env:
-          DATABASE__URL: postgresql+asyncpg://athar:athar_pass@localhost:5432/athar_test
-          DEBUG: "false"
+          ATHAR_DATABASE__URL: postgresql+asyncpg://athar:athar_pass@localhost:5432/athar_test
+          ATHAR_DEBUG: "false"
 ```
 
 Pipeline:
