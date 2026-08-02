@@ -1,6 +1,6 @@
 # Framework
 fastapi==0.139.0
-uvicorn[standard]==0.34.0
+uvicorn[standard]==0.52.1
 python-multipart==0.0.20
 
 # Database
@@ -9,7 +9,11 @@ asyncpg==0.30.0
 alembic==1.15.0
 
 # Auth
-pyjwt[cryptography]==2.9.0
+pyjwt==2.13.0
+cryptography==50.0.0
+
+# Agents (Pydantic AI)
+pydantic-ai==2.22.0
 
 # Vector DB
 qdrant-client==1.18.0
@@ -18,7 +22,7 @@ qdrant-client==1.18.0
 sentence-transformers[onnx]==3.4.0
 
 # Cache
-redis==5.3.0
+redis==8.1.0
 
 # File Storage
 minio==7.2.18
