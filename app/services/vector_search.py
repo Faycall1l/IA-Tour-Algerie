@@ -138,7 +138,7 @@ class VectorSearchService:
         if not self.client:
             return []
         vector = self.embedder.encode(query)
-        from qdrant_client.http.models import FieldCondition, Filter, Match
+        from qdrant_client.http.models import FieldCondition, Filter, MatchValue
 
         # Prefer real-named POIs so placeholder "Ruins (non nommé)" entries
         # don't crowd out actual named landmarks.
@@ -147,7 +147,7 @@ class VectorSearchService:
             query=vector,
             limit=limit,
             query_filter=Filter(
-                must=[FieldCondition(key="has_name", match=Match(value=True))]
+                must=[FieldCondition(key="has_name", match=MatchValue(value=True))]
             ),
         )
         ids = self._extract_ids(named.points, "poi_id")
