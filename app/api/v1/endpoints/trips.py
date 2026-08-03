@@ -98,7 +98,17 @@ async def _build_trip_read(
     )
 
 
-@router.post("", response_model=TripRead, status_code=201)
+@router.post(
+    "",
+    response_model=TripRead,
+    status_code=201,
+    summary="Create a trip",
+    description="Create a trip plan with title, wilaya, dates, and budget. Returns the full day-structured plan with cost/spend breakdown.",
+    responses={
+        401: {"description": "Authentication required"},
+        422: {"description": "Validation error"},
+    },
+)
 async def create_trip(
     body: TripCreate,
     current_user: User = Depends(get_current_user),
@@ -113,7 +123,16 @@ async def create_trip(
     return await _build_trip_read(db, trip, optimizer)
 
 
-@router.get("", response_model=TripFeed)
+@router.get(
+    "",
+    response_model=TripFeed,
+    summary="List my trips",
+    description="Paginated trips for the authenticated user, optionally filtered by status (active/archived). Each trip includes day plans.",
+    responses={
+        401: {"description": "Authentication required"},
+        422: {"description": "Validation error"},
+    },
+)
 async def list_trips(
     status: str | None = Query(None, pattern="^(active|archived)$"),
     page: int = Query(1, ge=1),
@@ -154,7 +173,16 @@ async def list_trips(
 # ── Trip Brief (must be before /{trip_id} to avoid UUID parse) ──
 
 
-@router.get("/brief/{wilaya_id}", response_model=TripBrief)
+@router.get(
+    "/brief/{wilaya_id}",
+    response_model=TripBrief,
+    summary="Wilaya trip brief",
+    description="Generated travel brief for a wilaya: must-see POIs, suggested itinerary, budget guidance. Public.",
+    responses={
+        404: {"description": "Wilaya not found"},
+        422: {"description": "Invalid wilaya_id"},
+    },
+)
 async def get_trip_brief(
     wilaya_id: int,
     db: AsyncSession = Depends(get_db),
@@ -167,7 +195,16 @@ async def get_trip_brief(
     return brief
 
 
-@router.get("/{trip_id}", response_model=TripRead)
+@router.get(
+    "/{trip_id}",
+    response_model=TripRead,
+    summary="Get a trip",
+    description="Trip detail with enriched day plans (item details, gaps detected, per-day distance and cost, budget remaining). Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Trip not found"},
+    },
+)
 async def get_trip(
     trip_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -181,7 +218,16 @@ async def get_trip(
     return await _build_trip_read(db, trip, optimizer)
 
 
-@router.put("/{trip_id}", response_model=TripRead)
+@router.put(
+    "/{trip_id}",
+    response_model=TripRead,
+    summary="Update a trip",
+    description="Update trip metadata (title, dates, budget, status). Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Trip not found"},
+    },
+)
 async def update_trip(
     trip_id: uuid.UUID,
     body: TripUpdate,
@@ -202,7 +248,16 @@ async def update_trip(
     return await _build_trip_read(db, trip, optimizer)
 
 
-@router.delete("/{trip_id}", status_code=204)
+@router.delete(
+    "/{trip_id}",
+    status_code=204,
+    summary="Delete a trip",
+    description="Delete a trip and all of its items. Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Trip not found"},
+    },
+)
 async def delete_trip(
     trip_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -219,7 +274,18 @@ async def delete_trip(
 # ── Trip Items ──────────────────────────────────────────────────
 
 
-@router.post("/{trip_id}/items", response_model=TripRead, status_code=201)
+@router.post(
+    "/{trip_id}/items",
+    response_model=TripRead,
+    status_code=201,
+    summary="Add a trip item",
+    description="Add a POI/experience/stay/restaurant/transport item to a day of the trip. POI items validate the POI exists. Auto-assigns the next sort order.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Trip or POI not found"},
+        422: {"description": "Validation error"},
+    },
+)
 async def add_trip_item(
     trip_id: uuid.UUID,
     body: TripItemCreate,
@@ -259,7 +325,16 @@ async def add_trip_item(
     return await _build_trip_read(db, trip, optimizer)
 
 
-@router.put("/{trip_id}/items/{item_id}", response_model=TripRead)
+@router.put(
+    "/{trip_id}/items/{item_id}",
+    response_model=TripRead,
+    summary="Update a trip item",
+    description="Change a trip item's day, sort order, or time slot. Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Trip or trip item not found"},
+    },
+)
 async def update_trip_item(
     trip_id: uuid.UUID,
     item_id: uuid.UUID,
@@ -284,7 +359,16 @@ async def update_trip_item(
     return await _build_trip_read(db, trip, optimizer)
 
 
-@router.delete("/{trip_id}/items/{item_id}", response_model=TripRead)
+@router.delete(
+    "/{trip_id}/items/{item_id}",
+    response_model=TripRead,
+    summary="Remove a trip item",
+    description="Remove an item from a trip and return the updated trip. Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Trip or trip item not found"},
+    },
+)
 async def delete_trip_item(
     trip_id: uuid.UUID,
     item_id: uuid.UUID,
@@ -309,7 +393,16 @@ async def delete_trip_item(
 # ── Sharing ────────────────────────────────────────────────────
 
 
-@router.post("/{trip_id}/share", response_model=TripShareResponse)
+@router.post(
+    "/{trip_id}/share",
+    response_model=TripShareResponse,
+    summary="Share a trip",
+    description="Generate (or reuse) an unguessable share token and a public share URL for the trip. Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Trip not found"},
+    },
+)
 async def share_trip(
     trip_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -329,7 +422,16 @@ async def share_trip(
     return TripShareResponse(share_token=trip.share_token, share_url=f"{base_url}/{trip.share_token}")
 
 
-@router.get("/shared/{share_token}", response_model=TripRead)
+@router.get(
+    "/shared/{share_token}",
+    response_model=TripRead,
+    summary="View a shared trip",
+    description="View a trip by its public share token without authentication.",
+    responses={
+        404: {"description": "Trip not found"},
+        422: {"description": "Invalid share token"},
+    },
+)
 async def get_shared_trip(
     share_token: str,
     db: AsyncSession = Depends(get_db),
@@ -346,7 +448,16 @@ async def get_shared_trip(
 # ── Optimize ────────────────────────────────────────────────────
 
 
-@router.post("/{trip_id}/optimize", response_model=TripRead)
+@router.post(
+    "/{trip_id}/optimize",
+    response_model=TripRead,
+    summary="Optimize a trip",
+    description="Reorder each day's items to minimize walking distance using the POI graph, then return the optimized trip. Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Trip not found"},
+    },
+)
 async def optimize_trip(
     trip_id: uuid.UUID,
     current_user: User = Depends(get_current_user),

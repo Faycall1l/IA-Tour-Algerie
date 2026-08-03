@@ -18,7 +18,15 @@ _transport_service = TransportService()
 
 # ── Legacy inter-wilaya route endpoints ─────────────────────────────
 
-@router.get("/routes/from/{origin_wilaya_id}")
+@router.get(
+    "/routes/from/{origin_wilaya_id}",
+    summary="Destinations from a wilaya",
+    description="List reachable wilayas from an origin with driving distance/time, ordered by distance.",
+    responses={
+        422: {"description": "Invalid origin_wilaya_id"},
+        200: {"description": "Origin + destinations with driving estimates"},
+    },
+)
 async def get_routes_from(
     origin_wilaya_id: int,
     db: AsyncSession = Depends(get_db),
@@ -50,7 +58,19 @@ async def get_routes_from(
     return {"origin_wilaya_id": origin_wilaya_id, "destinations": destinations}
 
 
-@router.get("/routes/{origin_wilaya_id}/{dest_wilaya_id}")
+@router.get(
+    "/routes/{origin_wilaya_id}/{dest_wilaya_id}",
+    summary="Inter-wilaya transport options",
+    description=(
+        "Multi-modal options (train, bus, taxi, flight) between two wilayas with schedules, "
+        "pricing, transfers, and operator contacts. Falls back to driving estimates when no "
+        "scheduled line exists."
+    ),
+    responses={
+        200: {"description": "Options list + driving estimates"},
+        422: {"description": "Invalid wilaya ids"},
+    },
+)
 async def get_transport_route(
     origin_wilaya_id: int,
     dest_wilaya_id: int,
@@ -126,7 +146,15 @@ async def get_transport_route(
 
 # ── New multi-modal transit routing endpoints ──────────────────────
 
-@router.get("/stations")
+@router.get(
+    "/stations",
+    summary="List stations",
+    description="All transit stations, optionally filtered by wilaya and type (bus, train, tram, taxi, airport, ferry, cablecar).",
+    responses={
+        200: {"description": "Station list"},
+        422: {"description": "Invalid filter"},
+    },
+)
 async def list_stations(
     db: AsyncSession = Depends(get_db),
     routing: TransitRoutingService = Depends(get_transit_routing),
@@ -136,7 +164,15 @@ async def list_stations(
     return await routing.list_stations(db, wilaya_id, station_type)
 
 
-@router.get("/stations/nearby")
+@router.get(
+    "/stations/nearby",
+    summary="Nearest stations",
+    description="Stations nearest to a lat/lng point, optionally filtered by type. Uses the transit graph spatial index.",
+    responses={
+        200: {"description": "Stations with distance"},
+        422: {"description": "Missing/invalid lat/lng"},
+    },
+)
 async def nearest_stations(
     lat: float = Query(...),
     lng: float = Query(...),
@@ -149,7 +185,15 @@ async def nearest_stations(
     return await routing.nearest_stations(db, lat, lng, limit, types)
 
 
-@router.get("/lines")
+@router.get(
+    "/lines",
+    summary="List transport lines",
+    description="Transport lines, optionally filtered by mode (bus, train, tram, taxi, flight, ferry, cablecar, walking). Includes schedules and pricing.",
+    responses={
+        200: {"description": "Line list"},
+        422: {"description": "Invalid mode"},
+    },
+)
 async def list_lines(
     mode: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -158,7 +202,19 @@ async def list_lines(
     return await routing.list_lines(db, mode)
 
 
-@router.get("/plan")
+@router.get(
+    "/plan",
+    summary="Plan a transit route",
+    description=(
+        "Multi-modal route from a GPS point to a destination with turn-by-turn steps: walking, "
+        "transit (schedule + pricing), and transfers as milestones for line changes. Handles "
+        "walking-only and driving-recommended cases."
+    ),
+    responses={
+        200: {"description": "RoutePlan with steps, duration, cost"},
+        422: {"description": "Missing/invalid coordinates"},
+    },
+)
 async def plan_route(
     from_lat: float = Query(...),
     from_lng: float = Query(...),
@@ -182,7 +238,16 @@ async def plan_route(
     return plan.as_dict()
 
 
-@router.get("/access/{poi_id}")
+@router.get(
+    "/access/{poi_id}",
+    summary="Transit access for a POI",
+    description="Nearest stations and routing summary for a POI, useful for the 'how to get there' panel.",
+    responses={
+        200: {"description": "Nearest stations + distances"},
+        404: {"description": "POI not found"},
+        422: {"description": "Invalid UUID"},
+    },
+)
 async def poi_access(
     poi_id: uuid.UUID,
     lat: float = Query(...),
@@ -196,7 +261,19 @@ async def poi_access(
     return result.model_dump(mode="json")
 
 
-@router.get("/route-to-poi/{poi_id}")
+@router.get(
+    "/route-to-poi/{poi_id}",
+    summary="Directions to a POI",
+    description=(
+        "Turn-by-turn transit directions from a GPS point to a specific POI. Returns the plan "
+        "plus POI access info. Falls back to an error object when no route exists."
+    ),
+    responses={
+        200: {"description": "Route plan + POI access info"},
+        404: {"description": "POI not found"},
+        422: {"description": "Invalid UUID or coordinates"},
+    },
+)
 async def route_to_poi(
     poi_id: uuid.UUID,
     from_lat: float = Query(...),
@@ -240,7 +317,15 @@ async def route_to_poi(
 
 # ── Transport operators ──────────────────────────────────────────────
 
-@router.get("/operators")
+@router.get(
+    "/operators",
+    summary="List transport operators",
+    description="Active transport operators with contact info (phone, website, email) and coverage, filtered by mode: train, flight, bus, taxi, tram, cablecar, ferry.",
+    responses={
+        200: {"description": "Operator list with contacts"},
+        422: {"description": "Invalid mode"},
+    },
+)
 async def list_operators(
     db: AsyncSession = Depends(get_db),
     mode: str | None = Query(None, description="Filter by mode: train, flight, bus, taxi, tram, cablecar"),
