@@ -8,6 +8,8 @@ dist/
 build/
 *.mo
 *.pot
+.coverage
+htmlcov/
 
 # IDE
 .idea/
