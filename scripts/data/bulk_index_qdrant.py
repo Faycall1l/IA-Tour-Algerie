@@ -28,7 +28,11 @@ EMBEDDING_DIM = 384
 
 def make_embedder():
     logger.info("Loading embedding model all-MiniLM-L6-v2 ...")
-    m = SentenceTransformer("all-MiniLM-L6-v2")
+    try:
+        m = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
+    except Exception:
+        logger.warning("Model not cached — attempting download")
+        m = SentenceTransformer("all-MiniLM-L6-v2")
     logger.info("Embedding model loaded")
     return m
 
