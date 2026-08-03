@@ -64,6 +64,37 @@ async def test_refresh_token(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_refresh_reuse_revokes_family(client: AsyncClient):
+    phone = "+213555444444"
+    await client.post("/api/v1/auth/send-otp", json={"phone": phone})
+    code = _otp_store[phone]["code"]
+    login = await client.post(
+        "/api/v1/auth/verify-otp",
+        json={"phone": phone, "code": code},
+    )
+    original_refresh = login.json()["refresh_token"]
+
+    rotated = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original_refresh},
+    )
+    assert rotated.status_code == 200
+    new_refresh = rotated.json()["refresh_token"]
+
+    replay = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": original_refresh},
+    )
+    assert replay.status_code == 401
+
+    family_peer = await client.post(
+        "/api/v1/auth/refresh",
+        json={"refresh_token": new_refresh},
+    )
+    assert family_peer.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_verify_otp_locks_after_attempts(client: AsyncClient):
     phone = "+213555777777"
     await client.post("/api/v1/auth/send-otp", json={"phone": phone})

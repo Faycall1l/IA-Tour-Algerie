@@ -5,7 +5,7 @@ import time
 import uuid
 
 from fastapi import APIRouter, Depends, Request
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_twilio
@@ -159,7 +159,21 @@ async def refresh_token(body: TokenRefresh, request: Request, db: AsyncSession =
 
     result = await db.execute(select(RefreshToken).where(RefreshToken.token_hash == token_hash))
     stored = result.scalar_one_or_none()
-    if not stored or stored.is_revoked:
+    if not stored:
+        raise UnauthorizedException(message="Token has been revoked")
+    if stored.is_revoked:
+        # A revoked token being presented again is a strong signal the token
+        # was stolen and replayed after legitimate rotation. Revoke the whole
+        # family so any rotated peers are invalidated too.
+        await db.execute(
+            update(RefreshToken)
+            .where(
+                RefreshToken.family == stored.family,
+                RefreshToken.is_revoked.is_(False),
+            )
+            .values(is_revoked=True)
+        )
+        await db.commit()
         raise UnauthorizedException(message="Token has been revoked")
 
     stored.is_revoked = True
