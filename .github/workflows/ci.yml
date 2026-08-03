@@ -83,14 +83,10 @@ jobs:
           cache: "pip"
           cache-dependency-path: requirements.txt
       - run: pip install --upgrade pip
-      - run: pip install -r requirements.txt
-      - run: pip install pytest httpx pytest-asyncio pytest-cov
+      - run: pip install -r requirements.txt -r requirements-dev.txt
       - run: pytest --cov=app --cov-report=term-missing --cov-report=xml -v
         env:
-          DATABASE__URL: postgresql+asyncpg://athar:athar_pass@localhost:5432/athar_test
-          AUTH__JWT_SECRET: test-secret
-          REDIS__URL: redis://localhost:6379/0
-          DEBUG: "false"
+          ATHAR_DATABASE__URL: postgresql+asyncpg://athar:athar_pass@localhost:5432/athar_test
       - uses: actions/upload-artifact@v4
         if: always()
         with:
