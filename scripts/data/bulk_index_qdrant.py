@@ -96,7 +96,7 @@ def index_collection(
 
 async def main():
     embedder = make_embedder()
-    qc = QdrantClient(host="localhost", port=6333)
+    qc = QdrantClient(host="localhost", port=6333, timeout=180)
 
     # Ensure collections exist
     from qdrant_client.http.models import Distance, VectorParams
