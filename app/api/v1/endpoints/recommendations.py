@@ -22,7 +22,16 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
 
 
-@router.get("", response_model=RecommendationFeed)
+@router.get(
+    "",
+    response_model=RecommendationFeed,
+    summary="Get recommendations",
+    description="Personalized content-based recommendations (model cbf_v1) for the authenticated user, filtered by wilaya and entity type.",
+    responses={
+        401: {"description": "Authentication required"},
+        422: {"description": "Invalid filter"},
+    },
+)
 async def get_recommendations(
     wilaya_id: int | None = Query(None, ge=1, le=58),
     entity_type: str | None = Query(None, pattern="^(poi|experience|stay)$"),
@@ -37,7 +46,13 @@ async def get_recommendations(
     return RecommendationFeed(items=items, total=len(items), model_version="cbf_v1")
 
 
-@router.get("/preferences", response_model=PreferenceRead)
+@router.get(
+    "/preferences",
+    response_model=PreferenceRead,
+    summary="Get preferences",
+    description="The user's inferred travel preferences (categories, budgets). Auto-creates a default profile on first access.",
+    responses={401: {"description": "Authentication required"}},
+)
 async def get_preferences(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -46,7 +61,16 @@ async def get_preferences(
     return PreferenceRead.model_validate(pref)
 
 
-@router.patch("/preferences", response_model=PreferenceRead)
+@router.patch(
+    "/preferences",
+    response_model=PreferenceRead,
+    summary="Update preferences",
+    description="Partially update the user's travel preferences.",
+    responses={
+        401: {"description": "Authentication required"},
+        422: {"description": "Validation error"},
+    },
+)
 async def update_preferences(
     body: PreferenceUpdate,
     current_user: User = Depends(get_current_user),
@@ -61,7 +85,13 @@ async def update_preferences(
     return PreferenceRead.model_validate(pref)
 
 
-@router.post("/preferences/derive", response_model=PreferenceRead)
+@router.post(
+    "/preferences/derive",
+    response_model=PreferenceRead,
+    summary="Re-derive preferences",
+    description="Rebuild the user's preferences from their interaction history (favorites, collections, trips).",
+    responses={401: {"description": "Authentication required"}},
+)
 async def derive_preferences(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -70,7 +100,16 @@ async def derive_preferences(
     return PreferenceRead.model_validate(pref)
 
 
-@router.post("/{rec_id}/feedback", response_model=RecommendationRead)
+@router.post(
+    "/{rec_id}/feedback",
+    response_model=RecommendationRead,
+    summary="Submit recommendation feedback",
+    description="Record feedback on a recommendation: liked, dismissed, or bookmarked. Dismissed hides it; liked/bookmarked marks it seen.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Recommendation not found"},
+    },
+)
 async def submit_feedback(
     rec_id: uuid.UUID,
     body: RecommendationFeedback,

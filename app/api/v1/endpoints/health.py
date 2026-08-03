@@ -13,7 +13,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["Health"])
 
 
-@router.get("/health", response_model=HealthResponse)
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    summary="Health check",
+    description="Liveness + database connectivity probe. Returns 'ok' or 'degraded' with per-service status and latency.",
+    responses={200: {"description": "API + database status"}},
+)
 async def health_check(db: AsyncSession = Depends(get_db)):
     services = [ServiceStatus(name="api", status="ok")]
 

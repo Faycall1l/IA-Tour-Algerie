@@ -13,7 +13,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/wilayas", tags=["Wilayas"])
 
 
-@router.get("", response_model=list[WilayaRead])
+@router.get(
+    "",
+    response_model=list[WilayaRead],
+    summary="List wilayas",
+    description="All 69 wilayas with French/Arabic/English names and destination descriptions. Optional name search. Public.",
+    responses={422: {"description": "Invalid search"}},
+)
 async def list_wilayas(
     search: str | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -30,7 +36,16 @@ async def list_wilayas(
     return [WilayaRead.model_validate(w) for w in wilayas]
 
 
-@router.get("/{wilaya_id}", response_model=WilayaRead)
+@router.get(
+    "/{wilaya_id}",
+    response_model=WilayaRead,
+    summary="Get a wilaya",
+    description="Single wilaya detail including description and coordinates. Public.",
+    responses={
+        404: {"description": "Wilaya not found"},
+        422: {"description": "Invalid wilaya_id"},
+    },
+)
 async def get_wilaya(wilaya_id: int, db: AsyncSession = Depends(get_db)):
     wilaya = await db.get(Wilaya, wilaya_id)
     if not wilaya:

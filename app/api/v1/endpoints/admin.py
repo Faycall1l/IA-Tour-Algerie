@@ -40,7 +40,16 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
 # ── Dashboard Stats ────────────────────────────────────────────────
 
 
-@router.get("/stats", response_model=StatsDashboard)
+@router.get(
+    "/stats",
+    response_model=StatsDashboard,
+    summary="Dashboard stats",
+    description="Platform totals (POIs, stays, experiences, events, users, trips) plus POI distribution per wilaya and per category.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+    },
+)
 async def dashboard_stats(
     _current_user: User = Depends(get_current_admin),
     db: AsyncSession = Depends(get_db),
@@ -92,7 +101,16 @@ async def dashboard_stats(
 # ── Users ──────────────────────────────────────────────────────────
 
 
-@router.get("/users", response_model=UserAdminFeed)
+@router.get(
+    "/users",
+    response_model=UserAdminFeed,
+    summary="List users",
+    description="Paginated user listing for admins, filtered by role and verification status.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+    },
+)
 async def list_users(
     role: str | None = Query(None),
     verified: bool | None = Query(None),
@@ -130,7 +148,17 @@ async def list_users(
     )
 
 
-@router.put("/users/{user_id}/role", response_model=UserRead)
+@router.put(
+    "/users/{user_id}/role",
+    response_model=UserRead,
+    summary="Set user role",
+    description="Change a user's role. Auto-creates a provider profile when promoting to a provider role, and deletes it when demoting.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+        404: {"description": "User not found"},
+    },
+)
 async def set_user_role(
     user_id: uuid.UUID,
     body: AdminRoleUpdate,
@@ -160,7 +188,17 @@ async def set_user_role(
     return UserRead.model_validate(user)
 
 
-@router.put("/users/{user_id}/verify", response_model=UserRead)
+@router.put(
+    "/users/{user_id}/verify",
+    response_model=UserRead,
+    summary="Toggle user verification",
+    description="Flip a user's is_verified flag (trust badge).",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+        404: {"description": "User not found"},
+    },
+)
 async def toggle_user_verification(
     user_id: uuid.UUID,
     _current_user: User = Depends(get_current_admin),
@@ -180,7 +218,16 @@ async def toggle_user_verification(
 # ── Provider Profiles ──────────────────────────────────────────────
 
 
-@router.get("/providers", response_model=ProviderAdminFeed)
+@router.get(
+    "/providers",
+    response_model=ProviderAdminFeed,
+    summary="List provider profiles",
+    description="Paginated provider profiles for admins, filtered by verification status and provider type.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+    },
+)
 async def list_providers(
     verified: bool | None = Query(None),
     provider_type: str | None = Query(None),
@@ -218,7 +265,17 @@ async def list_providers(
     )
 
 
-@router.put("/providers/{profile_id}/approve", response_model=AdminActionResponse)
+@router.put(
+    "/providers/{profile_id}/approve",
+    response_model=AdminActionResponse,
+    summary="Approve a provider",
+    description="Mark a provider profile as verified.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+        404: {"description": "Provider profile not found"},
+    },
+)
 async def approve_provider(
     profile_id: uuid.UUID,
     _current_user: User = Depends(get_current_admin),
@@ -237,7 +294,17 @@ async def approve_provider(
 # ── Content Moderation ─────────────────────────────────────────────
 
 
-@router.delete("/experiences/{experience_id}", response_model=AdminActionResponse)
+@router.delete(
+    "/experiences/{experience_id}",
+    response_model=AdminActionResponse,
+    summary="Delete any experience",
+    description="Admin moderation: delete an experience regardless of owner. Removes it from the Qdrant index.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+        404: {"description": "Experience not found"},
+    },
+)
 async def admin_delete_experience(
     experience_id: uuid.UUID,
     _current_user: User = Depends(get_current_admin),
@@ -258,7 +325,17 @@ async def admin_delete_experience(
 # ── Data Verification ──
 
 
-@router.get("/verify/poi/{poi_id}", response_model=AdminActionResponse)
+@router.get(
+    "/verify/poi/{poi_id}",
+    response_model=AdminActionResponse,
+    summary="Verify POI quality",
+    description="Run an LLM-based (or rule-based dry-run fallback) quality verification on a POI, reporting a score out of 5, issue count, and missing fields.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+        404: {"description": "POI not found"},
+    },
+)
 async def verify_poi_quality(
     poi_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -302,7 +379,16 @@ async def verify_poi_quality(
         return AdminActionResponse(message=f"Verification error: {exc}")
 
 
-@router.get("/verify/stats", response_model=AdminActionResponse)
+@router.get(
+    "/verify/stats",
+    response_model=AdminActionResponse,
+    summary="POI data-quality stats",
+    description="Aggregate POI data quality: totals, and counts with phone, website, opening hours, or short descriptions.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+    },
+)
 async def get_verification_stats(
     db: AsyncSession = Depends(get_db),
     _current_user: User = Depends(get_current_admin),
@@ -345,7 +431,16 @@ class AgentObservabilityStats(BaseModel):
     recent_traces: list[AgentTraceSummary] = Field(default_factory=list)
 
 
-@router.get("/agent/stats", response_model=AgentObservabilityStats)
+@router.get(
+    "/agent/stats",
+    response_model=AgentObservabilityStats,
+    summary="Agent observability stats",
+    description="Agent monitoring: totals, success/failure rates, token usage, average duration, and recent traces (P1 monitoring).",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Admin role required"},
+    },
+)
 async def agent_observability_stats(
     limit: int = Query(20, ge=1, le=100, description="Number of recent traces to return"),
     _current_user: User = Depends(get_current_admin),

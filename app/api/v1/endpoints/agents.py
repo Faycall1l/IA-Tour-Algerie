@@ -224,7 +224,22 @@ async def _make_memory_deps(
 # ── Endpoints ──
 
 
-@router.post("/chat", response_model=AgentChatResponse)
+@router.post(
+    "/chat",
+    response_model=AgentChatResponse,
+    summary="Travel assistant chat",
+    description=(
+        "Ask the general travel assistant any Algeria travel question. Supports multi-turn "
+        "memory via session_id. Rate limited to 20/hour; returns 503 when the LLM backend is "
+        "not configured."
+    ),
+    responses={
+        400: {"description": "Invalid or unsafe input"},
+        401: {"description": "Authentication required"},
+        429: {"description": "Rate limit exceeded (20/hour)"},
+        503: {"description": "Agents not available — configure ATHAR_AGENT__VLLM"},
+    },
+)
 @limiter.limit("20/hour")
 async def agent_chat(
     body: AgentChatRequest,
@@ -244,7 +259,21 @@ async def agent_chat(
     )
 
 
-@router.post("/plan-trip", response_model=TripPlanResponse)
+@router.post(
+    "/plan-trip",
+    response_model=TripPlanResponse,
+    summary="Plan a trip itinerary",
+    description=(
+        "Structured itinerary planner: destination + duration + budget + interests produce a "
+        "day-by-day plan. Rate limited to 10/hour."
+    ),
+    responses={
+        400: {"description": "Invalid or unsafe input"},
+        401: {"description": "Authentication required"},
+        429: {"description": "Rate limit exceeded (10/hour)"},
+        503: {"description": "Agents not available — configure ATHAR_AGENT__VLLM"},
+    },
+)
 @limiter.limit("10/hour")
 async def agent_plan_trip(
     body: PlanTripRequest,
@@ -270,7 +299,18 @@ async def agent_plan_trip(
     )
 
 
-@router.post("/search", response_model=AgentSearchResponse)
+@router.post(
+    "/search",
+    response_model=AgentSearchResponse,
+    summary="Unified search via agent",
+    description="Agent-driven search across POIs, stays, and experiences. Rate limited to 30/hour.",
+    responses={
+        400: {"description": "Invalid or unsafe input"},
+        401: {"description": "Authentication required"},
+        429: {"description": "Rate limit exceeded (30/hour)"},
+        503: {"description": "Agents not available — configure ATHAR_AGENT__VLLM"},
+    },
+)
 @limiter.limit("30/hour")
 async def agent_search(
     body: AgentSearchRequest,
@@ -290,7 +330,18 @@ async def agent_search(
     )
 
 
-@router.post("/transport", response_model=AgentChatResponse)
+@router.post(
+    "/transport",
+    response_model=AgentChatResponse,
+    summary="Transport specialist chat",
+    description="Ask about routes, schedules, or operator contacts between wilayas. Rate limited to 20/hour.",
+    responses={
+        400: {"description": "Invalid or unsafe input"},
+        401: {"description": "Authentication required"},
+        429: {"description": "Rate limit exceeded (20/hour)"},
+        503: {"description": "Agents not available — configure ATHAR_AGENT__VLLM"},
+    },
+)
 @limiter.limit("20/hour")
 async def agent_transport(
     body: TransportQueryRequest,
@@ -310,7 +361,18 @@ async def agent_transport(
     )
 
 
-@router.post("/events", response_model=AgentChatResponse)
+@router.post(
+    "/events",
+    response_model=AgentChatResponse,
+    summary="Events specialist chat",
+    description="Ask about festivals and cultural activities in a wilaya. Rate limited to 20/hour.",
+    responses={
+        400: {"description": "Invalid or unsafe input"},
+        401: {"description": "Authentication required"},
+        429: {"description": "Rate limit exceeded (20/hour)"},
+        503: {"description": "Agents not available — configure ATHAR_AGENT__VLLM"},
+    },
+)
 @limiter.limit("20/hour")
 async def agent_events(
     body: EventsQueryRequest,
@@ -332,7 +394,16 @@ async def agent_events(
 
 # ── Session management ──
 
-@router.get("/sessions", response_model=SessionListResponse)
+@router.get(
+    "/sessions",
+    response_model=SessionListResponse,
+    summary="List agent sessions",
+    description="List the authenticated user's agent conversation sessions (per agent type, with titles and timestamps). Rate limited to 30/hour.",
+    responses={
+        401: {"description": "Authentication required"},
+        429: {"description": "Rate limit exceeded (30/hour)"},
+    },
+)
 @limiter.limit("30/hour")
 async def list_sessions(
     request: Request,  # noqa: ARG001 — required by slowapi
@@ -355,7 +426,18 @@ async def list_sessions(
     )
 
 
-@router.delete("/sessions/{session_id}", status_code=204)
+@router.delete(
+    "/sessions/{session_id}",
+    status_code=204,
+    summary="Delete an agent session",
+    description="Soft-delete a conversation session and all of its memories. Owner only. Rate limited to 20/hour.",
+    responses={
+        400: {"description": "Invalid session_id"},
+        401: {"description": "Authentication required"},
+        404: {"description": "Session not found"},
+        429: {"description": "Rate limit exceeded (20/hour)"},
+    },
+)
 @limiter.limit("20/hour")
 async def clear_session(
     session_id: str,
