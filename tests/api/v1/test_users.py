@@ -74,3 +74,18 @@ async def test_update_me_cannot_change_role(
     data = resp.json()
     assert data["display_name"] == "Traveller"
     assert data["role"] == "traveler"
+
+
+@pytest.mark.asyncio
+async def test_inactive_user_rejected(
+    client: AsyncClient,
+    db: AsyncSession,
+    test_user: User,
+    user_token: str,
+):
+    test_user.is_active = False
+    await db.commit()
+
+    headers = {"Authorization": f"Bearer {user_token}"}
+    resp = await client.get("/api/v1/users/me", headers=headers)
+    assert resp.status_code == 401

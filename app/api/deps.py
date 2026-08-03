@@ -29,7 +29,7 @@ async def get_current_user(
     if payload.get("type") != "access":
         raise UnauthorizedException(message="Invalid token type")
     user = await db.get(User, uuid.UUID(payload["sub"]))
-    if not user:
+    if not user or not user.is_active:
         raise UnauthorizedException(message="User not found")
     return user
 
@@ -50,6 +50,8 @@ async def get_current_user_optional(
         return None
     try:
         user = await db.get(User, uuid.UUID(payload["sub"]))
+        if not user or not user.is_active:
+            return None
         return user
     except Exception:
         return None
