@@ -19,6 +19,14 @@ POIS_COLLECTION = "pois"
 EXPERIENCES_COLLECTION = "experiences"
 
 
+def has_real_name(name: str | None) -> bool:
+    """True when the name is a real label, not the '(non nommé)' placeholder."""
+    if not name:
+        return False
+    stripped = name.strip()
+    return bool(stripped) and not stripped.endswith("(non nommé)")
+
+
 class VectorSearchService:
     def __init__(self, embedder: EmbeddingService) -> None:
         self.embedder = embedder
@@ -91,6 +99,7 @@ class VectorSearchService:
                         "name": poi.name,
                         "category": poi.category,
                         "wilaya_id": poi.wilaya_id,
+                        "has_name": has_real_name(poi.name),
                     },
                 )
             ],
@@ -112,6 +121,7 @@ class VectorSearchService:
                     "name": p.name,
                     "category": p.category,
                     "wilaya_id": p.wilaya_id,
+                    "has_name": has_real_name(p.name),
                 },
             )
             for p, vec in zip(pois, vectors)
@@ -128,12 +138,33 @@ class VectorSearchService:
         if not self.client:
             return []
         vector = self.embedder.encode(query)
-        resp = self.client.query_points(
+        from qdrant_client.http.models import FieldCondition, Filter, Match
+
+        # Prefer real-named POIs so placeholder "Ruins (non nommé)" entries
+        # don't crowd out actual named landmarks.
+        named = self.client.query_points(
             collection_name=POIS_COLLECTION,
             query=vector,
             limit=limit,
+            query_filter=Filter(
+                must=[FieldCondition(key="has_name", match=Match(value=True))]
+            ),
         )
-        return self._extract_ids(resp.points, "poi_id")
+        ids = self._extract_ids(named.points, "poi_id")
+        if len(ids) < limit:
+            # Fill remaining slots from the full index so unnamed POIs stay
+            # discoverable (just ranked below named ones).
+            seen = set(ids)
+            resp = self.client.query_points(
+                collection_name=POIS_COLLECTION,
+                query=vector,
+                limit=max(limit * 3, 30),
+            )
+            for pid in self._extract_ids(resp.points, "poi_id"):
+                if pid not in seen:
+                    seen.add(pid)
+                    ids.append(pid)
+        return ids[:limit]
 
     def delete_poi(self, poi_id: uuid.UUID) -> None:
         if not self.client:

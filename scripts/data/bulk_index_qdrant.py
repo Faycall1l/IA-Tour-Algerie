@@ -16,6 +16,7 @@ from sqlalchemy import select
 from app.db.session import async_session
 from app.models.experience import Experience
 from app.models.poi import POI
+from app.services.vector_search import has_real_name
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
 logger = logging.getLogger(__name__)
@@ -74,6 +75,8 @@ def index_collection(
         points = []
         for item, vec in zip(batch, vectors):
             payload = {k: str(getattr(item, a, "")) for k, a in payload_map.items()}
+            if collection == POIS_COLLECTION:
+                payload["has_name"] = has_real_name(payload.get("name"))
             points.append(
                 PointStruct(
                     id=item.id.hex if hasattr(item.id, "hex") else str(item.id),

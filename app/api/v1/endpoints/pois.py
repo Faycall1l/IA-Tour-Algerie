@@ -206,7 +206,10 @@ async def search_pois(
         stmt = (
             select(POI)
             .where(POI.search_vector.op("@@")(tsq))
-            .order_by(func.ts_rank(POI.search_vector, tsq).desc())
+            .order_by(
+                POI.name.not_like("%(non nommé)%").desc(),
+                func.ts_rank(POI.search_vector, tsq).desc(),
+            )
             .limit(limit)
         )
         result = await db.execute(stmt)
