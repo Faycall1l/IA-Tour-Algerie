@@ -64,6 +64,15 @@ class VectorSearchService:
 
     # ── POIs ──────────────────────────────────────────────────────────
 
+    def count(self, collection: str) -> int:
+        if not self.client:
+            return 0
+        try:
+            return self.client.count(collection_name=collection, exact=True).count
+        except Exception as exc:
+            logger.warning("Qdrant count failed for '%s': %s", collection, exc)
+            return 0
+
     def index_poi(self, poi: POI) -> None:
         if not self.client:
             return
@@ -86,6 +95,34 @@ class VectorSearchService:
                 )
             ],
         )
+
+    def index_pois_bulk(self, pois: list[POI], batch_size: int = 256) -> int:
+        if not self.client or not pois:
+            return 0
+        from qdrant_client.http.models import PointStruct
+
+        texts = [f"{p.name} {p.description or ''} {p.category}" for p in pois]
+        vectors = self.embedder.encode_batch(texts)
+        points = [
+            PointStruct(
+                id=p.id.hex,
+                vector=vec,
+                payload={
+                    "poi_id": str(p.id),
+                    "name": p.name,
+                    "category": p.category,
+                    "wilaya_id": p.wilaya_id,
+                },
+            )
+            for p, vec in zip(pois, vectors)
+        ]
+        for i in range(0, len(points), batch_size):
+            self.client.upsert(
+                collection_name=POIS_COLLECTION,
+                points=points[i : i + batch_size],
+                wait=True,
+            )
+        return len(points)
 
     def search(self, query: str, limit: int = 10) -> list[uuid.UUID]:
         if not self.client:
@@ -132,6 +169,36 @@ class VectorSearchService:
                 )
             ],
         )
+
+    def index_experiences_bulk(self, experiences: list[Experience], batch_size: int = 256) -> int:
+        if not self.client or not experiences:
+            return 0
+        from qdrant_client.http.models import PointStruct
+
+        texts = [f"{e.title} {e.description or ''} {e.category}" for e in experiences]
+        vectors = self.embedder.encode_batch(texts)
+        points = [
+            PointStruct(
+                id=e.id.hex,
+                vector=vec,
+                payload={
+                    "experience_id": str(e.id),
+                    "title": e.title,
+                    "category": e.category,
+                    "wilaya_id": e.wilaya_id,
+                    "provider_id": str(e.provider_id),
+                    "status": e.status,
+                },
+            )
+            for e, vec in zip(experiences, vectors)
+        ]
+        for i in range(0, len(points), batch_size):
+            self.client.upsert(
+                collection_name=EXPERIENCES_COLLECTION,
+                points=points[i : i + batch_size],
+                wait=True,
+            )
+        return len(points)
 
     def search_experiences(self, query: str, limit: int = 10) -> list[uuid.UUID]:
         if not self.client:

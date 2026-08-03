@@ -22,22 +22,50 @@ class EmbeddingService:
         try:
             from sentence_transformers import SentenceTransformer
 
-            logger.info("Loading embedding model %s ...", MODEL_NAME)
-            self._model = SentenceTransformer(MODEL_NAME, backend="onnx")
-            logger.info("Embedding model loaded (ONNX backend)")
+            # local_files_only avoids a HuggingFace round-trip on every boot —
+            # load fails fast when the model isn't cached instead of blocking
+            # on retries (offline/restricted networks).
+            self._model = SentenceTransformer(
+                MODEL_NAME,
+                backend="onnx",
+                local_files_only=True,
+                model_kwargs={"file_name": "onnx/model.onnx"},
+            )
+            logger.info("Embedding model loaded (ONNX, local cache)")
         except Exception:
             try:
                 from sentence_transformers import SentenceTransformer
 
-                logger.info("ONNX backend unavailable, falling back to default...")
-                self._model = SentenceTransformer(MODEL_NAME)
-                logger.info("Embedding model loaded (default backend)")
+                self._model = SentenceTransformer(MODEL_NAME, local_files_only=True)
+                logger.info("Embedding model loaded (default backend, local cache)")
             except Exception as exc:
-                logger.warning("Embedding model unavailable: %s", exc)
-                self._model = None
+                logger.warning(
+                    "Embedding model not found in cache (%s) — attempting download", exc
+                )
+                try:
+                    from sentence_transformers import SentenceTransformer
+
+                    self._model = SentenceTransformer(MODEL_NAME, backend="onnx")
+                except Exception as exc2:
+                    try:
+                        from sentence_transformers import SentenceTransformer
+
+                        self._model = SentenceTransformer(MODEL_NAME)
+                    except Exception as exc3:
+                        logger.warning("Embedding model unavailable: %s / %s", exc2, exc3)
+                        self._model = None
 
     def encode(self, text: str) -> list[float]:
         self._load()
         if not self._model:
             raise RuntimeError("Embedding model not available")
         return self._model.encode(text, normalize_embeddings=True).tolist()
+
+    def encode_batch(self, texts: list[str]) -> list[list[float]]:
+        if not texts:
+            return []
+        self._load()
+        if not self._model:
+            raise RuntimeError("Embedding model not available")
+        vecs = self._model.encode(texts, normalize_embeddings=True, show_progress_bar=False)
+        return [v.tolist() for v in vecs]
