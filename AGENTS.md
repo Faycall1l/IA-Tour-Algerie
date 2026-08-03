@@ -113,6 +113,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
   - **Medium — deactivated accounts** (`a77a38f`): `get_current_user`/optional now reject `is_active=False`.
   - **Medium — API surface lock-down** (`4356719`): `/docs`, `/redoc`, `/openapi.json` gated behind `debug` (API9); `allowed_hosts` default `["*"]` → loopback only (`ATHAR_ALLOWED_HOSTS` JSON override, `.env.example`/compose/docs updated, conftest pre-sets it); headers now include CSP `default-src 'none'; frame-ancestors 'none'`, HSTS (prod), `Cache-Control: no-store` on `/auth/*` + `/users/me`.
   - **Medium — shared rate limiting** (`714111c`): method-level sliding-window counter now Redis-backed (sorted-set, shared across workers) with in-memory fallback + fail-open.
+- **Complete API documentation** (`0374699`→`26b1d6c`, 6 commits): `docs/specs/api.md` rewritten from the live OpenAPI inventory — **112 operations / 87 paths** (was stale at 106/81). Added missing routes (agent transport/events/sessions, admin/agent/stats, transport/route-to-poi, discover/experiences/by-poi), per-endpoint auth scopes read from code (public/optional/auth/provider-admin/admin — `[PUB]`/`[AUTH]` markers are unreliable since security only renders for OAuth2), and updated security docs. Every endpoint now carries an OpenAPI `summary`, `description`, and `responses=` error contract. Verified: schema builds clean, 0/112 ops missing a summary, **224 tests pass**.
 
 ### Blocked
 - **Wasly.app REST API** is partner-only (B2B request required) — bus data publicly unavailable
