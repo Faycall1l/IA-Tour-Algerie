@@ -29,8 +29,12 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 _otp_store: dict[str, dict] = {}
+_otp_send_times: dict[str, list[float]] = {}
 _OTP_TTL_SECONDS = 300  # 5 minutes
 _OTP_MAX_STORE = 1000
+_OTP_MAX_ATTEMPTS = 5
+_OTP_SEND_LIMIT = 3
+_OTP_SEND_WINDOW_SECONDS = 600  # 10 minutes
 
 
 def _cleanup_otp_store() -> None:
@@ -42,6 +46,24 @@ def _cleanup_otp_store() -> None:
         oldest = sorted(_otp_store, key=lambda k: _otp_store[k]["created_at"])[:len(_otp_store) - _OTP_MAX_STORE]
         for k in oldest:
             del _otp_store[k]
+    stale_sends = [
+        k for k, v in _otp_send_times.items()
+        if not any(now - t < _OTP_SEND_WINDOW_SECONDS for t in v)
+    ]
+    for k in stale_sends:
+        del _otp_send_times[k]
+
+
+def _phone_can_request_otp(phone: str) -> tuple[bool, int]:
+    """Per-phone send throttle to blunt SMS-bombing/abuse of the fallback."""
+    now = time.time()
+    recent = [t for t in _otp_send_times.get(phone, []) if now - t < _OTP_SEND_WINDOW_SECONDS]
+    if len(recent) >= _OTP_SEND_LIMIT:
+        _otp_send_times[phone] = recent
+        return False, 0
+    recent.append(now)
+    _otp_send_times[phone] = recent
+    return True, _OTP_SEND_LIMIT - len(recent) - 1
 
 
 @router.post("/send-otp", response_model=OTPSendResponse)
@@ -59,8 +81,13 @@ async def send_otp(
         logger.warning("Twilio send failed, falling back for %s", body.phone)
 
     _cleanup_otp_store()
+    allowed, _remaining = _phone_can_request_otp(body.phone)
+    if not allowed:
+        raise BadRequestException(
+            message=f"Too many OTP requests for this number. Try again in a few minutes."
+        )
     code = "".join(secrets.choice("0123456789") for _ in range(6))
-    _otp_store[body.phone] = {"code": code, "created_at": time.time()}
+    _otp_store[body.phone] = {"code": code, "created_at": time.time(), "attempts": 0}
     logger.info("OTP (fallback) generated for %s (NOT returned in response)", body.phone)
     return OTPSendResponse(message="OTP sent successfully")
 
@@ -79,7 +106,18 @@ async def verify_otp(
             raise BadRequestException(message="Invalid or expired OTP")
     else:
         stored = _otp_store.get(body.phone)
-        if not stored or stored["code"] != body.code:
+        if not stored:
+            raise BadRequestException(message="Invalid or expired OTP")
+        attempts = stored.get("attempts", 0)
+        if attempts >= _OTP_MAX_ATTEMPTS:
+            del _otp_store[body.phone]
+            raise BadRequestException(
+                message="Too many attempts. Request a new OTP."
+            )
+        if not secrets.compare_digest(stored["code"], body.code):
+            stored["attempts"] = attempts + 1
+            if stored["attempts"] >= _OTP_MAX_ATTEMPTS:
+                del _otp_store[body.phone]
             raise BadRequestException(message="Invalid or expired OTP")
         del _otp_store[body.phone]
 

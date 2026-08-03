@@ -61,3 +61,43 @@ async def test_refresh_token(client: AsyncClient):
     data = resp.json()
     assert "access_token" in data
     assert data["refresh_token"] != refresh_token
+
+
+@pytest.mark.asyncio
+async def test_verify_otp_locks_after_attempts(client: AsyncClient):
+    phone = "+213555777777"
+    await client.post("/api/v1/auth/send-otp", json={"phone": phone})
+    assert phone in _otp_store
+    code = _otp_store[phone]["code"]
+
+    for _ in range(5):
+        resp = await client.post(
+            "/api/v1/auth/verify-otp",
+            json={"phone": phone, "code": "000000"},
+        )
+        assert resp.status_code == 400
+
+    assert phone not in _otp_store
+
+    resp = await client.post(
+        "/api/v1/auth/verify-otp",
+        json={"phone": phone, "code": code},
+    )
+    assert resp.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_send_otp_throttled_per_phone(client: AsyncClient):
+    phone = "+213555666666"
+    for _ in range(3):
+        resp = await client.post("/api/v1/auth/send-otp", json={"phone": phone})
+        assert resp.status_code == 200
+
+    resp = await client.post("/api/v1/auth/send-otp", json={"phone": phone})
+    assert resp.status_code == 400
+
+    other = await client.post(
+        "/api/v1/auth/send-otp", json={"phone": "+213555555555"}
+    )
+    assert other.status_code == 200
+
