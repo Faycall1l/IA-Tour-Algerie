@@ -16,7 +16,13 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/events", tags=["Events"])
 
 
-@router.get("", response_model=EventFeed)
+@router.get(
+    "",
+    response_model=EventFeed,
+    summary="List events",
+    description="Paginated events/festivals calendar filtered by wilaya, category, and month (1-12). Public.",
+    responses={422: {"description": "Validation error"}},
+)
 async def list_events(
     wilaya_id: int | None = Query(None, ge=1, le=58),
     category: str | None = Query(None, max_length=50),
@@ -53,7 +59,16 @@ async def list_events(
     )
 
 
-@router.get("/{event_id}", response_model=EventRead)
+@router.get(
+    "/{event_id}",
+    response_model=EventRead,
+    summary="Get an event",
+    description="Event detail. Public.",
+    responses={
+        404: {"description": "Event not found"},
+        422: {"description": "Invalid UUID"},
+    },
+)
 async def get_event(event_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     event = await db.get(Event, event_id)
     if not event:
@@ -61,7 +76,19 @@ async def get_event(event_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     return EventRead.model_validate(event)
 
 
-@router.post("", response_model=EventRead, status_code=201)
+@router.post(
+    "",
+    response_model=EventRead,
+    status_code=201,
+    summary="Create an event",
+    description="Add an event/festival to the calendar. Requires provider or admin role; the wilaya must exist.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Provider or admin role required"},
+        404: {"description": "Wilaya not found"},
+        422: {"description": "Validation error"},
+    },
+)
 async def create_event(
     body: EventCreate,
     _current_user: User = Depends(get_provider_or_admin),
@@ -78,7 +105,17 @@ async def create_event(
     return EventRead.model_validate(event)
 
 
-@router.patch("/{event_id}", response_model=EventRead)
+@router.patch(
+    "/{event_id}",
+    response_model=EventRead,
+    summary="Update an event",
+    description="Partial update of an event (provider or admin role).",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Provider or admin role required"},
+        404: {"description": "Event not found"},
+    },
+)
 async def update_event(
     event_id: uuid.UUID,
     body: EventUpdate,
@@ -101,7 +138,17 @@ async def update_event(
     return EventRead.model_validate(event)
 
 
-@router.delete("/{event_id}", status_code=204)
+@router.delete(
+    "/{event_id}",
+    status_code=204,
+    summary="Delete an event",
+    description="Delete an event (provider or admin role).",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Provider or admin role required"},
+        404: {"description": "Event not found"},
+    },
+)
 async def delete_event(
     event_id: uuid.UUID,
     _current_user: User = Depends(get_provider_or_admin),

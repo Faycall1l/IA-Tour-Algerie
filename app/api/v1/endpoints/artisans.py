@@ -16,7 +16,21 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/artisans", tags=["Artisans"])
 
 
-@router.post("", response_model=ArtisanRead, status_code=201)
+@router.post(
+    "",
+    response_model=ArtisanRead,
+    status_code=201,
+    summary="Create an artisan profile",
+    description=(
+        "Register a craft workshop. A user can have at most one artisan profile; creating one "
+        "auto-promotes a traveler account to the artisan role."
+    ),
+    responses={
+        401: {"description": "Authentication required"},
+        409: {"description": "You already have an artisan profile"},
+        422: {"description": "Validation error"},
+    },
+)
 async def create_artisan(
     body: ArtisanCreate,
     current_user: User = Depends(get_current_user),
@@ -40,7 +54,13 @@ async def create_artisan(
     return ArtisanRead.model_validate(artisan)
 
 
-@router.get("", response_model=ArtisanFeed)
+@router.get(
+    "",
+    response_model=ArtisanFeed,
+    summary="List artisans",
+    description="Paginated artisans filtered by wilaya, craft type, visitor acceptance, and name search. Sort by name, newest, or years of experience.",
+    responses={422: {"description": "Validation error"}},
+)
 async def list_artisans(
     wilaya_id: int | None = Query(None),
     craft_type: str | None = Query(None),
@@ -83,7 +103,16 @@ async def list_artisans(
     )
 
 
-@router.get("/{artisan_id}", response_model=ArtisanRead)
+@router.get(
+    "/{artisan_id}",
+    response_model=ArtisanRead,
+    summary="Get an artisan",
+    description="Artisan detail. Public.",
+    responses={
+        404: {"description": "Artisan not found"},
+        422: {"description": "Invalid UUID"},
+    },
+)
 async def get_artisan(artisan_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     artisan = await db.get(Artisan, artisan_id)
     if not artisan:
@@ -91,7 +120,17 @@ async def get_artisan(artisan_id: uuid.UUID, db: AsyncSession = Depends(get_db))
     return ArtisanRead.model_validate(artisan)
 
 
-@router.put("/{artisan_id}", response_model=ArtisanRead)
+@router.put(
+    "/{artisan_id}",
+    response_model=ArtisanRead,
+    summary="Update an artisan",
+    description="Update an artisan profile. Only the owner or an admin can edit.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "You can only edit your own artisan profile"},
+        404: {"description": "Artisan not found"},
+    },
+)
 async def update_artisan(
     artisan_id: uuid.UUID,
     body: ArtisanUpdate,
@@ -111,7 +150,17 @@ async def update_artisan(
     return ArtisanRead.model_validate(artisan)
 
 
-@router.delete("/{artisan_id}", status_code=204)
+@router.delete(
+    "/{artisan_id}",
+    status_code=204,
+    summary="Delete an artisan",
+    description="Delete an artisan profile. Only the owner or an admin can delete.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "You can only delete your own artisan profile"},
+        404: {"description": "Artisan not found"},
+    },
+)
 async def delete_artisan(
     artisan_id: uuid.UUID,
     current_user: User = Depends(get_current_user),

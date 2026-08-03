@@ -13,7 +13,18 @@ from app.schemas.stay import StayCreate, StayFeed, StayRead, StayUpdate
 router = APIRouter(prefix="/stays", tags=["Stays"])
 
 
-@router.post("", response_model=StayRead, status_code=201)
+@router.post(
+    "",
+    response_model=StayRead,
+    status_code=201,
+    summary="Create a stay",
+    description="List accommodation on the platform. Requires the authenticated user to have the hotel, agency, or admin role.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Only hotels and agencies can list stays"},
+        422: {"description": "Validation error"},
+    },
+)
 async def create_stay(
     body: StayCreate,
     current_user: User = Depends(get_current_user),
@@ -31,7 +42,13 @@ async def create_stay(
     return stay
 
 
-@router.get("", response_model=StayFeed)
+@router.get(
+    "",
+    response_model=StayFeed,
+    summary="List stays",
+    description="Paginated active stays filtered by wilaya, property type, and price range (DZD). Responses include provider name/avatar.",
+    responses={422: {"description": "Validation error"}},
+)
 async def list_stays(
     wilaya_id: int | None = Query(None),
     property_type: str | None = Query(None),
@@ -89,7 +106,16 @@ async def list_stays(
     )
 
 
-@router.get("/{stay_id}", response_model=StayRead)
+@router.get(
+    "/{stay_id}",
+    response_model=StayRead,
+    summary="Get a stay",
+    description="Stay detail with provider info. With auth, also returns is_favorited.",
+    responses={
+        404: {"description": "Stay not found"},
+        422: {"description": "Invalid UUID"},
+    },
+)
 async def get_stay(
     stay_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -120,7 +146,17 @@ async def get_stay(
     return read
 
 
-@router.put("/{stay_id}", response_model=StayRead)
+@router.put(
+    "/{stay_id}",
+    response_model=StayRead,
+    summary="Update a stay",
+    description="Update a stay listing. Only the owning provider or an admin can edit.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Not your stay listing"},
+        404: {"description": "Stay not found"},
+    },
+)
 async def update_stay(
     stay_id: uuid.UUID,
     body: StayUpdate,
@@ -144,7 +180,17 @@ async def update_stay(
     return read
 
 
-@router.delete("/{stay_id}", status_code=204)
+@router.delete(
+    "/{stay_id}",
+    status_code=204,
+    summary="Delete a stay",
+    description="Delete a stay listing. Only the owning provider or an admin can delete.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Not your stay listing"},
+        404: {"description": "Stay not found"},
+    },
+)
 async def delete_stay(
     stay_id: uuid.UUID,
     current_user: User = Depends(get_current_user),

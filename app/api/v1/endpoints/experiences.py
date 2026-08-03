@@ -29,7 +29,19 @@ def _can_manage(current_user: User, experience: Experience) -> bool:
     return current_user.id == experience.provider_id or current_user.role == "admin"
 
 
-@router.post("", response_model=ExperienceRead, status_code=201)
+@router.post(
+    "",
+    response_model=ExperienceRead,
+    status_code=201,
+    summary="Create an experience",
+    description="Add a bookable tour/activity. Requires a provider role (guide, agency, or hotel). Indexed for vector search on creation.",
+    responses={
+        400: {"description": "Only providers (guide/agency/hotel) can add experiences"},
+        401: {"description": "Authentication required"},
+        404: {"description": "Wilaya not found"},
+        422: {"description": "Validation error"},
+    },
+)
 async def create_experience(
     body: ExperienceCreate,
     current_user: User = Depends(get_current_user),
@@ -53,7 +65,13 @@ async def create_experience(
     return ExperienceRead.model_validate(experience)
 
 
-@router.get("", response_model=ExperienceFeed)
+@router.get(
+    "",
+    response_model=ExperienceFeed,
+    summary="List experiences",
+    description="Paginated experiences (active by default). Filters: wilaya, category, provider_id, season, provider_type, status.",
+    responses={422: {"description": "Validation error"}},
+)
 async def list_experiences(
     wilaya_id: int | None = Query(None, ge=1, le=58),
     category: str | None = Query(None, pattern=f"^({'|'.join(EXPERIENCE_CATEGORIES)})$"),
@@ -107,7 +125,13 @@ async def list_experiences(
     )
 
 
-@router.get("/search", response_model=ExperienceFeed)
+@router.get(
+    "/search",
+    response_model=ExperienceFeed,
+    summary="Semantic experience search",
+    description="Vector search over active experiences with PostgreSQL full-text (French) fallback when Qdrant is unavailable.",
+    responses={422: {"description": "Query required (min 1 char)"}},
+)
 async def search_experiences(
     q: str = Query(..., min_length=1, max_length=200),
     limit: int = Query(10, ge=1, le=50),
@@ -154,7 +178,16 @@ async def search_experiences(
     )
 
 
-@router.get("/{experience_id}", response_model=ExperienceDetail)
+@router.get(
+    "/{experience_id}",
+    response_model=ExperienceDetail,
+    summary="Get an experience",
+    description="Experience detail plus provider info (name, avatar, role). With auth, also returns is_favorited.",
+    responses={
+        404: {"description": "Experience not found"},
+        422: {"description": "Invalid UUID"},
+    },
+)
 async def get_experience(
     experience_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -188,7 +221,17 @@ async def get_experience(
     return result
 
 
-@router.put("/{experience_id}", response_model=ExperienceRead)
+@router.put(
+    "/{experience_id}",
+    response_model=ExperienceRead,
+    summary="Update an experience",
+    description="Update an experience. Only the owning provider or an admin can edit. Re-indexes in Qdrant.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "You can only edit your own experiences"},
+        404: {"description": "Experience not found"},
+    },
+)
 async def update_experience(
     experience_id: uuid.UUID,
     body: ExperienceUpdate,
@@ -212,7 +255,17 @@ async def update_experience(
     return ExperienceRead.model_validate(experience)
 
 
-@router.delete("/{experience_id}", status_code=204)
+@router.delete(
+    "/{experience_id}",
+    status_code=204,
+    summary="Delete an experience",
+    description="Delete an experience. Only the owning provider or an admin can delete. Removes from the Qdrant index.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "You can only delete your own experiences"},
+        404: {"description": "Experience not found"},
+    },
+)
 async def delete_experience(
     experience_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -230,7 +283,18 @@ async def delete_experience(
     vector_search.delete_experience(experience_id)
 
 
-@router.post("/{experience_id}/photos", response_model=ExperienceRead)
+@router.post(
+    "/{experience_id}/photos",
+    response_model=ExperienceRead,
+    summary="Upload experience photos",
+    description="Append one or more photos (multipart, JPEG/PNG/WebP) to an experience's gallery via MinIO. Owner or admin only.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "You can only edit your own experiences"},
+        404: {"description": "Experience not found"},
+        415: {"description": "Unsupported content type"},
+    },
+)
 async def upload_experience_photos(
     experience_id: uuid.UUID,
     photos: list[UploadFile] = File(...),

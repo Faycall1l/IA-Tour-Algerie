@@ -46,7 +46,16 @@ def _brief(c: Collection) -> CollectionBrief:
 
 # ── CRUD ──
 
-@router.get("", response_model=CollectionFeed)
+@router.get(
+    "",
+    response_model=CollectionFeed,
+    summary="List collections",
+    description="The authenticated user's collections with item counts, newest first.",
+    responses={
+        401: {"description": "Authentication required"},
+        200: {"description": "Collection feed"},
+    },
+)
 async def list_collections(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
@@ -61,7 +70,17 @@ async def list_collections(
     return CollectionFeed(items=[_brief(c) for c in collections], total=len(collections))
 
 
-@router.post("", response_model=CollectionRead, status_code=201)
+@router.post(
+    "",
+    response_model=CollectionRead,
+    status_code=201,
+    summary="Create a collection",
+    description="Create a named wishlist/trip collection, optionally public and with a description.",
+    responses={
+        401: {"description": "Authentication required"},
+        422: {"description": "Validation error"},
+    },
+)
 async def create_collection(
     body: CollectionCreate,
     current_user: User = Depends(get_current_user),
@@ -78,7 +97,16 @@ async def create_collection(
     )
 
 
-@router.get("/{collection_id}", response_model=CollectionRead)
+@router.get(
+    "/{collection_id}",
+    response_model=CollectionRead,
+    summary="Get a collection",
+    description="A collection with all its items (sorted by sort_order then created_at). Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Collection not found"},
+    },
+)
 async def get_collection(
     collection_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -107,7 +135,16 @@ async def get_collection(
     )
 
 
-@router.put("/{collection_id}", response_model=CollectionRead)
+@router.put(
+    "/{collection_id}",
+    response_model=CollectionRead,
+    summary="Update a collection",
+    description="Update a collection's name, description, or is_public flag. Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Collection not found"},
+    },
+)
 async def update_collection(
     collection_id: uuid.UUID,
     body: CollectionUpdate,
@@ -132,7 +169,16 @@ async def update_collection(
     )
 
 
-@router.delete("/{collection_id}", status_code=204)
+@router.delete(
+    "/{collection_id}",
+    status_code=204,
+    summary="Delete a collection",
+    description="Delete a collection and all of its items. Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Collection not found"},
+    },
+)
 async def delete_collection(
     collection_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
@@ -145,7 +191,18 @@ async def delete_collection(
 
 # ── Items ──
 
-@router.post("/{collection_id}/items", response_model=list[CollectionItemRead], status_code=201)
+@router.post(
+    "/{collection_id}/items",
+    response_model=list[CollectionItemRead],
+    status_code=201,
+    summary="Add items to a collection",
+    description="Batch-add items to a collection. Duplicates (same entity_type + entity_id) are skipped. At least one item required.",
+    responses={
+        400: {"description": "At least one item required"},
+        401: {"description": "Authentication required"},
+        404: {"description": "Collection not found"},
+    },
+)
 async def add_items(
     collection_id: uuid.UUID,
     body: CollectionItemBatchCreate,
@@ -195,7 +252,16 @@ async def add_items(
     ]
 
 
-@router.delete("/{collection_id}/items/{item_id}", status_code=204)
+@router.delete(
+    "/{collection_id}/items/{item_id}",
+    status_code=204,
+    summary="Remove an item from a collection",
+    description="Remove a single item from a collection. Owner only.",
+    responses={
+        401: {"description": "Authentication required"},
+        404: {"description": "Item not found in collection"},
+    },
+)
 async def remove_item(
     collection_id: uuid.UUID,
     item_id: uuid.UUID,
