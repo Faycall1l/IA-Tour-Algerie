@@ -33,14 +33,29 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/me", response_model=UserRead)
+@router.get(
+    "/me",
+    response_model=UserRead,
+    summary="Get current user",
+    description="Return the authenticated user's profile, including role, verification status, and provider profile link.",
+    responses={401: {"description": "Authentication required"}},
+)
 async def get_me(
     current_user: User = Depends(get_current_user),
 ):
     return UserRead.model_validate(current_user)
 
 
-@router.put("/me", response_model=UserRead)
+@router.put(
+    "/me",
+    response_model=UserRead,
+    summary="Update current user",
+    description="Update the authenticated user's profile fields. Role changes must use PUT /users/me/role.",
+    responses={
+        401: {"description": "Authentication required"},
+        422: {"description": "Validation error"},
+    },
+)
 async def update_me(
     body: UserUpdate,
     current_user: User = Depends(get_current_user),
@@ -53,7 +68,20 @@ async def update_me(
     return UserRead.model_validate(current_user)
 
 
-@router.put("/me/role", response_model=UserRead)
+@router.put(
+    "/me/role",
+    response_model=UserRead,
+    summary="Switch role",
+    description=(
+        "Self-assign a role. Restricted to SELF_ASSIGNABLE_ROLES (traveler/guide/agency/hotel); "
+        "the `admin` role cannot be self-assigned. Switching to a provider role auto-creates a "
+        "provider profile, and switching away deletes it."
+    ),
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Role cannot be self-assigned"},
+    },
+)
 async def set_role(
     body: RoleUpdate,
     current_user: User = Depends(get_current_user),
@@ -83,7 +111,19 @@ async def set_role(
     return UserRead.model_validate(current_user)
 
 
-@router.put("/me/profile", response_model=ProviderUserRead)
+@router.put(
+    "/me/profile",
+    response_model=ProviderUserRead,
+    summary="Update provider profile",
+    description=(
+        "Update the authenticated user's provider profile (company name, website, experience, "
+        "team size, etc.). The user must already have a provider role."
+    ),
+    responses={
+        400: {"description": "No provider profile — set your role to a provider type first"},
+        401: {"description": "Authentication required"},
+    },
+)
 async def update_profile(
     body: ProviderProfileUpdate,
     current_user: User = Depends(get_current_user),
@@ -112,7 +152,13 @@ async def update_profile(
     )
 
 
-@router.get("/providers", response_model=list[ProviderUserRead])
+@router.get(
+    "/providers",
+    response_model=list[ProviderUserRead],
+    summary="List providers",
+    description="List all provider users (guide/agency/hotel) with their profiles. Public.",
+    responses={422: {"description": "Invalid role filter"}},
+)
 async def list_providers(
     role: str | None = Query(None, pattern=f"^({'|'.join(PROVIDER_TYPES)})$"),
     page: int = Query(1, ge=1),
@@ -140,7 +186,13 @@ async def list_providers(
     return items
 
 
-@router.get("/providers/{user_id}", response_model=ProviderUserRead)
+@router.get(
+    "/providers/{user_id}",
+    response_model=ProviderUserRead,
+    summary="Get provider",
+    description="Return a single provider user with their profile. Public.",
+    responses={404: {"description": "Provider not found"}},
+)
 async def get_provider(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     result = await db.execute(
         select(User)
@@ -157,7 +209,19 @@ async def get_provider(user_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     )
 
 
-@router.get("/me/dashboard", response_model=ProviderDashboard)
+@router.get(
+    "/me/dashboard",
+    response_model=ProviderDashboard,
+    summary="Provider dashboard",
+    description=(
+        "Aggregated dashboard for providers: listing counts (experiences/stays), active counts, "
+        "and top 5 of each. Requires a provider role or admin."
+    ),
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Provider access required"},
+    },
+)
 async def provider_dashboard(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),

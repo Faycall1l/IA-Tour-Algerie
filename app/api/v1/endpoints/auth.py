@@ -66,7 +66,20 @@ def _phone_can_request_otp(phone: str) -> tuple[bool, int]:
     return True, _OTP_SEND_LIMIT - len(recent) - 1
 
 
-@router.post("/send-otp", response_model=OTPSendResponse)
+@router.post(
+    "/send-otp",
+    response_model=OTPSendResponse,
+    summary="Send one-time password",
+    description=(
+        "Request a 6-digit OTP for passwordless login. When Twilio is configured the code is "
+        "delivered by SMS; otherwise it is generated in-memory (never returned in the response). "
+        "Rate limited to 10/minute globally and 3 sends per phone per 10 minutes."
+    ),
+    responses={
+        400: {"description": "Too many OTP requests for this number (per-phone throttling)"},
+        429: {"description": "Global rate limit exceeded (10/minute)"},
+    },
+)
 @limiter.limit("10/minute")
 async def send_otp(
     body: OTPRequest,
@@ -92,7 +105,20 @@ async def send_otp(
     return OTPSendResponse(message="OTP sent successfully")
 
 
-@router.post("/verify-otp", response_model=TokenResponse)
+@router.post(
+    "/verify-otp",
+    response_model=TokenResponse,
+    summary="Verify OTP and log in",
+    description=(
+        "Exchange a phone + OTP for an access token and refresh token. Creates the user account "
+        "on first login. A code is invalidated after 5 failed attempts (constant-time comparison). "
+        "The refresh token is stored hashed with a rotation family."
+    ),
+    responses={
+        400: {"description": "Invalid or expired OTP, or too many attempts — request a new code"},
+        429: {"description": "Rate limit exceeded (20/minute)"},
+    },
+)
 @limiter.limit("20/minute")
 async def verify_otp(
     body: OTPVerify,
@@ -143,7 +169,19 @@ async def verify_otp(
     )
 
 
-@router.post("/refresh", response_model=TokenResponse)
+@router.post(
+    "/refresh",
+    response_model=TokenResponse,
+    summary="Rotate tokens",
+    description=(
+        "Exchange a valid refresh token for a fresh access/refresh pair. Rotation is one-time-use: "
+        "presenting an already-revoked token revokes the entire token family (stolen-token detection)."
+    ),
+    responses={
+        401: {"description": "Invalid, expired, or revoked refresh token"},
+        429: {"description": "Rate limit exceeded (20/minute)"},
+    },
+)
 @limiter.limit("20/minute")
 async def refresh_token(body: TokenRefresh, request: Request, db: AsyncSession = Depends(get_db)):  # noqa: ARG001
     try:
@@ -210,7 +248,21 @@ async def _get_or_create_user(db: AsyncSession, phone: str) -> User:
     return user
 
 
-@router.post("/register-provider", response_model=ProviderRegisterResponse)
+@router.post(
+    "/register-provider",
+    response_model=ProviderRegisterResponse,
+    summary="Register as a provider",
+    description=(
+        "Upgrade the authenticated user's account to a provider (guide/agency/hotel) and create "
+        "their provider profile. Only users with the `traveler` role (or admins) can register; "
+        "rate limited to 5/minute."
+    ),
+    responses={
+        400: {"description": "Already registered as a provider"},
+        401: {"description": "Authentication required"},
+        429: {"description": "Rate limit exceeded (5/minute)"},
+    },
+)
 @limiter.limit("5/minute")
 async def register_provider(
     body: ProviderRegisterRequest,
