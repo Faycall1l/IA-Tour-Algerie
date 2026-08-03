@@ -173,7 +173,7 @@ def _get_agent(request: Request, name: str):
     if agent is None:
         raise HTTPException(
             status_code=503,
-            detail="Agents are not available — configure AGENT__VLLM settings in .env",
+            detail="Agents are not available — configure ATHAR_AGENT__VLLM settings in .env",
         )
     return agent
 

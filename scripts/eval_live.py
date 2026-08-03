@@ -114,7 +114,7 @@ async def main():
         agent = create_travel_agent(base_url=bu, api_key=ak, model_name=mn)
 
     if agent is None:
-        print("ERROR: Could not create agent — check AGENT__VLLM settings in .env")
+        print("ERROR: Could not create agent — check ATHAR_AGENT__VLLM settings in .env")
         sys.exit(1)
 
     # Create deps with a real DB session
