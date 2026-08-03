@@ -1,4 +1,5 @@
 import logging
+import secrets
 import time
 from collections import defaultdict
 
@@ -44,25 +45,84 @@ else:
     logger.info("Rate limiter uses in-memory storage")
 
 
-# ── In-memory sliding-window rate limiter for CRUD endpoints ──
+# ── Sliding-window rate limiter for CRUD endpoints (Redis-backed) ──
+#
+# The method-level middleware counter must be shared across workers, so it
+# uses Redis (sorted set per key) when reachable and falls back to the local
+# in-memory counter otherwise (dev / degraded mode). Fail-open on Redis errors
+# to preserve availability.
+
+
+_redis_client: redis.Redis | None = None
+_redis_checked = False
+
+
+def _get_redis() -> redis.Redis | None:
+    global _redis_client, _redis_checked
+    if _redis_checked:
+        return _redis_client
+    _redis_checked = True
+    if not settings.redis.host:
+        return None
+    try:
+        client = redis.Redis(
+            host=settings.redis.host,
+            port=settings.redis.port,
+            password=settings.redis.password or None,
+            db=settings.redis.db,
+            socket_connect_timeout=2,
+            socket_timeout=2,
+        )
+        client.ping()
+        _redis_client = client
+        logger.info("Sliding-window rate limiter backed by Redis")
+    except Exception as exc:
+        logger.warning("Redis unavailable for sliding-window limiter: %s", exc)
+        _redis_client = None
+    return _redis_client
 
 
 class SlidingWindowCounter:
-    """Per-IP, per-method sliding window rate counter."""
+    """Per-key sliding-window rate counter, Redis-backed when available."""
 
     def __init__(self) -> None:
-        self._buckets: dict[str, dict[str, list[float]]] = defaultdict(lambda: defaultdict(list))
+        self._buckets: dict[str, list[float]] = defaultdict(list)
 
     def check(self, key: str, limit: int, window: int = 60) -> tuple[bool, int]:
+        client = _get_redis()
+        if client is not None:
+            return self._check_redis(client, key, limit, window)
+        return self._check_memory(key, limit, window)
+
+    def _check_memory(self, key: str, limit: int, window: int) -> tuple[bool, int]:
         now = time.time()
-        bucket = self._buckets[key]
         cutoff = now - window
-        bucket[key] = [t for t in bucket.get(key, []) if t > cutoff]
-        timestamps = bucket[key]
+        timestamps = [t for t in self._buckets[key] if t > cutoff]
         if len(timestamps) >= limit:
-            return False, max(0, limit - len(timestamps))
+            self._buckets[key] = timestamps
+            return False, 0
         timestamps.append(now)
+        self._buckets[key] = timestamps
         return True, max(0, limit - len(timestamps) - 1)
+
+    def _check_redis(self, client: redis.Redis, key: str, limit: int, window: int) -> tuple[bool, int]:
+        redis_key = f"rl:{key}"
+        now = time.time()
+        cutoff = now - window
+        try:
+            with client.pipeline(transaction=True) as pipe:
+                pipe.zremrangebyscore(redis_key, 0, cutoff)
+                pipe.zcard(redis_key)
+                count = pipe.execute()[1]
+                if count >= limit:
+                    return False, 0
+                pipe.zadd(redis_key, {f"{now}:{secrets.token_hex(4)}": now})
+                pipe.expire(redis_key, window * 2)
+                pipe.execute()
+            return True, max(0, limit - count - 1)
+        except Exception as exc:
+            logger.warning("Redis rate-limit check failed (%s) — allowing request", exc)
+            return True, limit
 
 
 _counter = SlidingWindowCounter()
