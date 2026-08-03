@@ -168,7 +168,13 @@ class ExperienceFilterPOI(BaseModel):
     provider_name: str | None
 
 
-@router.get("/wilayas", response_model=list[WilayaSummary])
+@router.get(
+    "/wilayas",
+    response_model=list[WilayaSummary],
+    summary="All wilayas summary",
+    description="Every wilaya with aggregate stats: POI/featured/experience/stay/artisan counts, top categories, highlight POI + photo, and coordinates.",
+    responses={200: {"description": "List of wilaya summaries"}},
+)
 async def list_wilayas(
     db: AsyncSession = Depends(get_db),
 ):
@@ -256,7 +262,16 @@ async def list_wilayas(
     return summaries
 
 
-@router.get("/wilayas/{wilaya_id}", response_model=DiscoverResponse)
+@router.get(
+    "/wilayas/{wilaya_id}",
+    response_model=DiscoverResponse,
+    summary="Consolidated wilaya view",
+    description="All content for a wilaya in one payload: POIs (alphabetical), active experiences (with provider info), active stays (by price), and artisans.",
+    responses={
+        404: {"description": "Wilaya not found"},
+        422: {"description": "Invalid wilaya_id"},
+    },
+)
 async def discover_wilaya(
     wilaya_id: int,
     db: AsyncSession = Depends(get_db),
@@ -407,7 +422,20 @@ async def discover_wilaya(
         stays=stays,
         artisans=artisans,
     )
-@router.get("/wilayas/{wilaya_id}/guide", response_model=GuideResponse)
+@router.get(
+    "/wilayas/{wilaya_id}/guide",
+    response_model=GuideResponse,
+    summary="Curated wilaya guide",
+    description=(
+        "Editorial per-wilaya guide: featured POIs first, then top N per category ordered by "
+        "combined score, each with transport access info (nearest station, distance, walking "
+        "time, nearby modes). Includes active experiences and stays."
+    ),
+    responses={
+        404: {"description": "Wilaya not found"},
+        422: {"description": "Invalid wilaya_id or top"},
+    },
+)
 async def wilaya_guide(
     wilaya_id: int,
     top_per_category: int = Query(10, alias="top"),
@@ -570,7 +598,16 @@ async def wilaya_guide(
     )
 
 
-@router.get("/experiences/by-poi/{poi_id}", response_model=list[ExperienceFilterPOI])
+@router.get(
+    "/experiences/by-poi/{poi_id}",
+    response_model=list[ExperienceFilterPOI],
+    summary="Experiences for a POI",
+    description="Active experiences in the POI's wilaya whose title/description mentions the POI (falls back to all wilaya experiences).",
+    responses={
+        404: {"description": "POI not found"},
+        422: {"description": "Invalid UUID"},
+    },
+)
 async def experiences_by_poi(
     poi_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),

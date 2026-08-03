@@ -96,7 +96,13 @@ SELECT COUNT(*) FROM (
 """
 
 
-@router.get("/suggest", response_model=SuggestFeed)
+@router.get(
+    "/suggest",
+    response_model=SuggestFeed,
+    summary="Search suggestions",
+    description="Fast prefix autocomplete across POI names, experience titles, and stay names. Sorted by name length.",
+    responses={422: {"description": "Query required (min 1 char)"}},
+)
 async def suggest(
     q: str = Query(..., min_length=1, max_length=100),
     limit: int = Query(5, ge=1, le=20),
@@ -122,7 +128,17 @@ async def suggest(
     return SuggestFeed(query=q, items=items[:limit])
 
 
-@router.get("", response_model=SearchFeed)
+@router.get(
+    "",
+    response_model=SearchFeed,
+    summary="Unified search",
+    description=(
+        "Full-text search (French tsvector) across POIs, stays, and experiences in a single "
+        "ranked result set. Each result carries entity_type, category, coordinates, price, "
+        "and ts_rank score. Falls back gracefully if search vectors are absent."
+    ),
+    responses={422: {"description": "Query required (min 1 char)"}},
+)
 async def search(
     q: str = Query(..., min_length=1, max_length=200, description="Search query"),
     page: int = Query(1, ge=1, le=1000),

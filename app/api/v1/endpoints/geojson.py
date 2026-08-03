@@ -37,7 +37,15 @@ def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
-@router.get("/pois.geojson")
+@router.get(
+    "/pois.geojson",
+    summary="POIs as GeoJSON",
+    description="All geolocated POIs as a GeoJSON FeatureCollection of points, filtered by wilaya, category, or featured status.",
+    responses={
+        422: {"description": "Invalid filter or limit"},
+        200: {"description": "GeoJSON FeatureCollection"},
+    },
+)
 async def pois_geojson(
     wilaya_id: int | None = Query(None),
     category: str | None = Query(None),
@@ -70,7 +78,15 @@ async def pois_geojson(
     ])
 
 
-@router.get("/stays.geojson")
+@router.get(
+    "/stays.geojson",
+    summary="Stays as GeoJSON",
+    description="All geolocated stays as a GeoJSON FeatureCollection, filtered by wilaya. Each feature carries the primary photo URL.",
+    responses={
+        422: {"description": "Invalid filter or limit"},
+        200: {"description": "GeoJSON FeatureCollection"},
+    },
+)
 async def stays_geojson(
     wilaya_id: int | None = Query(None),
     limit: int = Query(1000, ge=1, le=50000),
@@ -97,7 +113,15 @@ async def stays_geojson(
     ])
 
 
-@router.get("/experiences.geojson")
+@router.get(
+    "/experiences.geojson",
+    summary="Experiences as GeoJSON",
+    description="Active experiences with a meeting point as a GeoJSON FeatureCollection, filtered by wilaya or category.",
+    responses={
+        422: {"description": "Invalid filter or limit"},
+        200: {"description": "GeoJSON FeatureCollection"},
+    },
+)
 async def experiences_geojson(
     wilaya_id: int | None = Query(None),
     category: str | None = Query(None),
@@ -132,7 +156,15 @@ async def experiences_geojson(
     ])
 
 
-@router.get("/nearby/pois")
+@router.get(
+    "/nearby/pois",
+    summary="Nearby POIs as GeoJSON",
+    description="POIs within a radius (haversine-filtered) returned as a GeoJSON FeatureCollection with distance_km per feature.",
+    responses={
+        422: {"description": "Invalid lat/lng/radius"},
+        200: {"description": "GeoJSON FeatureCollection"},
+    },
+)
 async def nearby_pois(
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),

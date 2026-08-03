@@ -19,7 +19,19 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/pois", tags=["Points of Interest"])
 
 
-@router.post("", response_model=POIRead, status_code=201)
+@router.post(
+    "",
+    response_model=POIRead,
+    status_code=201,
+    summary="Create a point of interest",
+    description="Add a new POI (requires provider or admin role). Wilaya must exist; the POI is immediately indexed for vector search.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Provider or admin role required"},
+        404: {"description": "Wilaya not found"},
+        422: {"description": "Validation error"},
+    },
+)
 async def create_poi(
     body: POICreate,
     _current_user: User = Depends(get_provider_or_admin),
@@ -40,7 +52,18 @@ async def create_poi(
     return POIRead.model_validate(poi)
 
 
-@router.post("/{poi_id}/photo", response_model=POIRead)
+@router.post(
+    "/{poi_id}/photo",
+    response_model=POIRead,
+    summary="Upload a POI photo",
+    description="Upload an image (JPEG/PNG/WebP, magic-byte validated) to MinIO and set it as the POI's primary photo. Requires provider or admin role.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Provider or admin role required"},
+        404: {"description": "POI not found"},
+        415: {"description": "Unsupported content type"},
+    },
+)
 async def upload_poi_photo(
     poi_id: uuid.UUID,
     photo: UploadFile = File(...),
@@ -59,7 +82,13 @@ async def upload_poi_photo(
     return POIRead.model_validate(poi)
 
 
-@router.get("/neighborhoods", response_model=list[str])
+@router.get(
+    "/neighborhoods",
+    response_model=list[str],
+    summary="List neighborhoods",
+    description="Distinct POI neighborhoods, optionally filtered by wilaya.",
+    responses={422: {"description": "Invalid wilaya_id"}},
+)
 async def list_neighborhoods(
     wilaya_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
@@ -76,7 +105,13 @@ async def list_neighborhoods(
     return [row[0] for row in result.all()]
 
 
-@router.get("", response_model=POIFeed)
+@router.get(
+    "",
+    response_model=POIFeed,
+    summary="List points of interest",
+    description="Paginated POI listing with filters: wilaya, category, neighborhood (substring), name/description search, and sort (name or created_at).",
+    responses={422: {"description": "Validation error"}},
+)
 async def list_pois(
     wilaya_id: int | None = Query(None),
     category: str | None = Query(None),
@@ -127,7 +162,13 @@ async def list_pois(
     )
 
 
-@router.get("/nearby", response_model=list[POIBrief])
+@router.get(
+    "/nearby",
+    response_model=list[POIBrief],
+    summary="Nearby POIs",
+    description="POIs within a radius of a lat/lng point, sorted by distance. Optionally filtered by category. Results include distance_km.",
+    responses={422: {"description": "Invalid coordinates or radius"}},
+)
 async def nearby_pois(
     lat: float = Query(..., ge=-90, le=90),
     lng: float = Query(..., ge=-180, le=180),
@@ -181,7 +222,17 @@ async def nearby_pois(
     ]
 
 
-@router.get("/search", response_model=POIFeed)
+@router.get(
+    "/search",
+    response_model=POIFeed,
+    summary="Semantic POI search",
+    description=(
+        "Vector search over the Qdrant index, falling back to PostgreSQL full-text (French) when "
+        "Qdrant is unavailable or returns nothing. Named POIs are ranked before placeholder "
+        "names like 'Ruins (non nommé)'."
+    ),
+    responses={422: {"description": "Query required (min 1 char)"}},
+)
 async def search_pois(
     q: str = Query(..., min_length=1, max_length=200),
     limit: int = Query(10, ge=1, le=50),
@@ -228,7 +279,16 @@ async def search_pois(
     )
 
 
-@router.get("/{poi_id}", response_model=POIRead)
+@router.get(
+    "/{poi_id}",
+    response_model=POIRead,
+    summary="Get a point of interest",
+    description="Full POI detail including TripAdvisor-style fields (ranking, price_level, suggested_duration_min, fun_fact). With auth, also returns is_favorited.",
+    responses={
+        404: {"description": "POI not found"},
+        422: {"description": "Invalid UUID"},
+    },
+)
 async def get_poi(
     poi_id: uuid.UUID,
     db: AsyncSession = Depends(get_db),
@@ -254,7 +314,17 @@ async def get_poi(
     return result
 
 
-@router.patch("/{poi_id}", response_model=POIRead)
+@router.patch(
+    "/{poi_id}",
+    response_model=POIRead,
+    summary="Update a point of interest",
+    description="Partial update of POI fields (provider or admin role). Re-indexes the POI in Qdrant after changes.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Provider or admin role required"},
+        404: {"description": "POI not found"},
+    },
+)
 async def update_poi(
     poi_id: uuid.UUID,
     body: POIUpdate,
@@ -280,7 +350,16 @@ async def update_poi(
     return POIRead.model_validate(poi)
 
 
-@router.get("/{poi_id}/similar", response_model=list[POIBrief])
+@router.get(
+    "/{poi_id}/similar",
+    response_model=list[POIBrief],
+    summary="Similar POIs",
+    description="POIs in the same wilaya and category as the reference POI, filling from the same wilaya when needed.",
+    responses={
+        404: {"description": "POI not found"},
+        422: {"description": "Invalid UUID"},
+    },
+)
 async def similar_pois(
     poi_id: uuid.UUID,
     limit: int = Query(10, ge=1, le=50),
@@ -326,7 +405,17 @@ async def similar_pois(
     ]
 
 
-@router.delete("/{poi_id}", status_code=204)
+@router.delete(
+    "/{poi_id}",
+    status_code=204,
+    summary="Delete a point of interest",
+    description="Permanently delete a POI (provider or admin role). Removes it from the Qdrant index.",
+    responses={
+        401: {"description": "Authentication required"},
+        403: {"description": "Provider or admin role required"},
+        404: {"description": "POI not found"},
+    },
+)
 async def delete_poi(
     poi_id: uuid.UUID,
     _current_user: User = Depends(get_provider_or_admin),
@@ -341,7 +430,19 @@ async def delete_poi(
     vector_search.delete_poi(poi_id)
 
 
-@router.get("/tour/optimize")
+@router.get(
+    "/tour/optimize",
+    summary="Optimize a walking tour",
+    description=(
+        "Plan an optimal walking route through a wilaya's POIs within a time budget, using the "
+        "POI graph (walking times). Returns an ordered list of stops with walk/visit durations "
+        "and cumulative time."
+    ),
+    responses={
+        422: {"description": "wilaya_id required (1-69)"},
+        200: {"description": "Optimized tour with stops"},
+    },
+)
 async def optimize_poi_tour(
     wilaya_id: int = Query(..., ge=1, le=69),
     budget_hours: float = Query(8.0, ge=1.0, le=16.0),
@@ -385,7 +486,15 @@ async def optimize_poi_tour(
     }
 
 
-@router.get("/tour/clusters")
+@router.get(
+    "/tour/clusters",
+    summary="POI clusters",
+    description="Density-based clustering of a wilaya's POIs by walking radius. Returns walkable clusters with their centers and representative POIs.",
+    responses={
+        422: {"description": "wilaya_id required (1-69); radius 200-5000m"},
+        200: {"description": "List of clusters (max 10)"},
+    },
+)
 async def poi_clusters(
     wilaya_id: int = Query(..., ge=1, le=69),
     radius_m: float = Query(1000.0, ge=200.0, le=5000.0),
@@ -416,7 +525,15 @@ async def poi_clusters(
     }
 
 
-@router.get("/tour/hubs")
+@router.get(
+    "/tour/hubs",
+    summary="Hub POIs",
+    description="Top POIs by transit connectivity within a wilaya — the best starting points for public-transport exploration.",
+    responses={
+        422: {"description": "wilaya_id required (1-69); top_n 3-30"},
+        200: {"description": "Ranked hub POIs"},
+    },
+)
 async def hub_pois(
     wilaya_id: int = Query(..., ge=1, le=69),
     top_n: int = Query(10, ge=3, le=30),
