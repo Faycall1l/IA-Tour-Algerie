@@ -22,7 +22,12 @@ from app.schemas.provider_profile import (
     ProviderProfileUpdate,
     ProviderUserRead,
 )
-from app.schemas.user import RoleUpdate, UserRead, UserUpdate
+from app.schemas.user import (
+    SELF_ASSIGNABLE_ROLES,
+    RoleUpdate,
+    UserRead,
+    UserUpdate,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -55,6 +60,8 @@ async def set_role(
     db: AsyncSession = Depends(get_db),
 ):
     old_role = current_user.role
+    if body.role not in SELF_ASSIGNABLE_ROLES:
+        raise ForbiddenException(message="Role cannot be self-assigned")
     current_user.role = body.role
 
     if body.role in PROVIDER_TYPES and old_role not in PROVIDER_TYPES:

@@ -3,7 +3,10 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.models.user import USER_ROLES
+# Roles a user may self-assign. Deliberately excludes "admin" and "artisan":
+# admin is never self-granted (privilege escalation), and artisan has no
+# self-service onboarding flow yet.
+SELF_ASSIGNABLE_ROLES = ("traveler", "guide", "agency", "hotel")
 
 
 class UserRead(BaseModel):
@@ -34,7 +37,7 @@ class UserUpdate(BaseModel):
 
 
 class RoleUpdate(BaseModel):
-    role: str = Field(..., pattern=f"^({'|'.join(USER_ROLES)})$")
+    role: str = Field(..., pattern=f"^({'|'.join(SELF_ASSIGNABLE_ROLES)})$")
 
 
 class TokenResponse(BaseModel):
