@@ -128,9 +128,6 @@ async def search_experiences(
 
     # SQL full-text search fallback when Qdrant returns nothing or is unavailable
     if not experiences:
-        from sqlalchemy import func, text
-        from app.models.experience import Experience
-
         tsq = func.plainto_tsquery("french", q)
         stmt = (
             select(Experience)

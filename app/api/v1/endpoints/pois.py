@@ -202,9 +202,6 @@ async def search_pois(
 
     # SQL full-text search fallback when Qdrant returns nothing or is unavailable
     if not pois:
-        from sqlalchemy import func
-        from app.models.poi import POI
-
         tsq = func.plainto_tsquery("french", q)
         stmt = (
             select(POI)
