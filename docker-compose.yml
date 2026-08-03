@@ -11,6 +11,8 @@ services:
       ATHAR_REDIS__HOST: redis
       ATHAR_MINIO__ENDPOINT: minio:9000
       ATHAR_AUTH__JWT_PRIVATE_KEY: "${AUTH_JWT_PRIVATE_KEY:-}"
+      # JSON array; defaults to loopback only. e.g. ALLOWED_HOSTS='["api.athar.dz"]'
+      ATHAR_ALLOWED_HOSTS: "${ALLOWED_HOSTS:-[\"localhost\", \"127.0.0.1\"]}"
     secrets:
       - db_password
     depends_on:

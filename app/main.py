@@ -132,6 +132,11 @@ app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
     lifespan=lifespan,
+    # Interactive docs / OpenAPI schema are dev-only surface; exposing them
+    # in production leaks the full API contract and attack surface.
+    docs_url="/docs" if settings.debug else None,
+    redoc_url="/redoc" if settings.debug else None,
+    openapi_url="/openapi.json" if settings.debug else None,
 )
 
 app.state.limiter = limiter
@@ -147,7 +152,12 @@ app.add_middleware(
 app.add_middleware(ErrorMiddleware)
 app.add_middleware(LocaleMiddleware)
 app.add_middleware(SlowAPIMiddleware)
-app.add_middleware(TrustedHostMiddleware, allowed_hosts=settings.allowed_hosts or ["*"])
+# Host-header allowlist guards against DNS rebinding and Host-header
+# injection; defaults to loopback only, override via ATHAR_ALLOWED_HOSTS.
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.allowed_hosts or ["localhost", "127.0.0.1"],
+)
 
 app.include_router(v1_router)
 
@@ -160,6 +170,16 @@ async def security_headers(request: Request, call_next):
     response.headers["X-XSS-Protection"] = "0"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
     response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+    # API serves no HTML; default-src 'none' + frame-ancestors 'none'
+    # (clickjacking) are safe and strictly scoped.
+    response.headers["Content-Security-Policy"] = "default-src 'none'; frame-ancestors 'none'"
+    # HSTS only makes sense (and is only honored) over HTTPS — send it when
+    # not in debug mode so any TLS-terminating proxy sets the pins.
+    if not settings.debug:
+        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+    path = request.url.path
+    if "/api/v1/auth/" in path or "/api/v1/users/me" in path:
+        response.headers["Cache-Control"] = "no-store"
     return response
 
 

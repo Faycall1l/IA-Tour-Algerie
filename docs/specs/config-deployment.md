@@ -10,6 +10,7 @@ Settings
 ├── app_version: str = "0.3.0"
 ├── debug: bool = False
 ├── allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+├── allowed_hosts: list[str] = ["localhost", "127.0.0.1"]
 │
 ├── database: DatabaseSettings
 │   ├── url: str = "postgresql+asyncpg://athar:athar_pass@localhost:5432/athar_db"

@@ -1,11 +1,18 @@
 import asyncio
+import os
 import uuid
 from collections.abc import AsyncIterator
 from unittest.mock import AsyncMock
 
 import pytest
 import pytest_asyncio
-from app.core.config import settings
+
+# TrustedHostMiddleware is bound at app import time, so the allowlist must be
+# set before app.main (and the Settings singleton) load. httpx's ASGITransport
+# uses host "test" for requests.
+os.environ.setdefault("ATHAR_ALLOWED_HOSTS", '["test", "localhost", "127.0.0.1"]')
+
+from app.core.config import settings  # noqa: E402
 from app.core.security import create_access_token
 from app.db.base import Base
 from app.db.session import get_db
