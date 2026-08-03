@@ -55,6 +55,9 @@ class EmbeddingService:
                         logger.warning("Embedding model unavailable: %s / %s", exc2, exc3)
                         self._model = None
 
+    def warm(self) -> None:
+        self._load()
+
     def encode(self, text: str) -> list[float]:
         self._load()
         if not self._model:

@@ -113,6 +113,18 @@ async def lifespan(app: FastAPI):
             logger.warning("Failed to index existing data in Qdrant: %s", exc)
 
     asyncio.create_task(_index_existing_data())
+
+    async def _warm_embedder():
+        # Load the embedding model in the background so the first vector
+        # search doesn't block ~25s on model load. Non-fatal if unavailable.
+        try:
+            await asyncio.get_running_loop().run_in_executor(
+                None, app.state.embedder.warm
+            )
+        except Exception as exc:
+            logger.warning("Embedding model warm-up failed: %s", exc)
+
+    asyncio.create_task(_warm_embedder())
     yield
 
 
