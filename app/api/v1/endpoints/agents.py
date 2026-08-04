@@ -9,7 +9,9 @@ Five agents are available:
 - `/sessions` — list/clear agent conversation sessions
 
 All require JWT auth. Supports multi-turn memory via session_id.
-Returns 503 if no API key is configured.
+Returns 503 when the LLM backend is unavailable and the query cannot be
+answered by the offline rule-based fallback (see ``app.agents.fallback``);
+fallback replies carry ``degraded: true`` and an ``X-Agent-Degraded`` header.
 Every call is traced via the observability system for P1 monitoring.
 """
 
@@ -17,19 +19,20 @@ import logging
 import time
 import uuid
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.deps import TravelAgentDeps
-from app.agents.harness import detect_injection, sanitize_input, validate_input
+from app.agents.fallback import attempt_fallback
+from app.agents.harness import sanitize_input, validate_input
 from app.agents.memory_service import (
     build_message_history,
     delete_session,
-    get_or_create_session,
     get_next_turn_index,
+    get_or_create_session,
     get_user_sessions,
     load_message_history,
     store_agent_run,
@@ -86,6 +89,10 @@ class AgentChatResponse(BaseModel):
     reply: str
     session_id: str | None = None
     sources: list[dict] = Field(default_factory=list)
+    degraded: bool = Field(
+        False,
+        description="True when the reply came from the offline rule-based fallback",
+    )
 
 
 class TripPlanResponse(BaseModel):
@@ -98,6 +105,10 @@ class AgentSearchResponse(BaseModel):
     session_id: str | None = None
     results: list[dict] = Field(default_factory=list)
     total: int = 0
+    degraded: bool = Field(
+        False,
+        description="True when the reply came from the offline rule-based fallback",
+    )
 
 
 class SessionListItem(BaseModel):
@@ -116,14 +127,22 @@ class SessionListResponse(BaseModel):
 
 async def _run_agent_traced(
     agent, message: str, agent_deps: TravelAgentDeps, agent_name: str,
-) -> str:
+    *,
+    allow_fallback: bool = True,
+    from_wilaya: int | None = None,
+    to_wilaya: int | None = None,
+) -> tuple[str, bool]:
     """Run an agent with full observability tracing, input validation, PII redaction,
     and multi-turn memory (load history before, store after).
 
     The actual LLM run goes through ``run_agent_safely`` which owns the run
     trace: it applies per-agent usage limits, a hard wall-clock timeout, tool
     retry budgets, and a circuit breaker that short-circuits to 503 while the
-    LLM backend is recovering.
+    LLM backend is recovering. When the backend is unavailable (breaker open,
+    timeout, or not configured) and ``allow_fallback`` is set, the rule-based
+    responder answers the most common query shapes directly; the reply is then
+    marked as degraded so clients can tell offline answers apart. Returns
+    ``(reply, degraded)``.
     """
     # Input validation
     is_valid, error = validate_input(message)
@@ -140,16 +159,39 @@ async def _run_agent_traced(
 
     # PII redaction
     sanitized = sanitize_input(message)
+    degraded = False
 
-    try:
-        output, _trace = await run_agent_safely(agent, sanitized, agent_deps, agent_name)
-    except AgentUnavailable as exc:
-        raise HTTPException(status_code=503, detail=str(exc))
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error("Agent %s failed: %s", agent_name, e)
-        raise HTTPException(status_code=500, detail=f"Agent error: {e}")
+    if agent is not None:
+        try:
+            output, _trace = await run_agent_safely(agent, sanitized, agent_deps, agent_name)
+        except AgentUnavailable as exc:
+            if not allow_fallback:
+                raise HTTPException(status_code=503, detail=str(exc))
+            output = await attempt_fallback(
+                agent_name, sanitized, agent_deps,
+                from_wilaya=from_wilaya, to_wilaya=to_wilaya,
+            )
+            if output is None:
+                raise HTTPException(status_code=503, detail=str(exc))
+            degraded = True
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error("Agent %s failed: %s", agent_name, e)
+            raise HTTPException(status_code=500, detail=f"Agent error: {e}")
+    else:
+        if not allow_fallback:
+            raise HTTPException(status_code=503, detail="Agents are not configured")
+        output = await attempt_fallback(
+            agent_name, sanitized, agent_deps,
+            from_wilaya=from_wilaya, to_wilaya=to_wilaya,
+        )
+        if output is None:
+            raise HTTPException(
+                status_code=503,
+                detail="Agents are not available — configure ATHAR_AGENT__VLLM settings in .env",
+            )
+        degraded = True
 
     # Store this turn in memory (if session available)
     if agent_deps.session_id and agent_deps.db:
@@ -163,20 +205,18 @@ async def _run_agent_traced(
         except Exception as e:
             logger.warning("Failed to store agent memory turn: %s", e)
 
-    return output
+    return output, degraded
 
 
 # ── Dependency: extract agent from app.state ──
 
 def _get_agent(request: Request, name: str):
-    """Get an agent from app.state with graceful fallback."""
-    agent = getattr(request.app.state, name, None)
-    if agent is None:
-        raise HTTPException(
-            status_code=503,
-            detail="Agents are not available — configure ATHAR_AGENT__VLLM settings in .env",
-        )
-    return agent
+    """Get an agent from app.state (``None`` when not configured).
+
+    A missing agent no longer short-circuits to 503: the rule-based fallback
+    responder can still answer common queries offline.
+    """
+    return getattr(request.app.state, name, None)
 
 
 # ── Memory deps builder ──
@@ -245,6 +285,7 @@ async def _make_memory_deps(
 async def agent_chat(
     body: AgentChatRequest,
     request: Request,  # noqa: ARG001 — required by slowapi
+    response: Response,
     current_user: User = Depends(deps.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -253,10 +294,13 @@ async def agent_chat(
     agent_deps = await _make_memory_deps(
         current_user, db, request, body.session_id, "travel_agent",
     )
-    reply = await _run_agent_traced(agent, body.message, agent_deps, "travel_agent")
+    reply, degraded = await _run_agent_traced(agent, body.message, agent_deps, "travel_agent")
+    if degraded:
+        response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentChatResponse(
         reply=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
+        degraded=degraded,
     )
 
 
@@ -293,7 +337,7 @@ async def agent_plan_trip(
     )
     if body.interests.strip():
         prompt += f"\nInterests: {body.interests}"
-    reply = await _run_agent_traced(agent, prompt, agent_deps, "itinerary_agent")
+    reply, _degraded = await _run_agent_traced(agent, prompt, agent_deps, "itinerary_agent")
     return TripPlanResponse(
         plan=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
@@ -316,6 +360,7 @@ async def agent_plan_trip(
 async def agent_search(
     body: AgentSearchRequest,
     request: Request,  # noqa: ARG001 — required by slowapi
+    response: Response,
     current_user: User = Depends(deps.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -324,10 +369,13 @@ async def agent_search(
     agent_deps = await _make_memory_deps(
         current_user, db, request, body.session_id, "search_agent",
     )
-    reply = await _run_agent_traced(agent, body.query, agent_deps, "search_agent")
+    reply, degraded = await _run_agent_traced(agent, body.query, agent_deps, "search_agent")
+    if degraded:
+        response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentSearchResponse(
         reply=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
+        degraded=degraded,
     )
 
 
@@ -335,7 +383,7 @@ async def agent_search(
     "/transport",
     response_model=AgentChatResponse,
     summary="Transport specialist chat",
-    description="Ask about routes, schedules, or operator contacts between wilayas. Rate limited to 20/hour.",
+    description="Ask about routes, schedules, or operator contacts. Rate limited to 20/hour.",
     responses={
         400: {"description": "Invalid or unsafe input"},
         401: {"description": "Authentication required"},
@@ -347,6 +395,7 @@ async def agent_search(
 async def agent_transport(
     body: TransportQueryRequest,
     request: Request,  # noqa: ARG001 — required by slowapi
+    response: Response,
     current_user: User = Depends(deps.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -355,10 +404,16 @@ async def agent_transport(
     agent_deps = await _make_memory_deps(
         current_user, db, request, body.session_id, "transport_agent",
     )
-    reply = await _run_agent_traced(agent, body.query, agent_deps, "transport_agent")
+    reply, degraded = await _run_agent_traced(
+        agent, body.query, agent_deps, "transport_agent",
+        from_wilaya=body.from_wilaya, to_wilaya=body.to_wilaya,
+    )
+    if degraded:
+        response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentChatResponse(
         reply=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
+        degraded=degraded,
     )
 
 
@@ -378,6 +433,7 @@ async def agent_transport(
 async def agent_events(
     body: EventsQueryRequest,
     request: Request,  # noqa: ARG001 — required by slowapi
+    response: Response,
     current_user: User = Depends(deps.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
@@ -386,10 +442,13 @@ async def agent_events(
     agent_deps = await _make_memory_deps(
         current_user, db, request, body.session_id, "events_agent",
     )
-    reply = await _run_agent_traced(agent, body.query, agent_deps, "events_agent")
+    reply, degraded = await _run_agent_traced(agent, body.query, agent_deps, "events_agent")
+    if degraded:
+        response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentChatResponse(
         reply=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
+        degraded=degraded,
     )
 
 
@@ -399,7 +458,7 @@ async def agent_events(
     "/sessions",
     response_model=SessionListResponse,
     summary="List agent sessions",
-    description="List the authenticated user's agent conversation sessions (per agent type, with titles and timestamps). Rate limited to 30/hour.",
+    description="List the user's agent conversation sessions. Rate limited to 30/hour.",
     responses={
         401: {"description": "Authentication required"},
         429: {"description": "Rate limit exceeded (30/hour)"},
@@ -431,7 +490,7 @@ async def list_sessions(
     "/sessions/{session_id}",
     status_code=204,
     summary="Delete an agent session",
-    description="Soft-delete a conversation session and all of its memories. Owner only. Rate limited to 20/hour.",
+    description="Soft-delete a session and its memories. Owner only. Rate limited to 20/hour.",
     responses={
         400: {"description": "Invalid session_id"},
         401: {"description": "Authentication required"},
@@ -447,14 +506,14 @@ async def clear_session(
     db: AsyncSession = Depends(get_db),
 ):
     """Delete an agent conversation session.
-    
+
     This soft-deletes the session and all its memories.
     """
     try:
         parsed = uuid.UUID(session_id)
     except ValueError:
         raise HTTPException(status_code=400, detail=f"Invalid session_id: {session_id}")
-    
+
     deleted = await delete_session(db, parsed, current_user.id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Session not found")

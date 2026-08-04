@@ -210,7 +210,9 @@ GET    /api/v1/agent/sessions                  # List conversation sessions (30/
 DELETE /api/v1/agent/sessions/{session_id}     # Soft-delete session + memories (20/h)
 ```
 
-Agents support multi-turn memory via `session_id` in the request body. Returns 503 when `ATHAR_AGENT__VLLM` is not configured.
+Agents support multi-turn memory via `session_id` in the request body. All agent runs are traced, circuit-broken, and time-limited by the resilience stack (`app/agents/resilience.py`).
+
+**Offline fallback (degraded mode):** when the LLM backend is unavailable (circuit breaker open, per-run timeout, or `ATHAR_AGENT__VLLM` not configured), `POST /agent/chat`, `/search`, `/transport`, and `/events` fall back to a rule-based responder (`app/agents/fallback.py`) that answers the most common query shapes — wilaya guides, POI/stay/experience search, transport routes, operator contacts, events — directly from the database using the same validated tools as the agents. Fallback replies set `degraded: true` in the body and an `X-Agent-Degraded: rule-based-fallback` response header. Queries the fallback cannot answer confidently return 503; `/plan-trip` (itinerary) never degrades since planning requires the LLM.
 
 ### Admin (prefix `/admin`, all admin-only)
 
