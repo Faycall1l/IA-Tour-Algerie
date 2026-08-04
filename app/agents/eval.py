@@ -669,6 +669,7 @@ async def run_eval(agent=None, cases: list[EvalCase] | None = None, deps=None):
         return EvalReport()
 
     from app.agents.observability import trace_store
+    from app.agents.resilience import tool_call_names
 
     results: list[EvalResult] = []
 
@@ -679,10 +680,7 @@ async def run_eval(agent=None, cases: list[EvalCase] | None = None, deps=None):
             output = str(result.output)
             duration = (time.time() - start) * 1000
 
-            # Track which tools were called (from PydanticAI result)
-            tools_called = []
-            if hasattr(result, 'tool_call_names'):
-                tools_called = list(result.tool_call_names)
+            tools_called = tool_call_names(result)
 
             eval_result = score_response(case, output, tools_called)
             eval_result.duration_ms = round(duration, 1)

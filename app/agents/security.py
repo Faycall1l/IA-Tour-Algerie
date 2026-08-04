@@ -34,6 +34,10 @@ TOOL_RISK_MAP: dict[str, ToolRisk] = {
     # External API tools
     "get_weather": ToolRisk.EXTERNAL,
     "get_transport_route": ToolRisk.EXTERNAL,
+    # Memory tools — agent-controlled writes to persistent memory; scoped
+    # to the session, so classified as write (never destructive).
+    "remember": ToolRisk.WRITE,
+    "recall": ToolRisk.READ,
     # Write tools
     "create_trip": ToolRisk.WRITE,
     "add_trip_item": ToolRisk.WRITE,

@@ -16,8 +16,14 @@ from app.agents.memory_service import remember as _remember
 
 
 class RememberParams(BaseModel):
-    key: str = Field(..., min_length=1, max_length=100, description="Fact label (e.g., 'user_budget', 'destination', 'dietary_pref')")
-    value: str = Field(..., min_length=1, max_length=500, description="Fact content to remember")
+    key: str = Field(
+        ..., min_length=1, max_length=64,
+        description="Fact label (e.g., 'user_budget', 'destination', 'dietary_pref')",
+    )
+    value: str = Field(
+        ..., min_length=1, max_length=2000,
+        description="Fact content to remember",
+    )
 
 
 class RememberOutput(BaseModel):
@@ -50,7 +56,10 @@ async def remember(ctx: RunContext[TravelAgentDeps], params: RememberParams) -> 
     if not session_id:
         return RememberOutput(status="error", message="No active session")
 
-    await _remember(ctx.deps.db, session_id, params.key, params.value)
+    try:
+        await _remember(ctx.deps.db, session_id, params.key, params.value)
+    except ValueError as exc:
+        return RememberOutput(status="error", message=str(exc))
     return RememberOutput(
         status="ok",
         message=f"Remembered: {params.key} = {params.value[:100]}",

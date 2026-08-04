@@ -21,6 +21,11 @@ from pydantic_ai.providers.openai import OpenAIProvider
 from app.agents.deps import TravelAgentDeps
 from app.agents.memory_tools import recall, remember
 from app.agents.prompts import build_prompt, registry as prompt_registry
+from app.agents.resilience import (
+    AGENT_RETRIES,
+    AGENT_TOOL_TIMEOUT_SECONDS,
+    create_retrying_http_client,
+)
 from app.agents.tools import (
     ArtisanSearchOutput,
     ArtisanSearchParams,
@@ -120,8 +125,25 @@ def _register_all_tools(agent: Agent) -> None:
 def _make_model(base_url: str, api_key: str, model_name: str) -> OpenAIChatModel:
     return OpenAIChatModel(
         model_name,
-        provider=OpenAIProvider(base_url=base_url, api_key=api_key),
+        provider=OpenAIProvider(
+            base_url=base_url,
+            api_key=api_key,
+            http_client=create_retrying_http_client(),
+        ),
     )
+
+
+def _resilient_settings(**extra) -> dict:
+    """Shared agent model settings + resilience knobs.
+
+    Every agent gets a bounded tool retry budget (the model corrects bad tool
+    arguments instead of looping), a per-tool execution timeout, and a low
+    temperature for deterministic tool use.
+    """
+    return {
+        "temperature": 0.3,
+        **extra,
+    }
 
 
 def _dynamic_instructions(prompt_name: str):
@@ -150,7 +172,9 @@ def create_travel_agent(base_url: str = "", api_key: str = "", model_name: str =
     agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
         instructions=_dynamic_instructions("travel_agent.main"),
-        model_settings={"temperature": 0.3, "max_tokens": 2048},
+        model_settings=_resilient_settings(max_tokens=2048),
+        retries=AGENT_RETRIES,
+        tool_timeout=AGENT_TOOL_TIMEOUT_SECONDS,
     )
     _register_all_tools(agent)
     return agent
@@ -163,7 +187,9 @@ def create_itinerary_agent(base_url: str = "", api_key: str = "", model_name: st
     agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
         instructions=_dynamic_instructions("travel_agent.itinerary"),
-        model_settings={"temperature": 0.5, "max_tokens": 4096},
+        model_settings=_resilient_settings(temperature=0.5, max_tokens=4096),
+        retries=AGENT_RETRIES,
+        tool_timeout=AGENT_TOOL_TIMEOUT_SECONDS,
     )
     _register_all_tools(agent)
     return agent
@@ -176,7 +202,9 @@ def create_search_agent(base_url: str = "", api_key: str = "", model_name: str =
     agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
         instructions=_dynamic_instructions("travel_agent.search"),
-        model_settings={"temperature": 0.2, "max_tokens": 1024},
+        model_settings=_resilient_settings(temperature=0.2, max_tokens=1024),
+        retries=AGENT_RETRIES,
+        tool_timeout=AGENT_TOOL_TIMEOUT_SECONDS,
     )
     _register_search_tools(agent)
     return agent
@@ -189,7 +217,9 @@ def create_transport_agent(base_url: str = "", api_key: str = "", model_name: st
     agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
         instructions=_dynamic_instructions("travel_agent.transport"),
-        model_settings={"temperature": 0.2, "max_tokens": 2048},
+        model_settings=_resilient_settings(temperature=0.2, max_tokens=2048),
+        retries=AGENT_RETRIES,
+        tool_timeout=AGENT_TOOL_TIMEOUT_SECONDS,
     )
     _register_memory_tools(agent)
     agent.tool(get_transport_route)
@@ -205,7 +235,9 @@ def create_events_agent(base_url: str = "", api_key: str = "", model_name: str =
     agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
         instructions=_dynamic_instructions("travel_agent.events"),
-        model_settings={"temperature": 0.3, "max_tokens": 2048},
+        model_settings=_resilient_settings(temperature=0.3, max_tokens=2048),
+        retries=AGENT_RETRIES,
+        tool_timeout=AGENT_TOOL_TIMEOUT_SECONDS,
     )
     _register_memory_tools(agent)
     agent.tool(find_events)

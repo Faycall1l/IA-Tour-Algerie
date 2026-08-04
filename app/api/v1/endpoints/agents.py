@@ -35,6 +35,7 @@ from app.agents.memory_service import (
     store_agent_run,
 )
 from app.agents.observability import Trace, trace_store
+from app.agents.resilience import AgentUnavailable, run_agent_safely
 from app.api import deps
 from app.db.session import get_db
 from app.models.user import User
@@ -118,17 +119,21 @@ async def _run_agent_traced(
 ) -> str:
     """Run an agent with full observability tracing, input validation, PII redaction,
     and multi-turn memory (load history before, store after).
-    """
-    trace = Trace(
-        trace_id=uuid.uuid4().hex,
-        agent_name=agent_name,
-        user_id=str(agent_deps.user.id),
-        start_time=time.time(),
-    )
 
+    The actual LLM run goes through ``run_agent_safely`` which owns the run
+    trace: it applies per-agent usage limits, a hard wall-clock timeout, tool
+    retry budgets, and a circuit breaker that short-circuits to 503 while the
+    LLM backend is recovering.
+    """
     # Input validation
     is_valid, error = validate_input(message)
     if not is_valid:
+        trace = Trace(
+            trace_id=uuid.uuid4().hex,
+            agent_name=agent_name,
+            user_id=str(agent_deps.user.id),
+            start_time=time.time(),
+        )
         trace.finish(success=False, error=error)
         trace_store.record(trace)
         raise HTTPException(status_code=400, detail=error)
@@ -137,15 +142,12 @@ async def _run_agent_traced(
     sanitized = sanitize_input(message)
 
     try:
-        result = await agent.run(sanitized, deps=agent_deps)
-        output = str(result.output)
-        trace.output_tokens = len(output) // 4
-        trace.finish(success=True)
+        output, _trace = await run_agent_safely(agent, sanitized, agent_deps, agent_name)
+    except AgentUnavailable as exc:
+        raise HTTPException(status_code=503, detail=str(exc))
     except HTTPException:
         raise
     except Exception as e:
-        trace.finish(success=False, error=str(e)[:500])
-        trace_store.record(trace)
         logger.error("Agent %s failed: %s", agent_name, e)
         raise HTTPException(status_code=500, detail=f"Agent error: {e}")
 
@@ -161,7 +163,6 @@ async def _run_agent_traced(
         except Exception as e:
             logger.warning("Failed to store agent memory turn: %s", e)
 
-    trace_store.record(trace)
     return output
 
 

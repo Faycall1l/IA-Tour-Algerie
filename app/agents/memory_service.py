@@ -12,7 +12,7 @@ import json
 import logging
 from uuid import UUID
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.agent_memory import AgentMemory, AgentSession
@@ -21,6 +21,12 @@ logger = logging.getLogger(__name__)
 
 # Maximum turns to load for message_history (to avoid context overflow)
 MAX_HISTORY_TURNS = 6
+
+# Semantic memory caps — bound agent-controlled writes to prevent memory
+# poisoning / storage abuse (a single key/value pair is not unbounded).
+MAX_MEMORY_KEY_LEN = 64
+MAX_MEMORY_VALUE_LEN = 2000
+MAX_SEMANTIC_MEMORIES_PER_SESSION = 100
 
 
 async def get_or_create_session(
@@ -145,7 +151,19 @@ async def remember(
     """Store a semantic fact about the user/trip.
 
     Overwrites previous value for the same key within the session.
+
+    Raises ``ValueError`` if the key/value exceed length caps or the session
+    already holds the maximum number of distinct semantic memories.
     """
+    key = (key or "").strip()
+    value = (value or "").strip()
+    if not key:
+        raise ValueError("Memory key must not be empty")
+    if len(key) > MAX_MEMORY_KEY_LEN:
+        raise ValueError(f"Memory key too long ({len(key)} > {MAX_MEMORY_KEY_LEN})")
+    if len(value) > MAX_MEMORY_VALUE_LEN:
+        raise ValueError(f"Memory value too long ({len(value)} > {MAX_MEMORY_VALUE_LEN})")
+
     # Remove previous value for this key
     existing = await db.execute(
         select(AgentMemory).where(
@@ -156,6 +174,19 @@ async def remember(
     )
     for old in existing.scalars().all():
         await db.delete(old)
+
+    # Enforce a per-session cap on distinct semantic facts (after replacing,
+    # so overwriting an existing key never trips the cap).
+    count = await db.execute(
+        select(func.count(AgentMemory.id)).where(
+            AgentMemory.session_id == session_id,
+            AgentMemory.memory_type == "semantic",
+        )
+    )
+    if count.scalar_one() >= MAX_SEMANTIC_MEMORIES_PER_SESSION:
+        raise ValueError(
+            f"Memory limit reached ({MAX_SEMANTIC_MEMORIES_PER_SESSION} facts per session)"
+        )
 
     memory = AgentMemory(
         session_id=session_id,
@@ -265,6 +296,12 @@ def build_message_history(messages: list[dict]) -> str:
 
     This avoids serialization issues with PydanticAI internal message types.
     """
+    if not messages:
+        return ""
+
+    from app.agents.harness import sanitize_history
+
+    messages = sanitize_history(messages)
     if not messages:
         return ""
 
