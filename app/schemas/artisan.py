@@ -72,10 +72,10 @@ class ArtisanRead(BaseModel):
     specializations: list[str] | None = None
     price_range_min: float | None = None
     price_range_max: float | None = None
-    accepts_custom_orders: bool = True
-    has_workshop: bool = True
-    accepts_visitors: bool = True
-    is_verified: bool = False
+    accepts_custom_orders: bool | None = None
+    has_workshop: bool | None = None
+    accepts_visitors: bool | None = None
+    is_verified: bool | None = None
     created_at: datetime | None = None
 
 

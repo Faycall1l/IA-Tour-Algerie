@@ -89,8 +89,8 @@ class DiscoverArtisan(BaseModel):
     photos: list[str] | None
     years_experience: int | None
     specializations: list[str] | None
-    accepts_visitors: bool
-    is_verified: bool
+    accepts_visitors: bool | None = None
+    is_verified: bool | None = None
     user_name: str | None = None
 
 
