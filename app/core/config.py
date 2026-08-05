@@ -78,7 +78,11 @@ class Settings(BaseSettings):
     app_name: str = "ATHAR OS (أثر)"
     app_version: str = "0.3.0"
     debug: bool = False
-    allowed_origins: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    allowed_origins: list[str] = [
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173",
+    ]
     # Default-secure Host allowlist; set ATHAR_ALLOWED_HOSTS (JSON array) in
     # deployment. "*" is never a safe default (DNS rebinding / Host injection).
     allowed_hosts: list[str] = ["localhost", "127.0.0.1"]
