@@ -93,6 +93,25 @@ jobs:
           name: coverage-${{ matrix.python-version }}
           path: coverage.xml
 
+  contract:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+      - run: pip install --upgrade pip
+      - run: pip install -r requirements.txt
+      - name: Regenerate OpenAPI spec from app code
+        run: python scripts/generate_openapi.py
+      - name: Fail on contract drift
+        run: |
+          git diff --exit-code -- docs/specs/openapi.json
+          echo "Spec is up to date. Regenerate with: python scripts/generate_openapi.py"
+
   docker:
     if: github.ref == 'refs/heads/main'
     needs: [test]
