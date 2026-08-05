@@ -11,7 +11,7 @@ class ProviderProfileRead(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
     provider_type: str
-    is_verified: bool
+    is_verified: bool | None = None
 
     experience_years: int | None
     specializations: list[str] | None

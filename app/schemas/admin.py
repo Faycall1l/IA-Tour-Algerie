@@ -44,7 +44,7 @@ class ProviderProfileAdminRead(BaseModel):
     id: uuid.UUID
     user_id: uuid.UUID
     provider_type: str
-    is_verified: bool
+    is_verified: bool | None = None
     company_name: str | None
     property_name: str | None
     experience_years: int | None
