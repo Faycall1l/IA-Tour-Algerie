@@ -43,6 +43,31 @@ async def test_verify_otp_bad_code(client: AsyncClient):
 
 
 @pytest.mark.asyncio
+async def test_debug_otp_rejected_when_debug_off(client: AsyncClient):
+    # The fixed debug OTP must NOT grant access unless debug=True.
+    resp = await client.post(
+        "/api/v1/auth/verify-otp",
+        json={"phone": "+213555777001", "code": "000000"},
+    )
+    assert resp.status_code == 400
+    assert resp.json()["error"] == "bad_request"
+
+
+@pytest.mark.asyncio
+async def test_debug_otp_granted_when_debug_on(client: AsyncClient, monkeypatch):
+    from app.core.config import settings
+
+    monkeypatch.setattr(settings, "debug", True)
+    monkeypatch.setattr(settings, "debug_otp", "000000")
+    resp = await client.post(
+        "/api/v1/auth/verify-otp",
+        json={"phone": "+213555777002", "code": "000000"},
+    )
+    assert resp.status_code == 200
+    assert resp.json()["user"]["phone"] == "+213555777002"
+
+
+@pytest.mark.asyncio
 async def test_refresh_token(client: AsyncClient):
     phone = "+213555888888"
     await client.post("/api/v1/auth/send-otp", json={"phone": phone})

@@ -78,6 +78,9 @@ class Settings(BaseSettings):
     app_name: str = "ATHAR OS (أثر)"
     app_version: str = "0.3.0"
     debug: bool = False
+    # Dev-only fixed OTP accepted by /auth/verify-otp when debug=True (never in
+    # production). Lets local frontends authenticate without Twilio SMS.
+    debug_otp: str = "000000"
     allowed_origins: list[str] = [
         "http://localhost:3000",
         "http://localhost:3001",

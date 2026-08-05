@@ -9,6 +9,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_twilio
+from app.core.config import settings
 from app.core.exceptions import BadRequestException, UnauthorizedException
 from app.core.limiter import limiter
 from app.core.security import (
@@ -130,6 +131,10 @@ async def verify_otp(
         verified = await twilio.verify_otp(body.phone, body.code)
         if not verified:
             raise BadRequestException(message="Invalid or expired OTP")
+    elif settings.debug and secrets.compare_digest(body.code, settings.debug_otp):
+        # Dev-only fixed OTP — accepted solely when debug=True. Codes are never
+        # accepted in production (debug defaults to False).
+        pass
     else:
         stored = _otp_store.get(body.phone)
         if not stored:
