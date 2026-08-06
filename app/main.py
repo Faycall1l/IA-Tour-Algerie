@@ -10,6 +10,7 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import select
 
+from app.api.v1.operation_ids import generate_unique_id_function
 from app.api.v1.router import router as v1_router
 from app.core.config import settings
 from app.core.error_middleware import ErrorMiddleware
@@ -166,6 +167,10 @@ app = FastAPI(
         {"name": "transport", "description": "Transit routes, schedules and pricing."},
     ],
     lifespan=lifespan,
+    # Deterministic, path-based operation ids so generated clients (dashboard
+    # openapi-typescript, mobile openapi_flutter_gen) get clean method names
+    # that survive function renames.
+    generate_unique_id_function=generate_unique_id_function,
     # Interactive docs / OpenAPI schema are dev-only surface; exposing them
     # in production leaks the full API contract and attack surface.
     docs_url="/docs" if settings.debug else None,
