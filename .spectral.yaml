@@ -1,0 +1,71 @@
+# ATHAR API governance ruleset (S4 — API Surface Management).
+#
+# Run: spectral lint docs/specs/openapi.json --ruleset .spectral.yaml
+# Feeds the `spec-quality` CI job. Extends the OAS recommended set plus
+# contract-hygiene rules the generated clients (openapi-typescript,
+# openapi_flutter_gen) depend on.
+extends: [[spectral:oas, recommended]]
+functionsDir: ./spectral/functions
+
+functions:
+  - operationErrorResponses
+
+rules:
+  # ---- operation hygiene ------------------------------------------------------
+  # Generated clients key off these per-operation fields.
+  operation-summary:
+    description: Every operation needs a summary (drives API docs + typed client ergonomics)
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: summary
+      function: truthy
+  operation-description:
+    description: Every operation needs a description beyond its summary (dartdoc source for generated Dart models)
+    severity: warn
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: description
+      function: truthy
+  operation-tags:
+    description: Every operation belongs to at least one tag (groups endpoints in SDKs and docs)
+    severity: error
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: tags
+      function: defined
+
+  # ---- responses ---------------------------------------------------------------
+  # Generated sealed result types (openapi_flutter_gen) switch on every status
+  # code; a missing error response means a client can't type a failure path.
+  operation-error-responses:
+    description: Every operation declares at least one 4xx or 5xx response
+    severity: warn
+    given: $.paths[*][get,post,put,patch,delete]
+    then:
+      field: responses
+      function: operationErrorResponses
+
+  # ---- schemas -----------------------------------------------------------------
+  # Generated Dart models need explicit types on every property — avoid using
+  # untyped/free-form maps where a named schema is possible.
+  no-anyof-in-requestbody:
+    description: Prefer named component schemas instead of oneOf/anyOf in request bodies (Dart generation is lossy on unions)
+    severity: warn
+    given: $.paths[*][get,post,put,patch,delete].requestBody.content[*].schema
+    then:
+      function: schema
+      functionOptions:
+        schema:
+          type: object
+          not:
+            anyOf:
+              - required: [oneOf]
+              - required: [anyOf]
+  no-unevaluated-schema:
+    description: Avoid `unevaluatedProperties` (unsupported by both generators)
+    severity: warn
+    given: $.components.schemas[*]
+    then:
+      field: unevaluatedProperties
+      function: falsy

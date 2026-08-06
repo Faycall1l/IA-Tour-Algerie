@@ -112,6 +112,28 @@ jobs:
           git diff --exit-code -- docs/specs/openapi.json
           echo "Spec is up to date. Regenerate with: python scripts/generate_openapi.py"
 
+  spec-quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: "pip"
+          cache-dependency-path: requirements.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - run: pip install --upgrade pip
+      - name: Install Spectral (npm) and oasdiff (gorun)
+        run: |
+          npm install -g @stoplight/spectral-cli
+          go install github.com/Tufin/oasdiff@v1.28.0
+          echo "$(go env GOPATH)/bin" >> "$GITHUB_PATH"
+      - name: Lint spec + check for breaking changes
+        run: scripts/check_spec.sh
+
   docker:
     if: github.ref == 'refs/heads/main'
     needs: [test]

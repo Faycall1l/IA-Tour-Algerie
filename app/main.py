@@ -131,6 +131,40 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+    description=(
+        "ATHAR — agentic travel guide for Algeria. Discover POIs, stays, "
+        "experiences and artisans; plan trips; route with real transit "
+        "schedules across all 58 wilayas."
+    ),
+    contact={
+        "name": "ATHAR",
+        "url": "https://github.com/Faycall1l",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://opensource.org/licenses/MIT",
+    },
+    openapi_tags=[
+        {"name": "Admin", "description": "Administration endpoints (role-gated)."},
+        {"name": "agents", "description": "AI travel agents with multi-turn memory."},
+        {"name": "Artisans", "description": "Artisan shops and craft listings."},
+        {"name": "Authentication", "description": "Passwordless OTP auth + sessions."},
+        {"name": "Collections", "description": "User-curated POI collections."},
+        {"name": "Discover", "description": "Aggregated per-wilaya content payloads."},
+        {"name": "Events", "description": "Festivals and local events."},
+        {"name": "Experiences", "description": "Tours, activities and cultural experiences."},
+        {"name": "Favorites", "description": "User favorites."},
+        {"name": "GeoJSON", "description": "GeoJSON feeds for map rendering."},
+        {"name": "Health", "description": "Liveness and dependency probes."},
+        {"name": "Points of Interest", "description": "POI catalog, search, routing."},
+        {"name": "Recommendations", "description": "Recommended content."},
+        {"name": "Search", "description": "Global and typed search."},
+        {"name": "Stays", "description": "Hotels, guesthouses and hostels."},
+        {"name": "Trip Dashboard", "description": "Trip planning and optimization."},
+        {"name": "Users", "description": "User accounts and profiles."},
+        {"name": "Wilayas", "description": "Wilaya reference data."},
+        {"name": "transport", "description": "Transit routes, schedules and pricing."},
+    ],
     lifespan=lifespan,
     # Interactive docs / OpenAPI schema are dev-only surface; exposing them
     # in production leaks the full API contract and attack surface.

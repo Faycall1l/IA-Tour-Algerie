@@ -173,7 +173,10 @@ class ExperienceFilterPOI(BaseModel):
     response_model=list[WilayaSummary],
     summary="All wilayas summary",
     description="Every wilaya with aggregate stats: POI/featured/experience/stay/artisan counts, top categories, highlight POI + photo, and coordinates.",
-    responses={200: {"description": "List of wilaya summaries"}},
+    responses={
+        200: {"description": "List of wilaya summaries"},
+        422: {"description": "Validation error"},
+    },
 )
 async def list_wilayas(
     db: AsyncSession = Depends(get_db),

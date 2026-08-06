@@ -18,7 +18,10 @@ router = APIRouter(tags=["Health"])
     response_model=HealthResponse,
     summary="Health check",
     description="Liveness + database connectivity probe. Returns 'ok' or 'degraded' with per-service status and latency.",
-    responses={200: {"description": "API + database status"}},
+    responses={
+        200: {"description": "API + database status"},
+        422: {"description": "Validation error"},
+    },
 )
 async def health_check(db: AsyncSession = Depends(get_db)):
     services = [ServiceStatus(name="api", status="ok")]

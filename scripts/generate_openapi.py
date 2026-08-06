@@ -30,6 +30,19 @@ def main() -> int:
     from app.main import app
 
     schema = app.openapi()
+    # FastAPI does not emit a `servers` array; the OAS `servers` warning
+    # (spectral oas3-api-servers) is satisfied with a relative server URL —
+    # paths already carry the /api/v1 prefix, so the origin is resolved by
+    # the deployment (same as the generated clients' baseUrl handling).
+    schema.setdefault(
+        "servers",
+        [
+            {
+                "url": "/",
+                "description": "ATHAR API — resolve against the deployment origin",
+            }
+        ],
+    )
     OUT.parent.mkdir(parents=True, exist_ok=True)
     OUT.write_text(
         json.dumps(schema, indent=2, ensure_ascii=False) + "\n",
