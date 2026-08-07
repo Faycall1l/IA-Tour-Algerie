@@ -11,7 +11,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from app.db.session import async_session_factory
+from app.db.session import async_session
 from sqlalchemy import text
 
 
@@ -43,7 +43,7 @@ async def main() -> None:
             updated_at = NOW()
     """)
 
-    async with async_session_factory() as session:
+    async with async_session() as session:
         async with session.begin():
             for entry in data:
                 await session.execute(
