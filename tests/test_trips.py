@@ -23,6 +23,24 @@ class TestTripEndpoints:
         assert data["budget_spent"] == 0
         assert data["budget_remaining"] == payload["total_budget_dzd"]
 
+    async def test_create_trip_with_dates(self, client: AsyncClient, auth_headers: dict[str, str]):
+        """Regression: date strings previously 500'd (str bound to Date column)."""
+        resp = await client.post(
+            "/api/v1/trips",
+            json={
+                "title": "Dates trip",
+                "start_date": "2026-08-10",
+                "end_date": "2026-08-12",
+                "total_days": 3,
+                "wilaya_ids": [16],
+            },
+            headers=auth_headers,
+        )
+        assert resp.status_code == 201, resp.text
+        data = resp.json()
+        assert data["start_date"] == "2026-08-10"
+        assert data["end_date"] == "2026-08-12"
+
     async def test_list_trips(self, client: AsyncClient, auth_headers: dict[str, str]):
         resp = await client.get("/api/v1/trips", headers=auth_headers)
         assert resp.status_code == 200

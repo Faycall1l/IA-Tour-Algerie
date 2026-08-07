@@ -105,7 +105,8 @@ class MultiModalRouter:
                 JOIN line_stops ls ON ls.line_id = tl.id
                 JOIN stations s ON ls.station_id = s.id
                 WHERE tl.mode != 'walking'
-                GROUP BY tl.id, tl.name, tl.operator, tl.mode, tl.schedule_info, tl.pricing_info
+                GROUP BY tl.id, tl.name, tl.operator, tl.mode,
+                         tl.schedule_info::text, tl.pricing_info::text
                 HAVING COUNT(DISTINCT s.wilaya_id) >= 2
             """)
             )

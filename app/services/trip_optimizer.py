@@ -266,6 +266,9 @@ class TripBriefGenerator:
         wilaya = await db.get(Wilaya, wilaya_id)
         if not wilaya:
             return None
+        # Read columns eagerly so later expires (e.g. a MultiModalRouter
+        # rollback during load) can't trigger a lazy reload.
+        wilaya_name = wilaya.name_en
 
         # Fetch top POIs ordered by combined score (same as guide endpoint)
         pois_rows = (
@@ -431,7 +434,7 @@ class TripBriefGenerator:
 
         return TripBrief(
             wilaya_id=wilaya_id,
-            wilaya_name=wilaya.name_en,
+            wilaya_name=wilaya_name,
             top_pois=top_pois,
             top_experiences=top_experiences,
             transport_advice=transport_advice,
