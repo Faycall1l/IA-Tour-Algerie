@@ -27,6 +27,55 @@ def has_real_name(name: str | None) -> bool:
     return bool(stripped) and not stripped.endswith("(non nommé)")
 
 
+_INDEX_TEXT_MAX_CHARS = 192
+
+
+def _truncate(text: str, max_chars: int = _INDEX_TEXT_MAX_CHARS) -> str:
+    if len(text) <= max_chars:
+        return text
+    return text[:max_chars].rstrip()
+
+
+def _poi_index_text(poi: POI) -> str:
+    """Index text covering FR/EN/AR names + description so multilingual queries match.
+
+    Truncated to the embedder's ~512-token window — long descriptions beyond
+    the window dilute the embedding and waste compute.
+    """
+    parts = [
+        p
+        for p in (
+            poi.name,
+            poi.name_en,
+            poi.name_ar,
+            poi.description,
+            poi.category,
+            poi.subtype,
+            poi.commune,
+            poi.operator,
+            poi.cuisine,
+            poi.neighborhood,
+        )
+        if p
+    ]
+    return _truncate(" ".join(parts))
+
+
+def _poi_payload(poi: POI) -> dict:
+    """Typed payload for Qdrant filtering/ranking. Booleans/ints stay typed."""
+    return {
+        "poi_id": str(poi.id),
+        "name": poi.name,
+        "name_en": poi.name_en,
+        "name_ar": poi.name_ar,
+        "category": poi.category,
+        "subtype": poi.subtype,
+        "wilaya_id": int(poi.wilaya_id),
+        "is_featured": bool(poi.is_featured),
+        "has_name": has_real_name(poi.name),
+    }
+
+
 class VectorSearchService:
     def __init__(self, embedder: EmbeddingService) -> None:
         self.embedder = embedder
@@ -84,7 +133,7 @@ class VectorSearchService:
     def index_poi(self, poi: POI) -> None:
         if not self.client:
             return
-        text = f"{poi.name} {poi.description or ''} {poi.category}"
+        text = _poi_index_text(poi)
         vector = self.embedder.encode(text)
         from qdrant_client.http.models import PointStruct
 
@@ -94,13 +143,7 @@ class VectorSearchService:
                 PointStruct(
                     id=poi.id.hex,
                     vector=vector,
-                    payload={
-                        "poi_id": str(poi.id),
-                        "name": poi.name,
-                        "category": poi.category,
-                        "wilaya_id": poi.wilaya_id,
-                        "has_name": has_real_name(poi.name),
-                    },
+                    payload=_poi_payload(poi),
                 )
             ],
         )
@@ -110,29 +153,35 @@ class VectorSearchService:
             return 0
         from qdrant_client.http.models import PointStruct
 
-        texts = [f"{p.name} {p.description or ''} {p.category}" for p in pois]
-        vectors = self.embedder.encode_batch(texts)
-        points = [
-            PointStruct(
-                id=p.id.hex,
-                vector=vec,
-                payload={
-                    "poi_id": str(p.id),
-                    "name": p.name,
-                    "category": p.category,
-                    "wilaya_id": p.wilaya_id,
-                    "has_name": has_real_name(p.name),
-                },
-            )
-            for p, vec in zip(pois, vectors, strict=True)
-        ]
-        for i in range(0, len(points), batch_size):
+        encoded = 0
+        indexed = 0
+        for i in range(0, len(pois), batch_size):
+            chunk = pois[i : i + batch_size]
+            texts = [_poi_index_text(p) for p in chunk]
+            vectors = self.embedder.encode_batch(texts)
+            points = [
+                PointStruct(
+                    id=p.id.hex,
+                    vector=vec,
+                    payload=_poi_payload(p),
+                )
+                for p, vec in zip(chunk, vectors, strict=True)
+            ]
             self.client.upsert(
                 collection_name=POIS_COLLECTION,
-                points=points[i : i + batch_size],
+                points=points,
                 wait=True,
             )
-        return len(points)
+            encoded += len(chunk)
+            indexed += len(points)
+            if encoded % 2560 == 0 or encoded >= len(pois):
+                logger.info(
+                    "POI index progress: %d/%d (%.0f%%)",
+                    encoded,
+                    len(pois),
+                    encoded / len(pois) * 100,
+                )
+        return indexed
 
     def search(self, query: str, limit: int = 10) -> list[uuid.UUID]:
         if not self.client:
