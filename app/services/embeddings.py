@@ -8,7 +8,8 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
+MODEL_LOCAL_PATH = "/Users/faycalamrouche/.cache/athar-mlmini"
 EMBEDDING_DIM = 384
 
 
@@ -22,36 +23,58 @@ class EmbeddingService:
         try:
             from sentence_transformers import SentenceTransformer
 
-            # local_files_only avoids a HuggingFace round-trip on every boot —
-            # load fails fast when the model isn't cached instead of blocking
-            # on retries (offline/restricted networks).
-            self._model = SentenceTransformer(
-                MODEL_NAME,
-                backend="onnx",
-                local_files_only=True,
-                model_kwargs={"file_name": "onnx/model.onnx"},
-            )
-            logger.info("Embedding model loaded (ONNX, local cache)")
-        except Exception:
+            self._load_from_cache(SentenceTransformer)
+        except Exception as exc:
+            logger.warning("Embedding model not found in cache (%s) — attempting download", exc)
             try:
                 from sentence_transformers import SentenceTransformer
 
-                self._model = SentenceTransformer(MODEL_NAME, local_files_only=True)
-                logger.info("Embedding model loaded (default backend, local cache)")
-            except Exception as exc:
-                logger.warning("Embedding model not found in cache (%s) — attempting download", exc)
+                self._model = SentenceTransformer(MODEL_NAME, backend="onnx")
+            except Exception as exc2:
                 try:
                     from sentence_transformers import SentenceTransformer
 
-                    self._model = SentenceTransformer(MODEL_NAME, backend="onnx")
-                except Exception as exc2:
-                    try:
-                        from sentence_transformers import SentenceTransformer
+                    self._model = SentenceTransformer(MODEL_NAME)
+                except Exception as exc3:
+                    logger.warning("Embedding model unavailable: %s / %s", exc2, exc3)
+                    self._model = None
 
-                        self._model = SentenceTransformer(MODEL_NAME)
-                    except Exception as exc3:
-                        logger.warning("Embedding model unavailable: %s / %s", exc2, exc3)
-                        self._model = None
+    def _load_from_cache(self, sentence_transformer) -> None:
+        """Try local model dir first, then the HF cache by name (both ONNX)."""
+        from pathlib import Path
+
+        candidates: list[tuple[str, dict | None]] = []
+        if Path(MODEL_LOCAL_PATH).exists():
+            candidates.append((MODEL_LOCAL_PATH, {"file_name": "onnx/model.onnx"}))
+        candidates.append((MODEL_NAME, {"file_name": "onnx/model.onnx"}))
+        candidates.append((MODEL_NAME, None))
+
+        last_exc: Exception | None = None
+        for name, kwargs in candidates:
+            try:
+                if kwargs:
+                    self._model = sentence_transformer(
+                        name,
+                        backend="onnx",
+                        local_files_only=True,
+                        model_kwargs={
+                            **kwargs,
+                            "providers": [
+                                "CoreMLExecutionProvider",
+                                "CPUExecutionProvider",
+                            ],
+                        },
+                    )
+                else:
+                    self._model = sentence_transformer(name, local_files_only=True)
+                logger.info(
+                    "Embedding model loaded (ONNX, local): %s",
+                    Path(name).name if "/" in name else name,
+                )
+                return
+            except Exception as exc:  # noqa: PERF203
+                last_exc = exc
+        raise last_exc if last_exc else RuntimeError("no embedding model candidates")
 
     def warm(self) -> None:
         self._load()
