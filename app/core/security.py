@@ -31,13 +31,15 @@ def _get_keys() -> tuple[str, str]:
         return _cached_priv, _cached_pub
     if _KEY_FILE.exists():
         _cached_priv = _KEY_FILE.read_text().strip()
-        private_key = serialization.load_pem_private_key(
-            _cached_priv.encode(), password=None
+        private_key = serialization.load_pem_private_key(_cached_priv.encode(), password=None)
+        _cached_pub = (
+            private_key.public_key()
+            .public_bytes(
+                encoding=serialization.Encoding.PEM,
+                format=serialization.PublicFormat.SubjectPublicKeyInfo,
+            )
+            .decode()
         )
-        _cached_pub = private_key.public_key().public_bytes(
-            encoding=serialization.Encoding.PEM,
-            format=serialization.PublicFormat.SubjectPublicKeyInfo,
-        ).decode()
         return _cached_priv, _cached_pub
     private_key = ed25519.Ed25519PrivateKey.generate()
     public_key = private_key.public_key()

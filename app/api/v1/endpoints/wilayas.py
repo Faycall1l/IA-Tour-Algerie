@@ -17,7 +17,7 @@ router = APIRouter(prefix="/wilayas", tags=["Wilayas"])
     "",
     response_model=list[WilayaRead],
     summary="List wilayas",
-    description="All 69 wilayas with French/Arabic/English names and destination descriptions. Optional name search. Public.",
+    description="All 69 wilayas with French/Arabic/English names and destination descriptions. Optional name search. Public.",  # noqa: E501
     responses={422: {"description": "Invalid search"}},
 )
 async def list_wilayas(

@@ -99,6 +99,7 @@ class POIAccess(BaseModel):
 
 # ── Turn-by-turn route plan schemas ──────────────────────────────────
 
+
 class RoutePlanCoordinate(BaseModel):
     lat: float
     lng: float

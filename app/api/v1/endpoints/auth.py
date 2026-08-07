@@ -44,11 +44,14 @@ def _cleanup_otp_store() -> None:
     for k in expired:
         del _otp_store[k]
     if len(_otp_store) > _OTP_MAX_STORE:
-        oldest = sorted(_otp_store, key=lambda k: _otp_store[k]["created_at"])[:len(_otp_store) - _OTP_MAX_STORE]
+        oldest = sorted(_otp_store, key=lambda k: _otp_store[k]["created_at"])[
+            : len(_otp_store) - _OTP_MAX_STORE
+        ]
         for k in oldest:
             del _otp_store[k]
     stale_sends = [
-        k for k, v in _otp_send_times.items()
+        k
+        for k, v in _otp_send_times.items()
         if not any(now - t < _OTP_SEND_WINDOW_SECONDS for t in v)
     ]
     for k in stale_sends:
@@ -98,7 +101,7 @@ async def send_otp(
     allowed, _remaining = _phone_can_request_otp(body.phone)
     if not allowed:
         raise BadRequestException(
-            message=f"Too many OTP requests for this number. Try again in a few minutes."
+            message="Too many OTP requests for this number. Try again in a few minutes."
         )
     code = "".join(secrets.choice("0123456789") for _ in range(6))
     _otp_store[body.phone] = {"code": code, "created_at": time.time(), "attempts": 0}
@@ -142,9 +145,7 @@ async def verify_otp(
         attempts = stored.get("attempts", 0)
         if attempts >= _OTP_MAX_ATTEMPTS:
             del _otp_store[body.phone]
-            raise BadRequestException(
-                message="Too many attempts. Request a new OTP."
-            )
+            raise BadRequestException(message="Too many attempts. Request a new OTP.")
         if not secrets.compare_digest(stored["code"], body.code):
             stored["attempts"] = attempts + 1
             if stored["attempts"] >= _OTP_MAX_ATTEMPTS:
@@ -180,7 +181,7 @@ async def verify_otp(
     summary="Rotate tokens",
     description=(
         "Exchange a valid refresh token for a fresh access/refresh pair. Rotation is one-time-use: "
-        "presenting an already-revoked token revokes the entire token family (stolen-token detection)."
+        "presenting an already-revoked token revokes the entire token family (stolen-token detection)."  # noqa: E501
     ),
     responses={
         401: {"description": "Invalid, expired, or revoked refresh token"},

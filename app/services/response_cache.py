@@ -1,3 +1,4 @@
+import contextlib
 import hashlib
 import json
 import logging
@@ -34,7 +35,9 @@ class ResponseCache:
                 db=settings.redis.db,
                 socket_connect_timeout=2,
             )
-            logger.info("ResponseCache backed by Redis at %s:%s", settings.redis.host, settings.redis.port)
+            logger.info(
+                "ResponseCache backed by Redis at %s:%s", settings.redis.host, settings.redis.port
+            )
         except Exception as exc:
             self._redis = None
             logger.warning("ResponseCache Redis unavailable (%s) — using in-memory LRU", exc)
@@ -43,7 +46,9 @@ class ResponseCache:
         raw = f"{method}:{path}:{query}"
         return hashlib.sha256(raw.encode()).hexdigest()
 
-    async def get(self, method: str, path: str, query: str) -> tuple[str, int, dict[str, str]] | None:
+    async def get(
+        self, method: str, path: str, query: str
+    ) -> tuple[str, int, dict[str, str]] | None:
         key = self._cache_key(method, path, query)
         if self._redis:
             try:
@@ -82,10 +87,8 @@ class ResponseCache:
     async def invalidate(self, method: str, path: str, query: str = "") -> None:
         key = self._cache_key(method, path, query)
         if self._redis:
-            try:
+            with contextlib.suppress(Exception):
                 await self._redis.delete(key)
-            except Exception:
-                pass
         self._local.pop(key, None)
 
     async def close(self) -> None:

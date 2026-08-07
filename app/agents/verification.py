@@ -40,15 +40,13 @@ class BatchVerificationResult(BaseModel):
 VERIFY_INSTRUCTIONS = (
     "You are an expert data quality auditor for Algeria's tourism database. "
     "Given a POI's name, category, description, OSM tags, and location, verify the data quality."
-
     "\n\nVERIFICATION CRITERIA:"
-    "\n1. DESCRIPTION: Is the description accurate for the POI? Does it describe what this place actually is?"
-    "\n2. CATEGORY: Is the category correct? A mosque→religious, a museum→museum, a beach→beach, etc."
+    "\n1. DESCRIPTION: Is the description accurate for the POI? Does it describe what this place actually is?"  # noqa: E501
+    "\n2. CATEGORY: Is the category correct? A mosque→religious, a museum→museum, a beach→beach, etc."  # noqa: E501
     "\n3. COORDINATES: (Handled by separate geo-verification tool)"
     "\n4. MISSING FIELDS: What important information is missing? (phone, website, hours, photos)"
-
     "\n\nIMPORTANT:"
-    "\n- If the description is auto-generated and generic (e.g., 'Tomb of saint — Type: religious'), flag it."
+    "\n- If the description is auto-generated and generic (e.g., 'Tomb of saint — Type: religious'), flag it."  # noqa: E501
     "\n- If the description mentions a different location, flag it as inaccurate."
     "\n- If the category is clearly wrong, suggest the correct one."
     "\n- Be conservative: only flag clear issues."
@@ -59,10 +57,13 @@ VERIFY_INSTRUCTIONS = (
 @dataclass
 class VerificationDeps:
     """Dependencies for the verification agent — currently minimal."""
+
     pass
 
 
-def create_verification_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+def create_verification_agent(
+    base_url: str = "", api_key: str = "", model_name: str = ""
+) -> Agent | None:
     """Create the POI data verification agent.
 
     Returns None if no API key is configured (graceful degradation).
@@ -85,7 +86,7 @@ def create_verification_agent(base_url: str = "", api_key: str = "", model_name:
 
 async def verify_poi_dry_run(
     poi_id: str,
-    name: str,
+    _name: str,
     category: str,
     description: str | None,
     osm_tags: dict | None,
@@ -114,7 +115,9 @@ async def verify_poi_dry_run(
     if osm_tags:
         tag_category = _infer_category_from_tags(osm_tags)
         if tag_category and tag_category != category:
-            issues.append(f"Category mismatch: OSM tags suggest '{tag_category}', current is '{category}'")
+            issues.append(
+                f"Category mismatch: OSM tags suggest '{tag_category}', current is '{category}'"
+            )
             category_ok = False
             category_suggestion = tag_category
             score -= 1
@@ -148,11 +151,30 @@ async def verify_poi_dry_run(
 def _infer_category_from_tags(tags: dict) -> str | None:
     """Simple OSM tag → category mapping for verification."""
     tag_mapping = {
-        "amenity": {"place_of_worship": "religious", "museum": "museum", "restaurant": "restaurant", "cafe": "cafe", "marketplace": "market", "theatre": "cultural", "cinema": "cultural", "library": "cultural"},
+        "amenity": {
+            "place_of_worship": "religious",
+            "museum": "museum",
+            "restaurant": "restaurant",
+            "cafe": "cafe",
+            "marketplace": "market",
+            "theatre": "cultural",
+            "cinema": "cultural",
+            "library": "cultural",
+        },
         "historic": {"*": "historical"},
-        "leisure": {"park": "park", "beach_resort": "beach", "garden": "park", "nature_reserve": "natural"},
+        "leisure": {
+            "park": "park",
+            "beach_resort": "beach",
+            "garden": "park",
+            "nature_reserve": "natural",
+        },
         "natural": {"*": "natural"},
-        "tourism": {"museum": "museum", "artwork": "cultural", "gallery": "cultural", "viewpoint": "natural"},
+        "tourism": {
+            "museum": "museum",
+            "artwork": "cultural",
+            "gallery": "cultural",
+            "viewpoint": "natural",
+        },
         "building": {"museum": "museum"},
     }
 

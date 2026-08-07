@@ -20,31 +20,13 @@ from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.deps import TravelAgentDeps
 from app.agents.memory_tools import recall, remember
-from app.agents.prompts import build_prompt, registry as prompt_registry
+from app.agents.prompts import registry as prompt_registry
 from app.agents.resilience import (
     AGENT_RETRIES,
     AGENT_TOOL_TIMEOUT_SECONDS,
     create_retrying_http_client,
 )
 from app.agents.tools import (
-    ArtisanSearchOutput,
-    ArtisanSearchParams,
-    EventSearchOutput,
-    EventSearchParams,
-    ExperienceSearchOutput,
-    ExperienceSearchParams,
-    OperatorContactsOutput,
-    OperatorContactsParams,
-    POISearchOutput,
-    POISearchParams,
-    StaySearchOutput,
-    StaySearchParams,
-    TransportRouteParams,
-    TransportRouteResult,
-    WeatherOutput,
-    WeatherParams,
-    WilayaGuideOutput,
-    WilayaGuideParams,
     find_events,
     get_operator_contacts,
     get_transport_route,
@@ -56,8 +38,8 @@ from app.agents.tools import (
     search_stays,
 )
 
-
 # ── Structured outputs ──
+
 
 class ItineraryDay(BaseModel):
     day: int = Field(..., ge=1, description="Day number of the trip")
@@ -81,9 +63,12 @@ class TripPlan(BaseModel):
 
 class TravelSearchResult(BaseModel):
     """Unified travel search result combining POIs, stays, and experiences."""
+
     pois: list[dict] = Field(default_factory=list, description="Matching points of interest")
     stays: list[dict] = Field(default_factory=list, description="Matching accommodations")
-    experiences: list[dict] = Field(default_factory=list, description="Matching activities/experiences")
+    experiences: list[dict] = Field(
+        default_factory=list, description="Matching activities/experiences"
+    )
     weather: dict | None = Field(None, description="Weather at the destination")
     summary: str = Field(..., description="Natural language summary of findings")
 
@@ -152,7 +137,8 @@ def _dynamic_instructions(prompt_name: str):
     Injects message_history (previous conversation turns) into the
     system prompt so the agent has memory of the ongoing conversation.
     """
-    from app.agents.prompts import AgentContext, registry as reg
+    from app.agents.prompts import AgentContext
+    from app.agents.prompts import registry as reg
 
     def _render(ctx: RunContext[TravelAgentDeps]) -> str:
         prompt = reg.get(prompt_name)
@@ -165,7 +151,9 @@ def _dynamic_instructions(prompt_name: str):
     return _render
 
 
-def create_travel_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+def create_travel_agent(
+    base_url: str = "", api_key: str = "", model_name: str = ""
+) -> Agent | None:
     """Create the main travel planning agent."""
     if not api_key:
         return None
@@ -180,7 +168,9 @@ def create_travel_agent(base_url: str = "", api_key: str = "", model_name: str =
     return agent
 
 
-def create_itinerary_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+def create_itinerary_agent(
+    base_url: str = "", api_key: str = "", model_name: str = ""
+) -> Agent | None:
     """Create the itinerary planning agent."""
     if not api_key:
         return None
@@ -195,7 +185,9 @@ def create_itinerary_agent(base_url: str = "", api_key: str = "", model_name: st
     return agent
 
 
-def create_search_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+def create_search_agent(
+    base_url: str = "", api_key: str = "", model_name: str = ""
+) -> Agent | None:
     """Create the search assistant agent."""
     if not api_key:
         return None
@@ -210,7 +202,9 @@ def create_search_agent(base_url: str = "", api_key: str = "", model_name: str =
     return agent
 
 
-def create_transport_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+def create_transport_agent(
+    base_url: str = "", api_key: str = "", model_name: str = ""
+) -> Agent | None:
     """Create the transport specialist agent — routes, schedules, contacts."""
     if not api_key:
         return None
@@ -228,7 +222,9 @@ def create_transport_agent(base_url: str = "", api_key: str = "", model_name: st
     return agent
 
 
-def create_events_agent(base_url: str = "", api_key: str = "", model_name: str = "") -> Agent | None:
+def create_events_agent(
+    base_url: str = "", api_key: str = "", model_name: str = ""
+) -> Agent | None:
     """Create the events/festivals specialist agent."""
     if not api_key:
         return None

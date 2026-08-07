@@ -20,7 +20,7 @@ router = APIRouter(prefix="/favorites", tags=["Favorites"])
     response_model=FavoriteRead,
     status_code=201,
     summary="Add a favorite",
-    description="Favorite an entity (poi, experience, or stay) by entity_type + entity_id. Returns 404-style error if already favorited.",
+    description="Favorite an entity (poi, experience, or stay) by entity_type + entity_id. Returns 404-style error if already favorited.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         404: {"description": "Already in favorites"},
@@ -53,7 +53,7 @@ async def add_favorite(
     "",
     response_model=FavoriteFeed,
     summary="List favorites",
-    description="The authenticated user's favorites, newest first. Optionally filtered by entity_type.",
+    description="The authenticated user's favorites, newest first. Optionally filtered by entity_type.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         200: {"description": "Favorite feed"},

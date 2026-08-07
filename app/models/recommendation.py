@@ -7,7 +7,16 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPkMixin
 
-TRAVEL_STYLES = ("adventure", "cultural", "relaxation", "nature", "historical", "culinary", "spiritual", "mixed")
+TRAVEL_STYLES = (
+    "adventure",
+    "cultural",
+    "relaxation",
+    "nature",
+    "historical",
+    "culinary",
+    "spiritual",
+    "mixed",
+)
 BUDGET_TIERS = ("budget", "mid_range", "luxury", "any")
 
 
@@ -15,8 +24,11 @@ class UserPreference(UUIDPkMixin, TimestampMixin, Base):
     __tablename__ = "user_preferences"
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
-        unique=True, nullable=False, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        unique=True,
+        nullable=False,
+        index=True,
     )
     preferred_categories: Mapped[list[str] | None] = mapped_column(JSONB, nullable=True)
     preferred_wilayas: Mapped[list[int] | None] = mapped_column(JSONB, nullable=True)
@@ -51,8 +63,10 @@ class Recommendation(UUIDPkMixin, TimestampMixin, Base):
     )
 
     user_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"),
-        nullable=False, index=True,
+        UUID(as_uuid=True),
+        ForeignKey("users.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     entity_type: Mapped[str] = mapped_column(String(20), nullable=False)
     entity_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)

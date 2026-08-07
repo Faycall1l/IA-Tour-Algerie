@@ -10,6 +10,13 @@ from slowapi.errors import RateLimitExceeded
 from slowapi.middleware import SlowAPIMiddleware
 from sqlalchemy import select
 
+from app.agents.travel_agent import (
+    create_events_agent,
+    create_itinerary_agent,
+    create_search_agent,
+    create_transport_agent,
+    create_travel_agent,
+)
 from app.api.v1.operation_ids import generate_unique_id_function
 from app.api.v1.router import router as v1_router
 from app.core.config import settings
@@ -22,18 +29,11 @@ from app.core.limiter import (
     limiter,
 )
 from app.core.logging import setup_logging
-from app.agents.travel_agent import (
-    create_events_agent,
-    create_itinerary_agent,
-    create_search_agent,
-    create_transport_agent,
-    create_travel_agent,
-)
 from app.services.embeddings import EmbeddingService
+from app.services.poi_transit_router import PoiTransitRouter
 from app.services.response_cache import ResponseCache
 from app.services.storage import StorageService
 from app.services.transit_routing import TransitRoutingService
-from app.services.poi_transit_router import PoiTransitRouter
 from app.services.transport import TransportService
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.twilio import TwilioService
@@ -44,8 +44,6 @@ from app.services.vector_search import (
 )
 
 logger = logging.getLogger(__name__)
-
-
 
 
 @asynccontextmanager
@@ -76,22 +74,28 @@ async def lifespan(app: FastAPI):
     else:
         logger.warning("No vLLM API key set — agent endpoints will return 503")
 
-
     async def _index_existing_data():
         # Batched, idempotent startup index: only (re)builds a collection when
         # it has fewer points than the DB row count, so normal boots skip fast.
         # Incremental create/update/delete endpoints keep collections in sync.
         try:
+            from sqlalchemy import func
+
             from app.db.session import async_session
             from app.models.experience import Experience
             from app.models.poi import POI
-            from sqlalchemy import func
 
             async with async_session() as session:
-                poi_count = (await session.execute(select(func.count()).select_from(POI))).scalar() or 0
-                exp_count = (await session.execute(select(func.count()).select_from(Experience))).scalar() or 0
+                poi_count = (
+                    await session.execute(select(func.count()).select_from(POI))
+                ).scalar() or 0
+                exp_count = (
+                    await session.execute(select(func.count()).select_from(Experience))
+                ).scalar() or 0
                 pois = (await session.execute(select(POI))).scalars().all() if poi_count else []
-                exps = (await session.execute(select(Experience))).scalars().all() if exp_count else []
+                exps = (
+                    (await session.execute(select(Experience))).scalars().all() if exp_count else []
+                )
 
             def _run() -> None:
                 vs = app.state.vector_search
@@ -102,12 +106,18 @@ async def lifespan(app: FastAPI):
                     n = vs.index_pois_bulk(pois)
                     logger.info("Indexed %d POIs in Qdrant (batch)", n)
                 elif pois:
-                    logger.info("Qdrant POI index already populated (%d points), skipping", vs.count(POIS_COLLECTION))
+                    logger.info(
+                        "Qdrant POI index already populated (%d points), skipping",
+                        vs.count(POIS_COLLECTION),
+                    )
                 if exps and vs.count(EXPERIENCES_COLLECTION) < len(exps):
                     n = vs.index_experiences_bulk(exps)
                     logger.info("Indexed %d experiences in Qdrant (batch)", n)
                 elif exps:
-                    logger.info("Qdrant experience index already populated (%d points), skipping", vs.count(EXPERIENCES_COLLECTION))
+                    logger.info(
+                        "Qdrant experience index already populated (%d points), skipping",
+                        vs.count(EXPERIENCES_COLLECTION),
+                    )
 
             await asyncio.get_running_loop().run_in_executor(None, _run)
         except Exception as exc:
@@ -119,9 +129,7 @@ async def lifespan(app: FastAPI):
         # Load the embedding model in the background so the first vector
         # search doesn't block ~25s on model load. Non-fatal if unavailable.
         try:
-            await asyncio.get_running_loop().run_in_executor(
-                None, app.state.embedder.warm
-            )
+            await asyncio.get_running_loop().run_in_executor(None, app.state.embedder.warm)
         except Exception as exc:
             logger.warning("Embedding model warm-up failed: %s", exc)
 
@@ -239,16 +247,32 @@ async def cache_get_responses(request: Request, call_next):
     cached = await cache.get(request.method, str(request.url.path), str(request.url.query))
     if cached:
         from fastapi.responses import Response as FastResponse
+
         body, status, headers = cached
-        return FastResponse(content=body, status_code=status, media_type="application/json", headers=headers)
+        return FastResponse(
+            content=body, status_code=status, media_type="application/json", headers=headers
+        )
 
     response = await call_next(request)
     if response.status_code == 200:
         chunks = [chunk async for chunk in response.body_iterator]
         body_bytes = b"".join(chunks)
         from fastapi.responses import Response as FastResponse
-        await cache.set(request.method, str(request.url.path), str(request.url.query), body_bytes.decode(), response.status_code, dict(response.headers))
-        return FastResponse(content=body_bytes, status_code=response.status_code, media_type=response.media_type, headers=dict(response.headers))
+
+        await cache.set(
+            request.method,
+            str(request.url.path),
+            str(request.url.query),
+            body_bytes.decode(),
+            response.status_code,
+            dict(response.headers),
+        )
+        return FastResponse(
+            content=body_bytes,
+            status_code=response.status_code,
+            media_type=response.media_type,
+            headers=dict(response.headers),
+        )
 
     return response
 

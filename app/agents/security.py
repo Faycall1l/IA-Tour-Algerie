@@ -7,16 +7,17 @@ calling user's identity. Write operations require elevated permissions.
 """
 
 import logging
-from enum import Enum
+from enum import StrEnum
 
 logger = logging.getLogger(__name__)
 
 
-class ToolRisk(str, Enum):
+class ToolRisk(StrEnum):
     """Risk classification for agent tools."""
-    READ = "read"           # No side effects, read-only queries
-    WRITE = "write"         # Creates/modifies data
-    EXTERNAL = "external"   # Calls external APIs (weather, transport)
+
+    READ = "read"  # No side effects, read-only queries
+    WRITE = "write"  # Creates/modifies data
+    EXTERNAL = "external"  # Calls external APIs (weather, transport)
     DESTRUCTIVE = "destructive"  # Deletes data, irreversible
 
 
@@ -78,7 +79,9 @@ def require_tool_permission(role: str, tool_name: str) -> None:
         risk = get_tool_risk(tool_name)
         logger.warning(
             "SECURITY: role=%s blocked from tool=%s (risk=%s)",
-            role, tool_name, risk.value,
+            role,
+            tool_name,
+            risk.value,
         )
         raise PermissionError(
             f"Role '{role}' does not have permission to use tool '{tool_name}' "

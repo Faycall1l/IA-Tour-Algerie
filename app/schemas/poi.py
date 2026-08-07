@@ -81,6 +81,7 @@ class POIRead(BaseModel):
 
 class POIBrief(BaseModel):
     """Lightweight POI for list/similar/nearby endpoints — no reviews."""
+
     model_config = ConfigDict(from_attributes=True)
 
     id: uuid.UUID

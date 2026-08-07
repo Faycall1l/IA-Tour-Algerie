@@ -1,7 +1,6 @@
 import pytest
-from httpx import AsyncClient
-
 from app.api.v1.endpoints.auth import _otp_store
+from httpx import AsyncClient
 
 
 @pytest.mark.asyncio
@@ -152,8 +151,5 @@ async def test_send_otp_throttled_per_phone(client: AsyncClient):
     resp = await client.post("/api/v1/auth/send-otp", json={"phone": phone})
     assert resp.status_code == 400
 
-    other = await client.post(
-        "/api/v1/auth/send-otp", json={"phone": "+213555555555"}
-    )
+    other = await client.post("/api/v1/auth/send-otp", json={"phone": "+213555555555"})
     assert other.status_code == 200
-

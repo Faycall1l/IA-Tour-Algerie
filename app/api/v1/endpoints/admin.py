@@ -22,13 +22,13 @@ from app.models.user import User
 from app.schemas.admin import (
     AdminActionResponse,
     AdminRoleUpdate,
+    CategoryCount,
     ProviderAdminFeed,
     ProviderProfileAdminRead,
     StatsDashboard,
     UserAdminFeed,
     UserAdminRead,
     WilayaCount,
-    CategoryCount,
 )
 from app.schemas.user import UserRead
 from app.services.vector_search import VectorSearchService
@@ -44,7 +44,7 @@ router = APIRouter(prefix="/admin", tags=["Admin"])
     "/stats",
     response_model=StatsDashboard,
     summary="Dashboard stats",
-    description="Platform totals (POIs, stays, experiences, events, users, trips) plus POI distribution per wilaya and per category.",
+    description="Platform totals (POIs, stays, experiences, events, users, trips) plus POI distribution per wilaya and per category.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Admin role required"},
@@ -152,7 +152,7 @@ async def list_users(
     "/users/{user_id}/role",
     response_model=UserRead,
     summary="Set user role",
-    description="Change a user's role. Auto-creates a provider profile when promoting to a provider role, and deletes it when demoting.",
+    description="Change a user's role. Auto-creates a provider profile when promoting to a provider role, and deletes it when demoting.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Admin role required"},
@@ -222,7 +222,7 @@ async def toggle_user_verification(
     "/providers",
     response_model=ProviderAdminFeed,
     summary="List provider profiles",
-    description="Paginated provider profiles for admins, filtered by verification status and provider type.",
+    description="Paginated provider profiles for admins, filtered by verification status and provider type.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Admin role required"},
@@ -298,7 +298,7 @@ async def approve_provider(
     "/experiences/{experience_id}",
     response_model=AdminActionResponse,
     summary="Delete any experience",
-    description="Admin moderation: delete an experience regardless of owner. Removes it from the Qdrant index.",
+    description="Admin moderation: delete an experience regardless of owner. Removes it from the Qdrant index.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Admin role required"},
@@ -329,7 +329,7 @@ async def admin_delete_experience(
     "/verify/poi/{poi_id}",
     response_model=AdminActionResponse,
     summary="Verify POI quality",
-    description="Run an LLM-based (or rule-based dry-run fallback) quality verification on a POI, reporting a score out of 5, issue count, and missing fields.",
+    description="Run an LLM-based (or rule-based dry-run fallback) quality verification on a POI, reporting a score out of 5, issue count, and missing fields.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Admin role required"},
@@ -364,7 +364,7 @@ async def verify_poi_quality(
             # Dry-run with rule-based checks
             result = await verify_poi_dry_run(
                 poi_id=str(poi.id),
-                name=poi.name,
+                _name=poi.name,
                 category=poi.category,
                 description=poi.description,
                 osm_tags=poi.osm_tags,
@@ -372,7 +372,7 @@ async def verify_poi_quality(
 
         return AdminActionResponse(
             message=f"Verification complete: score={result.score}/5, "
-                    f"issues={len(result.issues)}, missing={result.missing_fields}"
+            f"issues={len(result.issues)}, missing={result.missing_fields}"
         )
     except Exception as exc:
         logger.warning("Verification failed for POI %s: %s", poi_id, exc)
@@ -383,7 +383,7 @@ async def verify_poi_quality(
     "/verify/stats",
     response_model=AdminActionResponse,
     summary="POI data-quality stats",
-    description="Aggregate POI data quality: totals, and counts with phone, website, opening hours, or short descriptions.",
+    description="Aggregate POI data quality: totals, and counts with phone, website, opening hours, or short descriptions.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Admin role required"},
@@ -395,16 +395,24 @@ async def get_verification_stats(
 ):
     total = (await db.execute(select(func.count()).select_from(POI))).scalar() or 0
     with_phone = (await db.execute(select(func.count()).where(POI.phone.isnot(None)))).scalar() or 0
-    with_website = (await db.execute(select(func.count()).where(POI.website.isnot(None)))).scalar() or 0
-    with_hours = (await db.execute(select(func.count()).where(POI.opening_hours.isnot(None)))).scalar() or 0
-    short_desc = (await db.execute(
-        select(func.count()).where(POI.description.isnot(None), func.length(POI.description) < 80)
-    )).scalar() or 0
+    with_website = (
+        await db.execute(select(func.count()).where(POI.website.isnot(None)))
+    ).scalar() or 0
+    with_hours = (
+        await db.execute(select(func.count()).where(POI.opening_hours.isnot(None)))
+    ).scalar() or 0
+    short_desc = (
+        await db.execute(
+            select(func.count()).where(
+                POI.description.isnot(None), func.length(POI.description) < 80
+            )
+        )
+    ).scalar() or 0
 
     return AdminActionResponse(
         message=f"POI data quality stats: {total} total, {with_phone} with phone, "
-                f"{with_website} with website, {with_hours} with hours, "
-                f"{short_desc} with short descriptions"
+        f"{with_website} with website, {with_hours} with hours, "
+        f"{short_desc} with short descriptions"
     )
 
 
@@ -435,7 +443,7 @@ class AgentObservabilityStats(BaseModel):
     "/agent/stats",
     response_model=AgentObservabilityStats,
     summary="Agent observability stats",
-    description="Agent monitoring: totals, success/failure rates, token usage, average duration, and recent traces (P1 monitoring).",
+    description="Agent monitoring: totals, success/failure rates, token usage, average duration, and recent traces (P1 monitoring).",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Admin role required"},

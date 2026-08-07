@@ -1,6 +1,6 @@
 import uuid
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from app.models.provider_profile import PROPERTY_TYPES, PROVIDER_TYPES
 

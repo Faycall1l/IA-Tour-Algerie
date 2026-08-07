@@ -39,9 +39,7 @@ class EmbeddingService:
                 self._model = SentenceTransformer(MODEL_NAME, local_files_only=True)
                 logger.info("Embedding model loaded (default backend, local cache)")
             except Exception as exc:
-                logger.warning(
-                    "Embedding model not found in cache (%s) — attempting download", exc
-                )
+                logger.warning("Embedding model not found in cache (%s) — attempting download", exc)
                 try:
                     from sentence_transformers import SentenceTransformer
 

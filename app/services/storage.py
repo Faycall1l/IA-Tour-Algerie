@@ -18,21 +18,17 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 ALLOWED_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp"})
-ALLOWED_CONTENT_TYPES = frozenset(
-    {"image/jpeg", "image/png", "image/webp", "image/jpg"}
-)
+ALLOWED_CONTENT_TYPES = frozenset({"image/jpeg", "image/png", "image/webp", "image/jpg"})
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 
 
 def _sniffs_as_image(content: bytes) -> bool:
     """Magic-byte check so arbitrary payloads can't pass as images."""
-    if content.startswith(b"\xff\xd8\xff"):  # JPEG
-        return True
-    if content.startswith(b"\x89PNG\r\n\x1a\n"):  # PNG
-        return True
-    if content.startswith(b"RIFF") and content[8:12] == b"WEBP":  # WebP
-        return True
-    return False
+    return (
+        content.startswith(b"\xff\xd8\xff")  # JPEG
+        or content.startswith(b"\x89PNG\r\n\x1a\n")  # PNG
+        or (content.startswith(b"RIFF") and content[8:12] == b"WEBP")  # WebP
+    )
 
 
 class StorageService:
@@ -100,9 +96,7 @@ class StorageService:
         content = await file.read()
         if len(content) > MAX_FILE_SIZE:
             max_mb = MAX_FILE_SIZE // 1024 // 1024
-            raise BadRequestException(
-                f"File too large ({len(content)} bytes). Max: {max_mb} MB"
-            )
+            raise BadRequestException(f"File too large ({len(content)} bytes). Max: {max_mb} MB")
         if not _sniffs_as_image(content):
             raise BadRequestException("File content is not a valid image")
 

@@ -1,4 +1,5 @@
 """Artisan CRUD — craftspeople register their workshops on the marketplace."""
+
 import logging
 import uuid
 
@@ -36,9 +37,7 @@ async def create_artisan(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    existing = await db.execute(
-        select(Artisan).where(Artisan.user_id == current_user.id)
-    )
+    existing = await db.execute(select(Artisan).where(Artisan.user_id == current_user.id))
     if existing.scalar_one_or_none():
         raise ConflictException(message="You already have an artisan profile")
 
@@ -58,7 +57,7 @@ async def create_artisan(
     "",
     response_model=ArtisanFeed,
     summary="List artisans",
-    description="Paginated artisans filtered by wilaya, craft type, visitor acceptance, and name search. Sort by name, newest, or years of experience.",
+    description="Paginated artisans filtered by wilaya, craft type, visitor acceptance, and name search. Sort by name, newest, or years of experience.",  # noqa: E501
     responses={422: {"description": "Validation error"}},
 )
 async def list_artisans(
@@ -98,8 +97,13 @@ async def list_artisans(
 
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     return ArtisanFeed(
-        items=items, total=total, page=page, page_size=page_size,
-        total_pages=total_pages, has_prev=page > 1, has_next=page < total_pages,
+        items=items,
+        total=total,
+        page=page,
+        page_size=page_size,
+        total_pages=total_pages,
+        has_prev=page > 1,
+        has_next=page < total_pages,
     )
 
 

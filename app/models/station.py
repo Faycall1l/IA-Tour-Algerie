@@ -1,4 +1,5 @@
 import uuid
+
 from sqlalchemy import Boolean, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSON, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -39,8 +40,9 @@ class TransportLine(UUIDPkMixin, TimestampMixin, Base):
     pricing_info: Mapped[dict | None] = mapped_column(JSON)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
-    stops: list["LineStop"] = relationship(back_populates="line", lazy="selectin",
-                                            order_by="LineStop.stop_order")
+    stops: list["LineStop"] = relationship(
+        back_populates="line", lazy="selectin", order_by="LineStop.stop_order"
+    )
 
 
 class LineStop(UUIDPkMixin, TimestampMixin, Base):
@@ -48,12 +50,16 @@ class LineStop(UUIDPkMixin, TimestampMixin, Base):
     __allow_unmapped__ = True
 
     line_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("transport_lines.id", ondelete="CASCADE"),
-        nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("transport_lines.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     station_id: Mapped[uuid.UUID] = mapped_column(
-        UUID(as_uuid=True), ForeignKey("stations.id", ondelete="CASCADE"),
-        nullable=False, index=True
+        UUID(as_uuid=True),
+        ForeignKey("stations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
     )
     stop_order: Mapped[int] = mapped_column(Integer, nullable=False)
     distance_from_start_km: Mapped[float | None] = mapped_column(Float)

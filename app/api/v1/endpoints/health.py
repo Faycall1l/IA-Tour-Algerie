@@ -17,7 +17,7 @@ router = APIRouter(tags=["Health"])
     "/health",
     response_model=HealthResponse,
     summary="Health check",
-    description="Liveness + database connectivity probe. Returns 'ok' or 'degraded' with per-service status and latency.",
+    description="Liveness + database connectivity probe. Returns 'ok' or 'degraded' with per-service status and latency.",  # noqa: E501
     responses={
         200: {"description": "API + database status"},
         422: {"description": "Validation error"},

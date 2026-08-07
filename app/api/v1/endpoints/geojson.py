@@ -27,20 +27,20 @@ def fc(features: list) -> dict:
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
-    R = 6371.0
+    earth_radius_km = 6371.0
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
     a = (
         math.sin(dlat / 2) ** 2
         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
     )
-    return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return earth_radius_km * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
 @router.get(
     "/pois.geojson",
     summary="POIs as GeoJSON",
-    description="All geolocated POIs as a GeoJSON FeatureCollection of points, filtered by wilaya, category, or featured status.",
+    description="All geolocated POIs as a GeoJSON FeatureCollection of points, filtered by wilaya, category, or featured status.",  # noqa: E501
     responses={
         422: {"description": "Invalid filter or limit"},
         200: {"description": "GeoJSON FeatureCollection"},
@@ -53,8 +53,17 @@ async def pois_geojson(
     limit: int = Query(1000, ge=1, le=50000),
     db: AsyncSession = Depends(get_db),
 ):
-    cols = [POI.id, POI.name, POI.category, POI.latitude, POI.longitude,
-            POI.photo_url, POI.wilaya_id, POI.subtype, POI.is_featured]
+    cols = [
+        POI.id,
+        POI.name,
+        POI.category,
+        POI.latitude,
+        POI.longitude,
+        POI.photo_url,
+        POI.wilaya_id,
+        POI.subtype,
+        POI.is_featured,
+    ]
     query = select(*cols).where(POI.latitude.isnot(None), POI.longitude.isnot(None))
     if wilaya_id is not None:
         query = query.where(POI.wilaya_id == wilaya_id)
@@ -67,21 +76,30 @@ async def pois_geojson(
     result = await db.execute(query)
     rows = result.all()
 
-    return fc([
-        feature(
-            {"id": str(r.id), "name": r.name, "category": r.category,
-             "wilaya_id": r.wilaya_id, "subtype": r.subtype,
-             "photo_url": r.photo_url, "is_featured": r.is_featured},
-            float(r.latitude), float(r.longitude),
-        )
-        for r in rows
-    ])
+    return fc(
+        [
+            feature(
+                {
+                    "id": str(r.id),
+                    "name": r.name,
+                    "category": r.category,
+                    "wilaya_id": r.wilaya_id,
+                    "subtype": r.subtype,
+                    "photo_url": r.photo_url,
+                    "is_featured": r.is_featured,
+                },
+                float(r.latitude),
+                float(r.longitude),
+            )
+            for r in rows
+        ]
+    )
 
 
 @router.get(
     "/stays.geojson",
     summary="Stays as GeoJSON",
-    description="All geolocated stays as a GeoJSON FeatureCollection, filtered by wilaya. Each feature carries the primary photo URL.",
+    description="All geolocated stays as a GeoJSON FeatureCollection, filtered by wilaya. Each feature carries the primary photo URL.",  # noqa: E501
     responses={
         422: {"description": "Invalid filter or limit"},
         200: {"description": "GeoJSON FeatureCollection"},
@@ -92,8 +110,15 @@ async def stays_geojson(
     limit: int = Query(1000, ge=1, le=50000),
     db: AsyncSession = Depends(get_db),
 ):
-    cols = [Stay.id, Stay.name, Stay.property_type, Stay.latitude, Stay.longitude,
-            Stay.photos, Stay.wilaya_id]
+    cols = [
+        Stay.id,
+        Stay.name,
+        Stay.property_type,
+        Stay.latitude,
+        Stay.longitude,
+        Stay.photos,
+        Stay.wilaya_id,
+    ]
     query = select(*cols).where(Stay.latitude.isnot(None), Stay.longitude.isnot(None))
     if wilaya_id is not None:
         query = query.where(Stay.wilaya_id == wilaya_id)
@@ -102,21 +127,28 @@ async def stays_geojson(
     result = await db.execute(query)
     rows = result.all()
 
-    return fc([
-        feature(
-            {"id": str(r.id), "name": r.name, "property_type": r.property_type,
-             "wilaya_id": r.wilaya_id,
-             "photo_url": r.photos[0] if r.photos else None},
-            float(r.latitude), float(r.longitude),
-        )
-        for r in rows
-    ])
+    return fc(
+        [
+            feature(
+                {
+                    "id": str(r.id),
+                    "name": r.name,
+                    "property_type": r.property_type,
+                    "wilaya_id": r.wilaya_id,
+                    "photo_url": r.photos[0] if r.photos else None,
+                },
+                float(r.latitude),
+                float(r.longitude),
+            )
+            for r in rows
+        ]
+    )
 
 
 @router.get(
     "/experiences.geojson",
     summary="Experiences as GeoJSON",
-    description="Active experiences with a meeting point as a GeoJSON FeatureCollection, filtered by wilaya or category.",
+    description="Active experiences with a meeting point as a GeoJSON FeatureCollection, filtered by wilaya or category.",  # noqa: E501
     responses={
         422: {"description": "Invalid filter or limit"},
         200: {"description": "GeoJSON FeatureCollection"},
@@ -128,9 +160,15 @@ async def experiences_geojson(
     limit: int = Query(1000, ge=1, le=50000),
     db: AsyncSession = Depends(get_db),
 ):
-    cols = [Experience.id, Experience.title, Experience.category,
-            Experience.meeting_point_lat, Experience.meeting_point_lng,
-            Experience.photos, Experience.wilaya_id]
+    cols = [
+        Experience.id,
+        Experience.title,
+        Experience.category,
+        Experience.meeting_point_lat,
+        Experience.meeting_point_lng,
+        Experience.photos,
+        Experience.wilaya_id,
+    ]
     query = select(*cols).where(
         Experience.meeting_point_lat.isnot(None),
         Experience.meeting_point_lng.isnot(None),
@@ -145,21 +183,28 @@ async def experiences_geojson(
     result = await db.execute(query)
     rows = result.all()
 
-    return fc([
-        feature(
-            {"id": str(r.id), "name": r.title, "category": r.category,
-             "wilaya_id": r.wilaya_id,
-             "photo_url": r.photos[0] if r.photos else None},
-            float(r.meeting_point_lat), float(r.meeting_point_lng),
-        )
-        for r in rows
-    ])
+    return fc(
+        [
+            feature(
+                {
+                    "id": str(r.id),
+                    "name": r.title,
+                    "category": r.category,
+                    "wilaya_id": r.wilaya_id,
+                    "photo_url": r.photos[0] if r.photos else None,
+                },
+                float(r.meeting_point_lat),
+                float(r.meeting_point_lng),
+            )
+            for r in rows
+        ]
+    )
 
 
 @router.get(
     "/nearby/pois",
     summary="Nearby POIs as GeoJSON",
-    description="POIs within a radius (haversine-filtered) returned as a GeoJSON FeatureCollection with distance_km per feature.",
+    description="POIs within a radius (haversine-filtered) returned as a GeoJSON FeatureCollection with distance_km per feature.",  # noqa: E501
     responses={
         422: {"description": "Invalid lat/lng/radius"},
         200: {"description": "GeoJSON FeatureCollection"},
@@ -175,13 +220,26 @@ async def nearby_pois(
     lat_delta = radius_km / 111.0
     lng_delta = radius_km / (111.0 * abs(math.cos(math.radians(lat))) + 0.001)
 
-    cols = [POI.id, POI.name, POI.category, POI.latitude, POI.longitude,
-            POI.photo_url, POI.wilaya_id, POI.subtype]
-    query = select(*cols).where(
-        POI.latitude.isnot(None), POI.longitude.isnot(None),
-        POI.latitude.between(lat - lat_delta, lat + lat_delta),
-        POI.longitude.between(lng - lng_delta, lng + lng_delta),
-    ).limit(limit)
+    cols = [
+        POI.id,
+        POI.name,
+        POI.category,
+        POI.latitude,
+        POI.longitude,
+        POI.photo_url,
+        POI.wilaya_id,
+        POI.subtype,
+    ]
+    query = (
+        select(*cols)
+        .where(
+            POI.latitude.isnot(None),
+            POI.longitude.isnot(None),
+            POI.latitude.between(lat - lat_delta, lat + lat_delta),
+            POI.longitude.between(lng - lng_delta, lng + lng_delta),
+        )
+        .limit(limit)
+    )
 
     result = await db.execute(query)
     rows = result.all()
@@ -190,10 +248,19 @@ async def nearby_pois(
     for r in rows:
         d = haversine_km(lat, lng, float(r.latitude), float(r.longitude))
         if d <= radius_km:
-            features.append(feature(
-                {"id": str(r.id), "name": r.name, "category": r.category,
-                 "wilaya_id": r.wilaya_id, "subtype": r.subtype, "distance_km": round(d, 3)},
-                float(r.latitude), float(r.longitude),
-            ))
+            features.append(
+                feature(
+                    {
+                        "id": str(r.id),
+                        "name": r.name,
+                        "category": r.category,
+                        "wilaya_id": r.wilaya_id,
+                        "subtype": r.subtype,
+                        "distance_km": round(d, 3),
+                    },
+                    float(r.latitude),
+                    float(r.longitude),
+                )
+            )
 
     return fc(features)

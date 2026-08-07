@@ -36,15 +36,17 @@ def _make_mock_agent(data_obj):
     return agent
 
 
-def _inject_mock(client: AsyncClient, name: str, agent):
+def _inject_mock(_client: AsyncClient, name: str, agent):
     """Inject a mock agent into app.state for the duration of the test."""
     from app.main import app
+
     original = getattr(app.state, name, None)
     setattr(app.state, name, agent)
     return original
 
 
 # ── Chat endpoint tests ──
+
 
 class TestChatEndpoint:
     ENDPOINT = _AGENT_ENDPOINTS["chat"]
@@ -78,9 +80,9 @@ class TestChatEndpoint:
         assert resp.status_code == 422
 
     async def test_success(self, client: AsyncClient, auth_headers: dict[str, str]):
-        _inject_mock(client, "travel_agent", _make_mock_agent(
-            "Algiers has the Great Mosque, built in 2019."
-        ))
+        _inject_mock(
+            client, "travel_agent", _make_mock_agent("Algiers has the Great Mosque, built in 2019.")
+        )
 
         resp = await client.post(
             self.ENDPOINT,
@@ -92,10 +94,10 @@ class TestChatEndpoint:
         assert "reply" in data
         assert "Great Mosque" in data["reply"]
 
-    async def test_success_with_wilaya_filter(self, client: AsyncClient, auth_headers: dict[str, str]):
-        _inject_mock(client, "travel_agent", _make_mock_agent(
-            "Oran has a beautiful coastline."
-        ))
+    async def test_success_with_wilaya_filter(
+        self, client: AsyncClient, auth_headers: dict[str, str]
+    ):
+        _inject_mock(client, "travel_agent", _make_mock_agent("Oran has a beautiful coastline."))
 
         resp = await client.post(
             self.ENDPOINT,
@@ -107,6 +109,7 @@ class TestChatEndpoint:
 
 
 # ── Plan-trip endpoint tests ──
+
 
 class TestPlanTripEndpoint:
     ENDPOINT = _AGENT_ENDPOINTS["plan-trip"]
@@ -143,12 +146,16 @@ class TestPlanTripEndpoint:
         assert resp.status_code == 422
 
     async def test_success(self, client: AsyncClient, auth_headers: dict[str, str]):
-        _inject_mock(client, "itinerary_agent", _make_mock_agent(
-            "3-day trip to Algiers (mid-range, ~25,000 DZD).\n"
-            "Day 1: Visit the Kasbah, Lunch at El Djenina.\n"
-            "Day 2: Grande Mosquée, Bardo Museum.\n"
-            "Day 3: Sidi Fredj, Seafood dinner."
-        ))
+        _inject_mock(
+            client,
+            "itinerary_agent",
+            _make_mock_agent(
+                "3-day trip to Algiers (mid-range, ~25,000 DZD).\n"
+                "Day 1: Visit the Kasbah, Lunch at El Djenina.\n"
+                "Day 2: Grande Mosquée, Bardo Museum.\n"
+                "Day 3: Sidi Fredj, Seafood dinner."
+            ),
+        )
 
         resp = await client.post(
             self.ENDPOINT,
@@ -164,6 +171,7 @@ class TestPlanTripEndpoint:
 
 
 # ── Search endpoint tests ──
+
 
 class TestSearchEndpoint:
     ENDPOINT = _AGENT_ENDPOINTS["search"]
@@ -192,9 +200,11 @@ class TestSearchEndpoint:
         assert resp.status_code == 422
 
     async def test_success(self, client: AsyncClient, auth_headers: dict[str, str]):
-        _inject_mock(client, "search_agent", _make_mock_agent(
-            "Found Sablettes Beach and Hotel Oran in Oran."
-        ))
+        _inject_mock(
+            client,
+            "search_agent",
+            _make_mock_agent("Found Sablettes Beach and Hotel Oran in Oran."),
+        )
 
         resp = await client.post(
             self.ENDPOINT,
@@ -207,9 +217,9 @@ class TestSearchEndpoint:
         assert "Oran" in data["reply"]
 
     async def test_empty_results(self, client: AsyncClient, auth_headers: dict[str, str]):
-        _inject_mock(client, "search_agent", _make_mock_agent(
-            "No results found for 'zzzzzxyznonexistent'."
-        ))
+        _inject_mock(
+            client, "search_agent", _make_mock_agent("No results found for 'zzzzzxyznonexistent'.")
+        )
 
         resp = await client.post(
             self.ENDPOINT,

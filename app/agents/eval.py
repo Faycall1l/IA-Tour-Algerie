@@ -9,11 +9,9 @@ Usage:
     python -m app.agents.eval --quick  # Run quick set (5 cases)
 """
 
-import json
 import logging
 import time
 from dataclasses import dataclass, field
-from typing import Any
 
 logger = logging.getLogger("athar.agent.eval")
 
@@ -21,6 +19,7 @@ logger = logging.getLogger("athar.agent.eval")
 @dataclass
 class EvalCase:
     """A single eval case — travel question with expected behavior."""
+
     id: str
     name: str
     input: str
@@ -30,7 +29,7 @@ class EvalCase:
     must_not_mention: list[str] = field(default_factory=list)
     max_length: int = 2000
     category: str = "general"  # general, search, planning, transport
-    difficulty: str = "easy"   # easy, medium, hard
+    difficulty: str = "easy"  # easy, medium, hard
 
 
 # ── Tool equivalence groups (interchangeable for scoring) ──
@@ -50,6 +49,7 @@ _TOOL_EQUIVALENCE = {
 @dataclass
 class EvalResult:
     """Score for one eval case."""
+
     case_id: str
     case_name: str
     passed: bool
@@ -67,6 +67,7 @@ class EvalResult:
 @dataclass
 class EvalReport:
     """Aggregate results from a full eval run."""
+
     total: int = 0
     passed: int = 0
     failed: int = 0
@@ -187,7 +188,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_02",
         name="Multi-wilaya transport",
-        input="I'm in Algiers and want to visit Oran and Tlemcen in one week. How should I travel between them?",
+        input="I'm in Algiers and want to visit Oran and Tlemcen in one week. How should I travel between them?",  # noqa: E501
         expected_tools=["get_transport_route"],
         must_mention=["Algiers", "Oran", "Tlemcen"],
         max_length=3000,
@@ -197,7 +198,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_03",
         name="Sahara adventure planning",
-        input="I want to visit the Sahara from Ghardaia. What can I see, where can I sleep, and how do I get around?",
+        input="I want to visit the Sahara from Ghardaia. What can I see, where can I sleep, and how do I get around?",  # noqa: E501
         expected_tools=["get_wilaya_guide", "search_stays"],
         must_mention=["Ghardaïa"],
         max_length=3000,
@@ -207,7 +208,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_04",
         name="Budget comparison",
-        input="Compare budget vs luxury accommodation options in Algiers. Which neighborhoods have the best value?",
+        input="Compare budget vs luxury accommodation options in Algiers. Which neighborhoods have the best value?",  # noqa: E501
         expected_tools=["search_stays"],
         must_mention=["Algiers"],
         max_length=3000,
@@ -217,7 +218,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_05",
         name="Cultural deep dive",
-        input="Tell me about Berber culture in Kabylie — what villages should I visit, what crafts can I buy, and what food should I try?",
+        input="Tell me about Berber culture in Kabylie — what villages should I visit, what crafts can I buy, and what food should I try?",  # noqa: E501
         expected_tools=["get_wilaya_guide", "search_artisans"],
         must_mention=[],
         max_length=3000,
@@ -292,7 +293,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="med_08",
         name="Weather + POI combo",
-        input="What's the weather in Oran this weekend? Are there outdoor activities I should plan for?",
+        input="What's the weather in Oran this weekend? Are there outdoor activities I should plan for?",  # noqa: E501
         expected_tools=["get_weather", "search_pois"],
         must_mention=["Oran"],
         category="general",
@@ -330,7 +331,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_07",
         name="Multi-transport comparison",
-        input="What are my options to get from Algiers to Ghardaia? Compare train, bus, and flight.",
+        input="What are my options to get from Algiers to Ghardaia? Compare train, bus, and flight.",  # noqa: E501
         expected_tools=["get_transport_route"],
         must_mention=["Algiers", "Ghardaïa"],
         max_length=3000,
@@ -340,7 +341,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_08",
         name="Family trip planning",
-        input="I'm planning a family trip to Tlemcen with 2 kids (ages 5 and 10). What should we see and do for 4 days?",
+        input="I'm planning a family trip to Tlemcen with 2 kids (ages 5 and 10). What should we see and do for 4 days?",  # noqa: E501
         expected_tools=["get_wilaya_guide", "search_pois"],
         must_mention=["Tlemcen"],
         max_length=4000,
@@ -350,7 +351,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_09",
         name="Artisan + cultural tour",
-        input="I want to do a craft shopping tour in Tlemcen — pottery, carpets, and leather. Where should I go and how do I get between workshops?",
+        input="I want to do a craft shopping tour in Tlemcen — pottery, carpets, and leather. Where should I go and how do I get between workshops?",  # noqa: E501
         expected_tools=["search_artisans", "get_transport_route"],
         must_mention=["Tlemcen"],
         max_length=3000,
@@ -360,7 +361,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_10",
         name="Sahara multi-day plan",
-        input="I have 5 days starting from Algiers. I want to reach the Sahara desert. Plan my route, stops, and what to see along the way.",
+        input="I have 5 days starting from Algiers. I want to reach the Sahara desert. Plan my route, stops, and what to see along the way.",  # noqa: E501
         expected_tools=["get_transport_route", "get_wilaya_guide"],
         must_mention=[],
         max_length=4000,
@@ -483,7 +484,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_11",
         name="Coastal road trip",
-        input="I want to drive the Mediterranean coast from Algiers to Annaba over 5 days. Plan my stops with beaches, food, and where to sleep each night.",
+        input="I want to drive the Mediterranean coast from Algiers to Annaba over 5 days. Plan my stops with beaches, food, and where to sleep each night.",  # noqa: E501
         expected_tools=["get_transport_route", "search_pois", "search_stays"],
         must_mention=["Algiers", "Annaba"],
         max_length=4000,
@@ -493,7 +494,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_12",
         name="Historical tour",
-        input="Plan a historical tour of Algeria — I want to see Roman ruins, Ottoman sites, and colonial architecture. Give me a 7-day itinerary.",
+        input="Plan a historical tour of Algeria — I want to see Roman ruins, Ottoman sites, and colonial architecture. Give me a 7-day itinerary.",  # noqa: E501
         expected_tools=["search_pois", "get_wilaya_guide"],
         must_mention=[],
         max_length=5000,
@@ -503,7 +504,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_13",
         name="Budget backpacking",
-        input="I have a tight budget of 3000 DZD per day. I want to travel from Oran to Tlemcen, see the main sights, eat local food, and find cheap accommodation.",
+        input="I have a tight budget of 3000 DZD per day. I want to travel from Oran to Tlemcen, see the main sights, eat local food, and find cheap accommodation.",  # noqa: E501
         expected_tools=["get_transport_route", "search_pois", "search_stays"],
         must_mention=["Oran", "Tlemcen"],
         max_length=4000,
@@ -513,7 +514,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_14",
         name="Winter Sahara trip",
-        input="Is it a good idea to visit the Sahara in December? What's the weather like, and where should I stay in Djanet?",
+        input="Is it a good idea to visit the Sahara in December? What's the weather like, and where should I stay in Djanet?",  # noqa: E501
         expected_tools=["get_weather", "search_stays", "get_wilaya_guide"],
         must_mention=["Djanet"],
         max_length=3000,
@@ -523,7 +524,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_15",
         name="Photography tour",
-        input="I'm a photographer and want to capture Algeria's most photogenic spots. Plan a 10-day trip focusing on landscapes, architecture, and street photography.",
+        input="I'm a photographer and want to capture Algeria's most photogenic spots. Plan a 10-day trip focusing on landscapes, architecture, and street photography.",  # noqa: E501
         expected_tools=["search_pois", "get_wilaya_guide"],
         must_mention=[],
         max_length=5000,
@@ -552,7 +553,7 @@ GOLDEN_SET: list[EvalCase] = [
     EvalCase(
         id="hard_16",
         name="Wedding venue planning",
-        input="I'm getting married in Tlemcen. Can you find traditional venues, nearby hotels for guests, and artisan shops for decorations?",
+        input="I'm getting married in Tlemcen. Can you find traditional venues, nearby hotels for guests, and artisan shops for decorations?",  # noqa: E501
         expected_tools=["search_pois", "search_stays", "search_artisans"],
         must_mention=["Tlemcen"],
         max_length=4000,
@@ -566,6 +567,7 @@ QUICK_SET = GOLDEN_SET[:5]
 
 # ── Scoring ──
 
+
 def score_response(case: EvalCase, output: str, tools_called: list[str]) -> EvalResult:
     """Score a single agent response against the eval case criteria."""
     duration_ms = 0.0
@@ -575,7 +577,8 @@ def score_response(case: EvalCase, output: str, tools_called: list[str]) -> Eval
     tools_correct = True
     if case.expected_tools:
         tools_correct = all(
-            t in tools_called or any(
+            t in tools_called
+            or any(
                 tools_called_item in _TOOL_EQUIVALENCE.get(t, set())
                 for tools_called_item in tools_called
             )
@@ -633,16 +636,15 @@ def generate_report(results: list[EvalResult]) -> EvalReport:
     tools_with_cases = [r for r in results if r.tools_called]
     tool_accuracy = (
         sum(1 for r in tools_with_cases if r.tools_correct) / len(tools_with_cases)
-        if tools_with_cases else 0.0
+        if tools_with_cases
+        else 0.0
     )
 
     by_category: dict[str, dict] = {}
     by_difficulty: dict[str, dict] = {}
 
     # We need the original cases to group — store case metadata during eval
-    for r in results:
-        cat = r.output_preview[:20] if not hasattr(r, 'category') else getattr(r, 'category', 'unknown')
-        # This is simplified; real implementation would track case metadata
+    # (simplified: category extraction is intentionally left for a later pass)
 
     return EvalReport(
         total=total,
@@ -659,6 +661,7 @@ def generate_report(results: list[EvalResult]) -> EvalReport:
 
 # ── CLI runner ──
 
+
 async def run_eval(agent=None, cases: list[EvalCase] | None = None, deps=None):
     """Run eval against an agent. Returns EvalReport."""
     if cases is None:
@@ -668,7 +671,6 @@ async def run_eval(agent=None, cases: list[EvalCase] | None = None, deps=None):
         logger.warning("No agent provided — returning empty report")
         return EvalReport()
 
-    from app.agents.observability import trace_store
     from app.agents.resilience import tool_call_names
 
     results: list[EvalResult] = []
@@ -688,14 +690,16 @@ async def run_eval(agent=None, cases: list[EvalCase] | None = None, deps=None):
 
         except Exception as e:
             duration = (time.time() - start) * 1000
-            results.append(EvalResult(
-                case_id=case.id,
-                case_name=case.name,
-                passed=False,
-                score=0.0,
-                duration_ms=round(duration, 1),
-                error=str(e)[:500],
-            ))
+            results.append(
+                EvalResult(
+                    case_id=case.id,
+                    case_name=case.name,
+                    passed=False,
+                    score=0.0,
+                    duration_ms=round(duration, 1),
+                    error=str(e)[:500],
+                )
+            )
 
     report = generate_report(results)
     return report
@@ -724,7 +728,6 @@ def format_report(report: EvalReport) -> str:
 
 
 if __name__ == "__main__":
-    import asyncio
     import argparse
 
     parser = argparse.ArgumentParser(description="Run agent eval suite")

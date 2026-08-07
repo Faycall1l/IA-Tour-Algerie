@@ -1,4 +1,4 @@
-from sqlalchemy import Boolean, Float, ForeignKey, Integer, String
+from sqlalchemy import Boolean, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import JSON
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -16,9 +16,7 @@ class TransportOperator(UUIDPkMixin, TimestampMixin, Base):
     phone: Mapped[str | None] = mapped_column(String(30))
     website: Mapped[str | None] = mapped_column(String(300))
     email: Mapped[str | None] = mapped_column(String(200))
-    headquarters_wilaya_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("wilayas.id")
-    )
+    headquarters_wilaya_id: Mapped[int | None] = mapped_column(Integer, ForeignKey("wilayas.id"))
     description: Mapped[str | None] = mapped_column(String(500))
     coverage_type: Mapped[str | None] = mapped_column(String(30))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)

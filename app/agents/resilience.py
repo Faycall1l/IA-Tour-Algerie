@@ -231,9 +231,7 @@ async def run_agent_safely(
         cb.record_failure()
         trace.finish(success=False, error=f"Agent {agent_name} timed out after {timeout}s")
         trace_store.record(trace)
-        raise AgentUnavailable(
-            f"Agent {agent_name} timed out after {timeout}s. Please try again."
-        )
+        raise AgentUnavailable(f"Agent {agent_name} timed out after {timeout}s. Please try again.")
     except AgentUnavailable:
         raise
     except Exception as e:

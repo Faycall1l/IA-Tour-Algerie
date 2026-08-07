@@ -57,7 +57,9 @@ class TransportRoute:
         return max(dist_cost, FLAT_COST["plane"])
 
     def estimate_ferry_cost(self) -> float | None:
-        if not self.origin_wilaya_id == 16 and not (self.origin_wilaya_id == 31 or self.dest_wilaya_id in (16, 31)):
+        if self.origin_wilaya_id != 16 and not (
+            self.origin_wilaya_id == 31 or self.dest_wilaya_id in (16, 31)
+        ):
             return None
         dist_cost = round(self.driving_distance_km * DZD_PER_KM["ferry"], -2)
         return max(dist_cost, FLAT_COST["ferry"])

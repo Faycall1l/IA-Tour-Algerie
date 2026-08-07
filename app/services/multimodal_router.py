@@ -10,6 +10,7 @@ Combines:
 3. TransportOperator for real contacts
 4. TransitGraph Dijkstra for intra-city station-to-station routing
 """
+
 import math
 from collections import defaultdict
 from dataclasses import dataclass, field
@@ -21,11 +22,14 @@ from app.services.transit_routing import TransitGraph
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):
-    R = 6371
+    earth_radius_km = 6371
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
-    a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
-    return R * 2 * math.asin(math.sqrt(a))
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    )
+    return earth_radius_km * 2 * math.asin(math.sqrt(a))
 
 
 @dataclass
@@ -54,6 +58,7 @@ class RouteOption:
 @dataclass
 class Segment:
     """One leg of a multi-hop route."""
+
     mode: str
     line_name: str
     operator: str
@@ -85,12 +90,15 @@ class MultiModalRouter:
 
         try:
             # Load operators
-            rows = await db.execute(text("SELECT name, mode, phone, website, email FROM transport_operators"))
+            rows = await db.execute(
+                text("SELECT name, mode, phone, website, email FROM transport_operators")
+            )
             self._operators = [dict(r._mapping) for r in rows]
 
             # Load ALL transport lines with multi-wilaya coverage
             # Excludes walking (pedestrian lines shouldn't cross wilaya boundaries)
-            rows = await db.execute(text("""
+            rows = await db.execute(
+                text("""
                 SELECT tl.id, tl.name, tl.operator, tl.mode, tl.schedule_info, tl.pricing_info,
                        array_agg(DISTINCT s.wilaya_id) as wilayas
                 FROM transport_lines tl
@@ -99,7 +107,8 @@ class MultiModalRouter:
                 WHERE tl.mode != 'walking'
                 GROUP BY tl.id, tl.name, tl.operator, tl.mode, tl.schedule_info, tl.pricing_info
                 HAVING COUNT(DISTINCT s.wilaya_id) >= 2
-            """))
+            """)
+            )
             for r in rows:
                 d = dict(r._mapping)
                 wilayas = d["wilayas"] or []
@@ -107,9 +116,12 @@ class MultiModalRouter:
                     continue
                 mode = d["mode"]
                 line_record = {
-                    "id": d["id"], "name": d["name"], "operator": d["operator"],
+                    "id": d["id"],
+                    "name": d["name"],
+                    "operator": d["operator"],
                     "mode": mode,
-                    "schedule_info": d["schedule_info"], "pricing_info": d["pricing_info"],
+                    "schedule_info": d["schedule_info"],
+                    "pricing_info": d["pricing_info"],
                     "wilayas": wilayas,
                 }
                 if mode == "train":
@@ -139,7 +151,11 @@ class MultiModalRouter:
             schedule = line["schedule_info"]
             pricing = line["pricing_info"]
             mode = line["mode"]
-            duration = int(schedule["travel_time_h"] * 60) if schedule and "travel_time_h" in schedule else None
+            duration = (
+                int(schedule["travel_time_h"] * 60)
+                if schedule and "travel_time_h" in schedule
+                else None
+            )
 
             # Determine cost based on mode
             cost = None
@@ -155,18 +171,30 @@ class MultiModalRouter:
 
             # Create segment for every pair of wilayas this line serves
             for i, w1 in enumerate(wilayas):
-                for w2 in wilayas[i + 1:]:
+                for w2 in wilayas[i + 1 :]:
                     seg = Segment(
-                        mode=mode, line_name=line["name"], operator=line["operator"],
-                        orig_wilaya=w1, dest_wilaya=w2, cost_dzd=cost,
-                        duration_min=duration, schedule=schedule, pricing=pricing,
+                        mode=mode,
+                        line_name=line["name"],
+                        operator=line["operator"],
+                        orig_wilaya=w1,
+                        dest_wilaya=w2,
+                        cost_dzd=cost,
+                        duration_min=duration,
+                        schedule=schedule,
+                        pricing=pricing,
                     )
                     self._adj[w1][w2].append(seg)
                     # Reverse direction
                     rev = Segment(
-                        mode=mode, line_name=line["name"], operator=line["operator"],
-                        orig_wilaya=w2, dest_wilaya=w1, cost_dzd=cost,
-                        duration_min=duration, schedule=schedule, pricing=pricing,
+                        mode=mode,
+                        line_name=line["name"],
+                        operator=line["operator"],
+                        orig_wilaya=w2,
+                        dest_wilaya=w1,
+                        cost_dzd=cost,
+                        duration_min=duration,
+                        schedule=schedule,
+                        pricing=pricing,
                     )
                     self._adj[w2][w1].append(rev)
 
@@ -178,9 +206,15 @@ class MultiModalRouter:
 
     def _get_operator_contacts(self, mode: str) -> list[OperatorContact]:
         return [
-            OperatorContact(name=o["name"], mode=o["mode"], phone=o["phone"],
-                          website=o["website"], email=o["email"])
-            for o in self._operators if o["mode"] == mode
+            OperatorContact(
+                name=o["name"],
+                mode=o["mode"],
+                phone=o["phone"],
+                website=o["website"],
+                email=o["email"],
+            )
+            for o in self._operators
+            if o["mode"] == mode
         ]
 
     async def get_inter_wilaya_options(
@@ -192,9 +226,15 @@ class MultiModalRouter:
             return []
 
         # Get driving data
-        a, b = (origin_wilaya_id, dest_wilaya_id) if origin_wilaya_id < dest_wilaya_id else (dest_wilaya_id, origin_wilaya_id)
+        a, b = (
+            (origin_wilaya_id, dest_wilaya_id)
+            if origin_wilaya_id < dest_wilaya_id
+            else (dest_wilaya_id, origin_wilaya_id)
+        )
         result = await db.execute(
-            text("SELECT * FROM wilaya_distances WHERE origin_wilaya_id = :a AND dest_wilaya_id = :b"),
+            text(
+                "SELECT * FROM wilaya_distances WHERE origin_wilaya_id = :a AND dest_wilaya_id = :b"
+            ),
             {"a": a, "b": b},
         )
         wd = result.mappings().first()
@@ -208,12 +248,20 @@ class MultiModalRouter:
             bus_cost = round(dist_km * 6.0, -1)
             shared_taxi = round(dist_km * 10.0 / 4, -1)
             private_taxi = round(dist_km * 20.0, -1)
-            options.append(RouteOption(
-                mode="driving", cost_dzd=private_taxi, duration_min=drive_min,
-                schedule={"type": "road", "road_class": wd.get("road_classification")},
-                pricing={"bus": bus_cost, "shared_taxi_per_person": shared_taxi, "private_taxi": private_taxi},
-                contacts=self._get_operator_contacts("taxi"),
-            ))
+            options.append(
+                RouteOption(
+                    mode="driving",
+                    cost_dzd=private_taxi,
+                    duration_min=drive_min,
+                    schedule={"type": "road", "road_class": wd.get("road_classification")},
+                    pricing={
+                        "bus": bus_cost,
+                        "shared_taxi_per_person": shared_taxi,
+                        "private_taxi": private_taxi,
+                    },
+                    contacts=self._get_operator_contacts("taxi"),
+                )
+            )
 
         # ── Direct connections (0 transfers) ──
         direct_segs = self._adj.get(origin_wilaya_id, {}).get(dest_wilaya_id, [])
@@ -229,7 +277,7 @@ class MultiModalRouter:
         best_1hop: dict[str, RouteOption] = {}  # key: "mode_combo" → best option
 
         for hub in top_hubs:
-            if hub == origin_wilaya_id or hub == dest_wilaya_id:
+            if hub in (origin_wilaya_id, dest_wilaya_id):
                 continue
             segs1 = self._adj.get(origin_wilaya_id, {}).get(hub, [])
             segs2 = self._adj.get(hub, {}).get(dest_wilaya_id, [])
@@ -245,13 +293,17 @@ class MultiModalRouter:
                     if existing is None or total_dur < (existing.duration_min or float("inf")):
                         best_1hop[key] = RouteOption(
                             mode=f"{s1.mode}+{s2.mode}",
-                            line_name=f"{s1.line_name} → transfer ({self._wilaya_name(hub)}) → {s2.line_name}",
+                            line_name=f"{s1.line_name} → transfer ({self._wilaya_name(hub)}) → {s2.line_name}",  # noqa: E501
                             operator=f"{s1.operator}+{s2.operator}",
                             cost_dzd=total_cost if total_cost > 0 else None,
                             duration_min=total_dur,
                             transfers=1,
-                            schedule={"type": "1_hop", "hub_wilaya": hub,
-                                     "seg1": s1.schedule, "seg2": s2.schedule},
+                            schedule={
+                                "type": "1_hop",
+                                "hub_wilaya": hub,
+                                "seg1": s1.schedule,
+                                "seg2": s2.schedule,
+                            },
                             pricing={"total": total_cost, "seg1": s1.cost_dzd, "seg2": s2.cost_dzd},
                             contacts=self._get_operator_contacts(s1.mode),
                         )
@@ -271,13 +323,13 @@ class MultiModalRouter:
         best: RouteOption | None = None
         # Only try top 8 hubs to keep complexity manageable
         for h1 in hubs[:8]:
-            if h1 == orig or h1 == dest:
+            if h1 in (orig, dest):
                 continue
             segs_a = self._adj.get(orig, {}).get(h1, [])
             if not segs_a:
                 continue
             for h2 in hubs[:8]:
-                if h2 == orig or h2 == dest or h2 == h1:
+                if h2 in (orig, dest, h1):
                     continue
                 segs_b = self._adj.get(h1, {}).get(h2, [])
                 segs_c = self._adj.get(h2, {}).get(dest, [])
@@ -287,12 +339,21 @@ class MultiModalRouter:
                 for sa in segs_a:
                     for sb in segs_b:
                         for sc in segs_c:
-                            total_dur = (sa.duration_min or 120) + (sb.duration_min or 120) + (sc.duration_min or 120) + 120
-                            total_cost = (sa.cost_dzd or 0) + (sb.cost_dzd or 0) + (sc.cost_dzd or 0)
+                            total_dur = (
+                                (sa.duration_min or 120)
+                                + (sb.duration_min or 120)
+                                + (sc.duration_min or 120)
+                                + 120
+                            )
+                            total_cost = (
+                                (sa.cost_dzd or 0) + (sb.cost_dzd or 0) + (sc.cost_dzd or 0)
+                            )
                             candidate = RouteOption(
                                 mode=f"{sa.mode}+{sb.mode}+{sc.mode}",
-                                line_name=(f"{sa.line_name} → {self._wilaya_name(h1)} → "
-                                          f"{sb.line_name} → {self._wilaya_name(h2)} → {sc.line_name}"),
+                                line_name=(
+                                    f"{sa.line_name} → {self._wilaya_name(h1)} → "
+                                    f"{sb.line_name} → {self._wilaya_name(h2)} → {sc.line_name}"
+                                ),
                                 cost_dzd=total_cost if total_cost > 0 else None,
                                 duration_min=total_dur,
                                 transfers=2,
@@ -305,38 +366,96 @@ class MultiModalRouter:
 
     def _seg_to_option(self, seg: Segment, transfers: int = 0) -> RouteOption:
         return RouteOption(
-            mode=seg.mode, line_name=seg.line_name, operator=seg.operator,
-            cost_dzd=seg.cost_dzd, duration_min=seg.duration_min,
-            schedule=seg.schedule, pricing=seg.pricing,
+            mode=seg.mode,
+            line_name=seg.line_name,
+            operator=seg.operator,
+            cost_dzd=seg.cost_dzd,
+            duration_min=seg.duration_min,
+            schedule=seg.schedule,
+            pricing=seg.pricing,
             contacts=self._get_operator_contacts(seg.mode),
             transfers=transfers,
         )
 
     def _wilaya_name(self, wid: int) -> str:
-        names = {1: "Adrar", 2: "Chlef", 3: "Laghouat", 4: "Oum El Bouaghi",
-                 5: "Batna", 6: "Béjaïa", 7: "Biskra", 8: "Béchar",
-                 9: "Blida", 10: "Bouira", 11: "Tamanrasset", 12: "Tébessa",
-                 13: "Tlemcen", 14: "Tiaret", 15: "Tizi Ouzou", 16: "Alger",
-                 17: "Djelfa", 18: "Jijel", 19: "Sétif", 20: "Saïda",
-                 21: "Skikda", 22: "Sidi Bel Abbès", 23: "Annaba", 24: "Guelma",
-                 25: "Constantine", 26: "Médéa", 27: "Mostaganem", 28: "M'sila",
-                 29: "Mascara", 30: "Ouargla", 31: "Oran", 32: "El Bayadh",
-                 33: "Illizi", 34: "Bordj Bou Arréridj", 35: "Boumerdès",
-                 36: "El Tarf", 37: "Tindouf", 38: "Tissemsilt", 39: "El Oued",
-                 40: "Khenchela", 41: "Souk Ahras", 42: "Tipaza", 43: "Mila",
-                 44: "Aïn Defla", 45: "Naâma", 46: "Aïn Témouchent",
-                 47: "Ghardaïa", 48: "Relizane", 49: "Timimoun",
-                 50: "Béni Abbès", 51: "Aïn Salah", 52: "Aïn Guezzam",
-                 53: "Touggourt", 54: "Djanet", 55: "El M'Ghair",
-                 56: "El Meniaa", 57: "Ouled Djellal",
-                 58: "Bordj Badji Mokhtar", 59: "Timimoun", 60: "Béni Abbès",
-                 61: "Tlemcen", 62: "Biskra", 63: "Tébessa", 64: "M'sila",
-                 65: "Blida", 66: "Bouira", 67: "Médéa", 68: "Djelfa"}
+        names = {
+            1: "Adrar",
+            2: "Chlef",
+            3: "Laghouat",
+            4: "Oum El Bouaghi",
+            5: "Batna",
+            6: "Béjaïa",
+            7: "Biskra",
+            8: "Béchar",
+            9: "Blida",
+            10: "Bouira",
+            11: "Tamanrasset",
+            12: "Tébessa",
+            13: "Tlemcen",
+            14: "Tiaret",
+            15: "Tizi Ouzou",
+            16: "Alger",
+            17: "Djelfa",
+            18: "Jijel",
+            19: "Sétif",
+            20: "Saïda",
+            21: "Skikda",
+            22: "Sidi Bel Abbès",
+            23: "Annaba",
+            24: "Guelma",
+            25: "Constantine",
+            26: "Médéa",
+            27: "Mostaganem",
+            28: "M'sila",
+            29: "Mascara",
+            30: "Ouargla",
+            31: "Oran",
+            32: "El Bayadh",
+            33: "Illizi",
+            34: "Bordj Bou Arréridj",
+            35: "Boumerdès",
+            36: "El Tarf",
+            37: "Tindouf",
+            38: "Tissemsilt",
+            39: "El Oued",
+            40: "Khenchela",
+            41: "Souk Ahras",
+            42: "Tipaza",
+            43: "Mila",
+            44: "Aïn Defla",
+            45: "Naâma",
+            46: "Aïn Témouchent",
+            47: "Ghardaïa",
+            48: "Relizane",
+            49: "Timimoun",
+            50: "Béni Abbès",
+            51: "Aïn Salah",
+            52: "Aïn Guezzam",
+            53: "Touggourt",
+            54: "Djanet",
+            55: "El M'Ghair",
+            56: "El Meniaa",
+            57: "Ouled Djellal",
+            58: "Bordj Badji Mokhtar",
+            59: "Timimoun",
+            60: "Béni Abbès",
+            61: "Tlemcen",
+            62: "Biskra",
+            63: "Tébessa",
+            64: "M'sila",
+            65: "Blida",
+            66: "Bouira",
+            67: "Médéa",
+            68: "Djelfa",
+        }
         return names.get(wid, f"Wilaya {wid}")
 
     def find_intra_city_route(
-        self, from_lat: float, from_lng: float,
-        to_lat: float, to_lng: float,
+        self,
+        from_lat: float,
+        from_lng: float,
+        to_lat: float,
+        to_lng: float,
     ):
         """Find intra-city route via TransitGraph Dijkstra."""
         from_stations = self._graph.nearest_stations(from_lat, from_lng, limit=3)
@@ -346,7 +465,11 @@ class MultiModalRouter:
         for fs, _ in from_stations:
             for ts, _ in to_stations:
                 route = self._graph.find_route(fs.id, ts.id)
-                if route and route.total_estimated_minutes and route.total_estimated_minutes < best_cost:
+                if (
+                    route
+                    and route.total_estimated_minutes
+                    and route.total_estimated_minutes < best_cost
+                ):
                     best = route
                     best_cost = route.total_estimated_minutes
         return best

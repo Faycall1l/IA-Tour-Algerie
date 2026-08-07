@@ -18,7 +18,7 @@ router = APIRouter(prefix="/stays", tags=["Stays"])
     response_model=StayRead,
     status_code=201,
     summary="Create a stay",
-    description="List accommodation on the platform. Requires the authenticated user to have the hotel, agency, or admin role.",
+    description="List accommodation on the platform. Requires the authenticated user to have the hotel, agency, or admin role.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Only hotels and agencies can list stays"},
@@ -46,7 +46,7 @@ async def create_stay(
     "",
     response_model=StayFeed,
     summary="List stays",
-    description="Paginated active stays filtered by wilaya, property type, and price range (DZD). Responses include provider name/avatar.",
+    description="Paginated active stays filtered by wilaya, property type, and price range (DZD). Responses include provider name/avatar.",  # noqa: E501
     responses={422: {"description": "Validation error"}},
 )
 async def list_stays(
@@ -131,8 +131,9 @@ async def get_stay(
     read.provider_avatar = user.avatar_url if user else None
 
     if current_user:
-        from app.models.favorite import Favorite
         from sqlalchemy import select
+
+        from app.models.favorite import Favorite
 
         fav = await db.execute(
             select(Favorite).where(

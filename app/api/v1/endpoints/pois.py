@@ -6,7 +6,13 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_current_user_optional, get_db, get_provider_or_admin, get_storage, get_vector_search
+from app.api.deps import (
+    get_current_user_optional,
+    get_db,
+    get_provider_or_admin,
+    get_storage,
+    get_vector_search,
+)
 from app.core.exceptions import NotFoundException
 from app.models.poi import POI
 from app.models.user import User
@@ -24,7 +30,7 @@ router = APIRouter(prefix="/pois", tags=["Points of Interest"])
     response_model=POIRead,
     status_code=201,
     summary="Create a point of interest",
-    description="Add a new POI (requires provider or admin role). Wilaya must exist; the POI is immediately indexed for vector search.",
+    description="Add a new POI (requires provider or admin role). Wilaya must exist; the POI is immediately indexed for vector search.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Provider or admin role required"},
@@ -56,7 +62,7 @@ async def create_poi(
     "/{poi_id}/photo",
     response_model=POIRead,
     summary="Upload a POI photo",
-    description="Upload an image (JPEG/PNG/WebP, magic-byte validated) to MinIO and set it as the POI's primary photo. Requires provider or admin role.",
+    description="Upload an image (JPEG/PNG/WebP, magic-byte validated) to MinIO and set it as the POI's primary photo. Requires provider or admin role.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Provider or admin role required"},
@@ -93,10 +99,15 @@ async def list_neighborhoods(
     wilaya_id: int | None = Query(None),
     db: AsyncSession = Depends(get_db),
 ):
-    query = select(POI.neighborhood).where(
-        POI.neighborhood.isnot(None),
-        POI.neighborhood != "",
-    ).distinct().order_by(POI.neighborhood)
+    query = (
+        select(POI.neighborhood)
+        .where(
+            POI.neighborhood.isnot(None),
+            POI.neighborhood != "",
+        )
+        .distinct()
+        .order_by(POI.neighborhood)
+    )
 
     if wilaya_id:
         query = query.where(POI.wilaya_id == wilaya_id)
@@ -109,7 +120,7 @@ async def list_neighborhoods(
     "",
     response_model=POIFeed,
     summary="List points of interest",
-    description="Paginated POI listing with filters: wilaya, category, neighborhood (substring), name/description search, and sort (name or created_at).",
+    description="Paginated POI listing with filters: wilaya, category, neighborhood (substring), name/description search, and sort (name or created_at).",  # noqa: E501
     responses={422: {"description": "Validation error"}},
 )
 async def list_pois(
@@ -166,7 +177,7 @@ async def list_pois(
     "/nearby",
     response_model=list[POIBrief],
     summary="Nearby POIs",
-    description="POIs within a radius of a lat/lng point, sorted by distance. Optionally filtered by category. Results include distance_km.",
+    description="POIs within a radius of a lat/lng point, sorted by distance. Optionally filtered by category. Results include distance_km.",  # noqa: E501
     responses={422: {"description": "Invalid coordinates or radius"}},
 )
 async def nearby_pois(
@@ -181,9 +192,15 @@ async def nearby_pois(
 
     deg = radius_km / 111.0
     query = select(
-        POI.id, POI.name, POI.category, POI.subtype,
-        POI.wilaya_id, POI.latitude, POI.longitude,
-        POI.photo_url, POI.is_featured,
+        POI.id,
+        POI.name,
+        POI.category,
+        POI.subtype,
+        POI.wilaya_id,
+        POI.latitude,
+        POI.longitude,
+        POI.photo_url,
+        POI.is_featured,
     ).where(
         POI.latitude.isnot(None),
         POI.longitude.isnot(None),
@@ -197,11 +214,14 @@ async def nearby_pois(
     rows = result.all()
 
     def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
-        R = 6371.0
+        earth_radius_km = 6371.0
         dlat = math.radians(lat2 - lat1)
         dlng = math.radians(lng2 - lng1)
-        a = math.sin(dlat / 2) ** 2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng / 2) ** 2
-        return R * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+        a = (
+            math.sin(dlat / 2) ** 2
+            + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng / 2) ** 2
+        )
+        return earth_radius_km * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
     items = []
     for r in rows:
@@ -212,10 +232,15 @@ async def nearby_pois(
     items.sort(key=lambda x: x[0])
     return [
         POIBrief(
-            id=r.id, name=r.name, category=r.category, subtype=r.subtype,
-            wilaya_id=r.wilaya_id, latitude=float(r.latitude) if r.latitude else None,
+            id=r.id,
+            name=r.name,
+            category=r.category,
+            subtype=r.subtype,
+            wilaya_id=r.wilaya_id,
+            latitude=float(r.latitude) if r.latitude else None,
             longitude=float(r.longitude) if r.longitude else None,
-            photo_url=r.photo_url, is_featured=r.is_featured,
+            photo_url=r.photo_url,
+            is_featured=r.is_featured,
             distance_km=round(dist, 2),
         )
         for dist, r in items[:limit]
@@ -283,7 +308,7 @@ async def search_pois(
     "/{poi_id}",
     response_model=POIRead,
     summary="Get a point of interest",
-    description="Full POI detail including TripAdvisor-style fields (ranking, price_level, suggested_duration_min, fun_fact). With auth, also returns is_favorited.",
+    description="Full POI detail including TripAdvisor-style fields (ranking, price_level, suggested_duration_min, fun_fact). With auth, also returns is_favorited.",  # noqa: E501
     responses={
         404: {"description": "POI not found"},
         422: {"description": "Invalid UUID"},
@@ -302,6 +327,7 @@ async def get_poi(
 
     if current_user:
         from app.models.favorite import Favorite
+
         fav = await db.execute(
             select(Favorite).where(
                 Favorite.user_id == current_user.id,
@@ -318,7 +344,7 @@ async def get_poi(
     "/{poi_id}",
     response_model=POIRead,
     summary="Update a point of interest",
-    description="Partial update of POI fields (provider or admin role). Re-indexes the POI in Qdrant after changes.",
+    description="Partial update of POI fields (provider or admin role). Re-indexes the POI in Qdrant after changes.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Provider or admin role required"},
@@ -354,7 +380,7 @@ async def update_poi(
     "/{poi_id}/similar",
     response_model=list[POIBrief],
     summary="Similar POIs",
-    description="POIs in the same wilaya and category as the reference POI, filling from the same wilaya when needed.",
+    description="POIs in the same wilaya and category as the reference POI, filling from the same wilaya when needed.",  # noqa: E501
     responses={
         404: {"description": "POI not found"},
         422: {"description": "Invalid UUID"},
@@ -370,36 +396,56 @@ async def similar_pois(
         raise NotFoundException(message="Point of interest not found")
 
     cols = [
-        POI.id, POI.name, POI.category, POI.subtype, POI.wilaya_id,
-        POI.latitude, POI.longitude, POI.photo_url, POI.is_featured,
+        POI.id,
+        POI.name,
+        POI.category,
+        POI.subtype,
+        POI.wilaya_id,
+        POI.latitude,
+        POI.longitude,
+        POI.photo_url,
+        POI.is_featured,
     ]
     # Same category + wilaya first, same wilaya only second
-    query = select(*cols).where(
-        POI.id != poi_id,
-        POI.latitude.isnot(None),
-        POI.longitude.isnot(None),
-        POI.category.in_([poi.category, "other"]),
-        POI.wilaya_id == poi.wilaya_id,
-    ).limit(limit)
+    query = (
+        select(*cols)
+        .where(
+            POI.id != poi_id,
+            POI.latitude.isnot(None),
+            POI.longitude.isnot(None),
+            POI.category.in_([poi.category, "other"]),
+            POI.wilaya_id == poi.wilaya_id,
+        )
+        .limit(limit)
+    )
 
     result = await db.execute(query)
     rows = result.all()
 
     if len(rows) < limit:
         existing_ids = [r[0] for r in rows] + [poi_id]
-        query2 = select(*cols).where(
-            POI.id.notin_(existing_ids),
-            POI.wilaya_id == poi.wilaya_id,
-        ).limit(limit - len(rows))
+        query2 = (
+            select(*cols)
+            .where(
+                POI.id.notin_(existing_ids),
+                POI.wilaya_id == poi.wilaya_id,
+            )
+            .limit(limit - len(rows))
+        )
         result2 = await db.execute(query2)
         rows.extend(result2.all())
 
     return [
         POIBrief(
-            id=r[0], name=r[1], category=r[2], subtype=r[3],
-            wilaya_id=r[4], latitude=float(r[5]) if r[5] else None,
+            id=r[0],
+            name=r[1],
+            category=r[2],
+            subtype=r[3],
+            wilaya_id=r[4],
+            latitude=float(r[5]) if r[5] else None,
             longitude=float(r[6]) if r[6] else None,
-            photo_url=r[7], is_featured=r[8],
+            photo_url=r[7],
+            is_featured=r[8],
         )
         for r in rows
     ]
@@ -409,7 +455,7 @@ async def similar_pois(
     "/{poi_id}",
     status_code=204,
     summary="Delete a point of interest",
-    description="Permanently delete a POI (provider or admin role). Removes it from the Qdrant index.",
+    description="Permanently delete a POI (provider or admin role). Removes it from the Qdrant index.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Provider or admin role required"},
@@ -456,7 +502,12 @@ async def optimize_poi_tour(
     cat_list = [c.strip() for c in categories.split(",")] if categories else None
     service = POIGraphService()
     result = await service.optimize_tour(
-        db, wilaya_id, budget_hours, cat_list, max_pois, start_poi_id,
+        db,
+        wilaya_id,
+        budget_hours,
+        cat_list,
+        max_pois,
+        start_poi_id,
     )
     if not result:
         return {"message": "No POIs found for this wilaya", "stops": []}
@@ -489,7 +540,7 @@ async def optimize_poi_tour(
 @router.get(
     "/tour/clusters",
     summary="POI clusters",
-    description="Density-based clustering of a wilaya's POIs by walking radius. Returns walkable clusters with their centers and representative POIs.",
+    description="Density-based clustering of a wilaya's POIs by walking radius. Returns walkable clusters with their centers and representative POIs.",  # noqa: E501
     responses={
         422: {"description": "wilaya_id required (1-69); radius 200-5000m"},
         200: {"description": "List of clusters (max 10)"},
@@ -515,10 +566,7 @@ async def poi_clusters(
                 "center_lon": round(c.center_lon, 4),
                 "radius_m": round(c.radius_m, 0),
                 "walkable": c.walkable,
-                "pois": [
-                    {"id": p.id, "name": p.name, "category": p.category}
-                    for p in c.pois[:5]
-                ],
+                "pois": [{"id": p.id, "name": p.name, "category": p.category} for p in c.pois[:5]],
             }
             for c in clusters[:10]
         ],
@@ -528,7 +576,7 @@ async def poi_clusters(
 @router.get(
     "/tour/hubs",
     summary="Hub POIs",
-    description="Top POIs by transit connectivity within a wilaya — the best starting points for public-transport exploration.",
+    description="Top POIs by transit connectivity within a wilaya — the best starting points for public-transport exploration.",  # noqa: E501
     responses={
         422: {"description": "wilaya_id required (1-69); top_n 3-30"},
         200: {"description": "Ranked hub POIs"},

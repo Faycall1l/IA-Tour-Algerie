@@ -124,7 +124,7 @@ class VectorSearchService:
                     "has_name": has_real_name(p.name),
                 },
             )
-            for p, vec in zip(pois, vectors)
+            for p, vec in zip(pois, vectors, strict=True)
         ]
         for i in range(0, len(points), batch_size):
             self.client.upsert(
@@ -221,7 +221,7 @@ class VectorSearchService:
                     "status": e.status,
                 },
             )
-            for e, vec in zip(experiences, vectors)
+            for e, vec in zip(experiences, vectors, strict=True)
         ]
         for i in range(0, len(points), batch_size):
             self.client.upsert(

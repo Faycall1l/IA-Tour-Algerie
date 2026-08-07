@@ -8,7 +8,6 @@ Three memory tiers:
 Uses PostgreSQL via SQLAlchemy. Designed for PydanticAI message_history injection.
 """
 
-import json
 import logging
 from uuid import UUID
 
@@ -45,7 +44,7 @@ async def get_or_create_session(
             select(AgentSession).where(
                 AgentSession.id == session_id,
                 AgentSession.user_id == user_id,
-                AgentSession.is_active == True,
+                AgentSession.is_active.is_(True),
             )
         )
         session = result.scalar_one_or_none()
@@ -132,11 +131,17 @@ async def store_agent_run(
 ) -> None:
     """Store a complete user→assistant turn pair."""
     await store_episodic_turn(
-        db, session_id, "user", user_message,
+        db,
+        session_id,
+        "user",
+        user_message,
         turn_index=turn_index,
     )
     await store_episodic_turn(
-        db, session_id, "assistant", assistant_reply,
+        db,
+        session_id,
+        "assistant",
+        assistant_reply,
         turn_index=turn_index + 1,
         extra={"tool_calls": tool_calls} if tool_calls else {},
     )
@@ -218,9 +223,7 @@ async def recall(
         AgentMemory.memory_type == "semantic",
     )
     if key:
-        query = query.where(
-            AgentMemory.key.ilike(f"%{key}%")
-        )
+        query = query.where(AgentMemory.key.ilike(f"%{key}%"))
 
     result = await db.execute(query.order_by(AgentMemory.created_at.desc()))
     memories = result.scalars().all()
@@ -278,7 +281,7 @@ async def get_user_sessions(
         select(AgentSession)
         .where(
             AgentSession.user_id == user_id,
-            AgentSession.is_active == True,
+            AgentSession.is_active.is_(True),
         )
         .order_by(AgentSession.updated_at.desc())
         .limit(limit)

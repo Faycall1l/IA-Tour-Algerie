@@ -20,7 +20,7 @@ router = APIRouter(prefix="/events", tags=["Events"])
     "",
     response_model=EventFeed,
     summary="List events",
-    description="Paginated events/festivals calendar filtered by wilaya, category, and month (1-12). Public.",
+    description="Paginated events/festivals calendar filtered by wilaya, category, and month (1-12). Public.",  # noqa: E501
     responses={422: {"description": "Validation error"}},
 )
 async def list_events(
@@ -81,7 +81,7 @@ async def get_event(event_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     response_model=EventRead,
     status_code=201,
     summary="Create an event",
-    description="Add an event/festival to the calendar. Requires provider or admin role; the wilaya must exist.",
+    description="Add an event/festival to the calendar. Requires provider or admin role; the wilaya must exist.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "Provider or admin role required"},

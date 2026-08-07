@@ -1,7 +1,7 @@
 import logging
 import uuid
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -103,7 +103,7 @@ async def _build_trip_read(
     response_model=TripRead,
     status_code=201,
     summary="Create a trip",
-    description="Create a trip plan with title, wilaya, dates, and budget. Returns the full day-structured plan with cost/spend breakdown.",
+    description="Create a trip plan with title, wilaya, dates, and budget. Returns the full day-structured plan with cost/spend breakdown.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         422: {"description": "Validation error"},
@@ -127,7 +127,7 @@ async def create_trip(
     "",
     response_model=TripFeed,
     summary="List my trips",
-    description="Paginated trips for the authenticated user, optionally filtered by status (active/archived). Each trip includes day plans.",
+    description="Paginated trips for the authenticated user, optionally filtered by status (active/archived). Each trip includes day plans.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         422: {"description": "Validation error"},
@@ -177,7 +177,7 @@ async def list_trips(
     "/brief/{wilaya_id}",
     response_model=TripBrief,
     summary="Wilaya trip brief",
-    description="Generated travel brief for a wilaya: must-see POIs, suggested itinerary, budget guidance. Public.",
+    description="Generated travel brief for a wilaya: must-see POIs, suggested itinerary, budget guidance. Public.",  # noqa: E501
     responses={
         404: {"description": "Wilaya not found"},
         422: {"description": "Invalid wilaya_id"},
@@ -199,7 +199,7 @@ async def get_trip_brief(
     "/{trip_id}",
     response_model=TripRead,
     summary="Get a trip",
-    description="Trip detail with enriched day plans (item details, gaps detected, per-day distance and cost, budget remaining). Owner only.",
+    description="Trip detail with enriched day plans (item details, gaps detected, per-day distance and cost, budget remaining). Owner only.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         404: {"description": "Trip not found"},
@@ -279,7 +279,7 @@ async def delete_trip(
     response_model=TripRead,
     status_code=201,
     summary="Add a trip item",
-    description="Add a POI/experience/stay/restaurant/transport item to a day of the trip. POI items validate the POI exists. Auto-assigns the next sort order.",
+    description="Add a POI/experience/stay/restaurant/transport item to a day of the trip. POI items validate the POI exists. Auto-assigns the next sort order.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         404: {"description": "Trip or POI not found"},
@@ -397,7 +397,7 @@ async def delete_trip_item(
     "/{trip_id}/share",
     response_model=TripShareResponse,
     summary="Share a trip",
-    description="Generate (or reuse) an unguessable share token and a public share URL for the trip. Owner only.",
+    description="Generate (or reuse) an unguessable share token and a public share URL for the trip. Owner only.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         404: {"description": "Trip not found"},
@@ -414,12 +414,15 @@ async def share_trip(
 
     if not trip.share_token:
         import secrets
+
         trip.share_token = secrets.token_urlsafe(32)
         await db.commit()
         await db.refresh(trip)
 
     base_url = "https://athar.app/trip"
-    return TripShareResponse(share_token=trip.share_token, share_url=f"{base_url}/{trip.share_token}")
+    return TripShareResponse(
+        share_token=trip.share_token, share_url=f"{base_url}/{trip.share_token}"
+    )
 
 
 @router.get(
@@ -452,7 +455,7 @@ async def get_shared_trip(
     "/{trip_id}/optimize",
     response_model=TripRead,
     summary="Optimize a trip",
-    description="Reorder each day's items to minimize walking distance using the POI graph, then return the optimized trip. Owner only.",
+    description="Reorder each day's items to minimize walking distance using the POI graph, then return the optimized trip. Owner only.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         404: {"description": "Trip not found"},
@@ -494,6 +497,3 @@ async def optimize_trip(
     await db.commit()
 
     return await _build_trip_read(db, trip, optimizer)
-
-
-

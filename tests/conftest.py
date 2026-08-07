@@ -52,6 +52,7 @@ async def setup_database():
     # Seed base data needed by all tests (wilayas)
     async with test_async_session() as session:
         from app.models.wilaya import Wilaya
+
         wilayas = [
             (1, "أدرار", "Adrar", "Adrar"),
             (2, "الشلف", "Chlef", "Chlef"),
@@ -115,7 +116,9 @@ async def setup_database():
         for wid, ar, en, fr in wilayas:
             existing = await session.get(Wilaya, wid)
             if not existing:
-                session.add(Wilaya(id=wid, name_ar=ar, name_en=en, name_fr=fr, latitude=36.0, longitude=3.0))
+                session.add(
+                    Wilaya(id=wid, name_ar=ar, name_en=en, name_fr=fr, latitude=36.0, longitude=3.0)
+                )
         await session.commit()
     yield
     async with test_engine.begin() as conn:

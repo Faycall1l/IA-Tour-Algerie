@@ -7,9 +7,9 @@ from app.core.exceptions import ForbiddenException, UnauthorizedException
 from app.core.security import decode_token
 from app.db.session import get_db
 from app.models.user import User
+from app.services.poi_transit_router import PoiTransitRouter
 from app.services.storage import StorageService
 from app.services.transit_routing import TransitRoutingService
-from app.services.poi_transit_router import PoiTransitRouter
 from app.services.trip_optimizer import TripBriefGenerator, TripOptimizer
 from app.services.twilio import TwilioService
 from app.services.vector_search import VectorSearchService

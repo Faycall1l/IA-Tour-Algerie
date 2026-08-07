@@ -29,7 +29,9 @@ class Trip(UUIDPkMixin, TimestampMixin, Base):
     total_days: Mapped[int | None] = mapped_column(Integer, nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="active")
     total_budget_dzd: Mapped[float | None] = mapped_column(Float, nullable=True)
-    share_token: Mapped[str | None] = mapped_column(String(64), nullable=True, unique=True, index=True)
+    share_token: Mapped[str | None] = mapped_column(
+        String(64), nullable=True, unique=True, index=True
+    )
 
 
 class TripItem(UUIDPkMixin, TimestampMixin, Base):

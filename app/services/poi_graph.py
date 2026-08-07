@@ -17,20 +17,20 @@ import networkx as nx
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-
 WALK_SPEED_KMH = 4.5
 WALK_TRANSFER_PENALTY_MIN = 5
 DEFAULT_POI_DURATION_MIN = 90
 
 
 def _haversine_m(lat1, lon1, lat2, lon2):
-    R = 6_371_000
+    earth_radius_m = 6_371_000
     dlat = math.radians(lat2 - lat1)
     dlon = math.radians(lon2 - lon1)
-    a = (math.sin(dlat / 2) ** 2
-         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
-         * math.sin(dlon / 2) ** 2)
-    return R * 2 * math.asin(math.sqrt(a))
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2) ** 2
+    )
+    return earth_radius_m * 2 * math.asin(math.sqrt(a))
 
 
 def _haversine_km(lat1, lon1, lat2, lon2):
@@ -119,20 +119,27 @@ class POIGraphService:
         if self._loaded:
             return
 
-        rows = await db.execute(text("""
+        rows = await db.execute(
+            text("""
             SELECT id, name, category, subtype, wilaya_id, latitude, longitude,
                    suggested_duration_min, is_featured, fun_fact
             FROM pois
             WHERE latitude IS NOT NULL AND longitude IS NOT NULL
               AND wilaya_id IS NOT NULL
               AND (is_featured = true OR category IN ('historical', 'natural', 'cultural', 'religious', 'museum', 'park'))
-        """))
+        """)  # noqa: E501
+        )
 
         for r in rows:
             pid = str(r[0])
             node = POINode(
-                id=pid, name=r[1], category=r[2], subtype=r[3],
-                wilaya_id=r[4], lat=r[5], lon=r[6],
+                id=pid,
+                name=r[1],
+                category=r[2],
+                subtype=r[3],
+                wilaya_id=r[4],
+                lat=r[5],
+                lon=r[6],
                 duration_min=r[7] or DEFAULT_POI_DURATION_MIN,
                 is_featured=r[8] or False,
                 fun_fact=r[9],
@@ -147,14 +154,17 @@ class POIGraphService:
         self._wilaya_graphs = {}
 
         for pid, node in self._pois.items():
-            self._graph.add_node(pid, **{
-                "wilaya_id": node.wilaya_id,
-                "lat": node.lat,
-                "lon": node.lon,
-                "category": node.category,
-                "duration_min": node.duration_min,
-                "is_featured": node.is_featured,
-            })
+            self._graph.add_node(
+                pid,
+                **{
+                    "wilaya_id": node.wilaya_id,
+                    "lat": node.lat,
+                    "lon": node.lon,
+                    "category": node.category,
+                    "duration_min": node.duration_min,
+                    "is_featured": node.is_featured,
+                },
+            )
 
         wilaya_pois: dict[int, list[str]] = defaultdict(list)
         for pid, node in self._pois.items():
@@ -202,7 +212,7 @@ class POIGraphService:
         await self.load(db)
         try:
             return nx.shortest_path(self._graph, from_poi_id, to_poi_id, weight="weight")
-        except (nx.NetworkXNoPath, nx.NodeNotFound):
+        except nx.NetworkXException:
             return None
 
     async def walking_time(
@@ -210,10 +220,8 @@ class POIGraphService:
     ) -> float | None:
         await self.load(db)
         try:
-            return nx.shortest_path_length(
-                self._graph, from_poi_id, to_poi_id, weight="weight"
-            )
-        except (nx.NetworkXNoPath, nx.NodeNotFound):
+            return nx.shortest_path_length(self._graph, from_poi_id, to_poi_id, weight="weight")
+        except nx.NetworkXException:
             return None
 
     async def optimize_tour(
@@ -228,9 +236,9 @@ class POIGraphService:
         await self.load(db)
 
         candidates = [
-            pid for pid, node in self._pois.items()
-            if node.wilaya_id == wilaya_id
-            and (not categories or node.category in categories)
+            pid
+            for pid, node in self._pois.items()
+            if node.wilaya_id == wilaya_id and (not categories or node.category in categories)
         ]
 
         if not candidates:
@@ -244,10 +252,17 @@ class POIGraphService:
             featured = [p for p in candidates if self._pois[p].is_featured]
             if featured:
                 test_node = self._pois[featured[0]]
-                nearest_dist = min(
-                    _haversine_km(test_node.lat, test_node.lon, self._pois[p].lat, self._pois[p].lon)
-                    for p in candidates if p != featured[0]
-                ) if len(candidates) > 1 else 999
+                nearest_dist = (
+                    min(
+                        _haversine_km(
+                            test_node.lat, test_node.lon, self._pois[p].lat, self._pois[p].lon
+                        )
+                        for p in candidates
+                        if p != featured[0]
+                    )
+                    if len(candidates) > 1
+                    else 999
+                )
                 if nearest_dist <= 5.0:
                     start_node = test_node
                 else:
@@ -255,9 +270,14 @@ class POIGraphService:
                     best_density = -1
                     for pid in candidates[:100]:
                         dists = sorted(
-                            _haversine_km(self._pois[pid].lat, self._pois[pid].lon,
-                                         self._pois[p].lat, self._pois[p].lon)
-                            for p in candidates if p != pid
+                            _haversine_km(
+                                self._pois[pid].lat,
+                                self._pois[pid].lon,
+                                self._pois[p].lat,
+                                self._pois[p].lon,
+                            )
+                            for p in candidates
+                            if p != pid
                         )
                         nearby = sum(1 for d in dists[:20] if d < 2.0)
                         if nearby > best_density:
@@ -289,14 +309,14 @@ class POIGraphService:
         remaining = [p for p in candidates if p not in used_pids]
 
         total_used = sum(
-            _dist(pid) * 12 + self._pois[pid].duration_min
-            for pid in selected_map.values()
+            _dist(pid) * 12 + self._pois[pid].duration_min for pid in selected_map.values()
         )
         budget_left = budget_min - total_used
 
         last_pid = max(selected_map.values(), key=lambda p: _dist(p)) if selected_map else None
 
         from collections import Counter
+
         cat_counts = Counter(self._pois[pid].category for pid in used_pids)
 
         while len(used_pids) < max_pois and remaining and budget_left > 0:
@@ -342,7 +362,7 @@ class POIGraphService:
                     walk_min = nx.shortest_path_length(
                         self._graph, prev_node.id, pid, weight="weight"
                     )
-                except (nx.NetworkXNoPath, nx.NodeNotFound):
+                except nx.NetworkXException:
                     walk_min = _walking_min(
                         _haversine_m(prev_node.lat, prev_node.lon, node.lat, node.lon)
                     )
@@ -354,17 +374,19 @@ class POIGraphService:
             cumulative += walk_min + node.duration_min
             walk_total += walk_min
 
-            stops.append(TourStop(
-                poi_id=pid,
-                poi_name=node.name,
-                category=node.category,
-                latitude=node.lat,
-                longitude=node.lon,
-                duration_min=node.duration_min,
-                walk_from_prev_min=round(walk_min, 1),
-                cumulative_time_min=round(cumulative, 1),
-                fun_fact=node.fun_fact,
-            ))
+            stops.append(
+                TourStop(
+                    poi_id=pid,
+                    poi_name=node.name,
+                    category=node.category,
+                    latitude=node.lat,
+                    longitude=node.lon,
+                    duration_min=node.duration_min,
+                    walk_from_prev_min=round(walk_min, 1),
+                    cumulative_time_min=round(cumulative, 1),
+                    fun_fact=node.fun_fact,
+                )
+            )
             prev_node = node
 
         if not stops:
@@ -400,18 +422,18 @@ class POIGraphService:
         best_order = poi_ids[:]
         best_cost = self._tour_cost(poi_ids)
 
-        def _permute(arr, l):
+        def _permute(arr, idx):
             nonlocal best_order, best_cost
-            if l == len(arr):
+            if idx == len(arr):
                 cost = self._tour_cost(arr)
                 if cost < best_cost:
                     best_cost = cost
                     best_order = arr[:]
                 return
-            for i in range(l, len(arr)):
-                arr[l], arr[i] = arr[i], arr[l]
-                _permute(arr, l + 1)
-                arr[l], arr[i] = arr[i], arr[l]
+            for i in range(idx, len(arr)):
+                arr[idx], arr[i] = arr[i], arr[idx]
+                _permute(arr, idx + 1)
+                arr[idx], arr[i] = arr[i], arr[idx]
 
         arr = poi_ids[:]
         _permute(arr, 1)
@@ -424,7 +446,7 @@ class POIGraphService:
             improved = False
             for i in range(1, len(order) - 1):
                 for j in range(i + 1, len(order)):
-                    new_order = order[:i] + order[i:j + 1][::-1] + order[j + 1:]
+                    new_order = order[:i] + order[i : j + 1][::-1] + order[j + 1 :]
                     if self._tour_cost(new_order) < self._tour_cost(order):
                         order = new_order
                         improved = True
@@ -439,7 +461,7 @@ class POIGraphService:
                 cost += nx.shortest_path_length(
                     self._graph, order[i], order[i + 1], weight="weight"
                 )
-            except (nx.NetworkXNoPath, nx.NodeNotFound):
+            except nx.NetworkXException:
                 n1 = self._pois.get(order[i])
                 n2 = self._pois.get(order[i + 1])
                 if n1 and n2:
@@ -455,8 +477,7 @@ class POIGraphService:
         await self.load(db)
 
         wilaya_pois = [
-            self._pois[pid] for pid, node in self._pois.items()
-            if node.wilaya_id == wilaya_id
+            self._pois[pid] for pid, node in self._pois.items() if node.wilaya_id == wilaya_id
         ]
         if not wilaya_pois:
             return []
@@ -482,27 +503,28 @@ class POIGraphService:
 
             center_lat = sum(p.lat for p in cluster_pois) / len(cluster_pois)
             center_lon = sum(p.lon for p in cluster_pois) / len(cluster_pois)
-            max_radius = max(
-                _haversine_m(center_lat, center_lon, p.lat, p.lon)
-                for p in cluster_pois
-            ) if len(cluster_pois) > 1 else 0
+            max_radius = (
+                max(_haversine_m(center_lat, center_lon, p.lat, p.lon) for p in cluster_pois)
+                if len(cluster_pois) > 1
+                else 0
+            )
 
-            clusters.append(POICluster(
-                cluster_id=cid,
-                pois=cluster_pois,
-                center_lat=center_lat,
-                center_lon=center_lon,
-                radius_m=max_radius,
-                walkable=max_radius < radius_m,
-            ))
+            clusters.append(
+                POICluster(
+                    cluster_id=cid,
+                    pois=cluster_pois,
+                    center_lat=center_lat,
+                    center_lon=center_lon,
+                    radius_m=max_radius,
+                    walkable=max_radius < radius_m,
+                )
+            )
             cid += 1
 
         clusters.sort(key=lambda c: len(c.pois), reverse=True)
         return clusters
 
-    async def hub_pois(
-        self, db: AsyncSession, wilaya_id: int, top_n: int = 10
-    ) -> list[dict]:
+    async def hub_pois(self, db: AsyncSession, wilaya_id: int, top_n: int = 10) -> list[dict]:
         await self.load(db)
 
         wilaya_graph = self._wilaya_graphs.get(wilaya_id)

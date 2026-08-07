@@ -1,13 +1,10 @@
 """Tests for the agent eval framework — golden set + scoring."""
 
-import pytest
-
 from app.agents.eval import (
-    EvalCase,
-    EvalReport,
-    EvalResult,
     GOLDEN_SET,
     QUICK_SET,
+    EvalCase,
+    EvalResult,
     generate_report,
     score_response,
 )
@@ -139,7 +136,9 @@ class TestReport:
 
     def test_all_passing(self):
         results = [
-            EvalResult(case_id=f"c{i}", case_name=f"case {i}", passed=True, score=1.0, duration_ms=100)
+            EvalResult(
+                case_id=f"c{i}", case_name=f"case {i}", passed=True, score=1.0, duration_ms=100
+            )
             for i in range(5)
         ]
         report = generate_report(results)
@@ -161,10 +160,24 @@ class TestReport:
 
     def test_tool_accuracy(self):
         results = [
-            EvalResult(case_id="c1", case_name="c1", passed=True, score=1.0, duration_ms=100,
-                       tools_called=["search_pois"], tools_correct=True),
-            EvalResult(case_id="c2", case_name="c2", passed=True, score=0.8, duration_ms=100,
-                       tools_called=["search_pois"], tools_correct=False),
+            EvalResult(
+                case_id="c1",
+                case_name="c1",
+                passed=True,
+                score=1.0,
+                duration_ms=100,
+                tools_called=["search_pois"],
+                tools_correct=True,
+            ),
+            EvalResult(
+                case_id="c2",
+                case_name="c2",
+                passed=True,
+                score=0.8,
+                duration_ms=100,
+                tools_called=["search_pois"],
+                tools_correct=False,
+            ),
         ]
         report = generate_report(results)
         assert report.tool_accuracy == 0.5

@@ -5,7 +5,13 @@ from fastapi import APIRouter, Depends, File, Query, UploadFile
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.api.deps import get_current_user, get_current_user_optional, get_db, get_storage, get_vector_search
+from app.api.deps import (
+    get_current_user,
+    get_current_user_optional,
+    get_db,
+    get_storage,
+    get_vector_search,
+)
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.experience import EXPERIENCE_CATEGORIES, SEASONS, Experience
 from app.models.provider_profile import PROVIDER_TYPES, ProviderProfile
@@ -34,7 +40,7 @@ def _can_manage(current_user: User, experience: Experience) -> bool:
     response_model=ExperienceRead,
     status_code=201,
     summary="Create an experience",
-    description="Add a bookable tour/activity. Requires a provider role (guide, agency, or hotel). Indexed for vector search on creation.",
+    description="Add a bookable tour/activity. Requires a provider role (guide, agency, or hotel). Indexed for vector search on creation.",  # noqa: E501
     responses={
         400: {"description": "Only providers (guide/agency/hotel) can add experiences"},
         401: {"description": "Authentication required"},
@@ -69,7 +75,7 @@ async def create_experience(
     "",
     response_model=ExperienceFeed,
     summary="List experiences",
-    description="Paginated experiences (active by default). Filters: wilaya, category, provider_id, season, provider_type, status.",
+    description="Paginated experiences (active by default). Filters: wilaya, category, provider_id, season, provider_type, status.",  # noqa: E501
     responses={422: {"description": "Validation error"}},
 )
 async def list_experiences(
@@ -129,7 +135,7 @@ async def list_experiences(
     "/search",
     response_model=ExperienceFeed,
     summary="Semantic experience search",
-    description="Vector search over active experiences with PostgreSQL full-text (French) fallback when Qdrant is unavailable.",
+    description="Vector search over active experiences with PostgreSQL full-text (French) fallback when Qdrant is unavailable.",  # noqa: E501
     responses={422: {"description": "Query required (min 1 char)"}},
 )
 async def search_experiences(
@@ -182,7 +188,7 @@ async def search_experiences(
     "/{experience_id}",
     response_model=ExperienceDetail,
     summary="Get an experience",
-    description="Experience detail plus provider info (name, avatar, role). With auth, also returns is_favorited.",
+    description="Experience detail plus provider info (name, avatar, role). With auth, also returns is_favorited.",  # noqa: E501
     responses={
         404: {"description": "Experience not found"},
         422: {"description": "Invalid UUID"},
@@ -206,8 +212,9 @@ async def get_experience(
     )
 
     if current_user:
-        from app.models.favorite import Favorite
         from sqlalchemy import select
+
+        from app.models.favorite import Favorite
 
         fav = await db.execute(
             select(Favorite).where(
@@ -225,7 +232,7 @@ async def get_experience(
     "/{experience_id}",
     response_model=ExperienceRead,
     summary="Update an experience",
-    description="Update an experience. Only the owning provider or an admin can edit. Re-indexes in Qdrant.",
+    description="Update an experience. Only the owning provider or an admin can edit. Re-indexes in Qdrant.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "You can only edit your own experiences"},
@@ -259,7 +266,7 @@ async def update_experience(
     "/{experience_id}",
     status_code=204,
     summary="Delete an experience",
-    description="Delete an experience. Only the owning provider or an admin can delete. Removes from the Qdrant index.",
+    description="Delete an experience. Only the owning provider or an admin can delete. Removes from the Qdrant index.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "You can only delete your own experiences"},
@@ -287,7 +294,7 @@ async def delete_experience(
     "/{experience_id}/photos",
     response_model=ExperienceRead,
     summary="Upload experience photos",
-    description="Append one or more photos (multipart, JPEG/PNG/WebP) to an experience's gallery via MinIO. Owner or admin only.",
+    description="Append one or more photos (multipart, JPEG/PNG/WebP) to an experience's gallery via MinIO. Owner or admin only.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         403: {"description": "You can only edit your own experiences"},

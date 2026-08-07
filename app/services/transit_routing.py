@@ -4,6 +4,7 @@ Multi-modal transit routing service for Algeria.
 Builds a graph from stations + line_stops in the database and finds
 shortest paths using BFS / Dijkstra across all modes (train, metro, tram, bus).
 """
+
 import math
 import uuid
 from collections import defaultdict
@@ -28,9 +29,10 @@ def _haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     r = 6371
     dlat = math.radians(lat2 - lat1)
     dlng = math.radians(lng2 - lng1)
-    a = (math.sin(dlat / 2) ** 2
-         + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2))
-         * math.sin(dlng / 2) ** 2)
+    a = (
+        math.sin(dlat / 2) ** 2
+        + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlng / 2) ** 2
+    )
     return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
 
 
@@ -75,7 +77,7 @@ class TransitGraph:
         for stop in stops:
             stops_by_line[stop.line_id].append(stop)
 
-        line_map = {l.id: l for l in lines}
+        line_map = {line.id: line for line in lines}
 
         for line_id, line_stops in stops_by_line.items():
             line = line_map.get(line_id)
@@ -114,9 +116,14 @@ class TransitGraph:
 
         self._add_transfers(stops_by_line, line_map)
 
-    def _add_transfers(self, stops_by_line: dict[uuid.UUID, list[LineStop]],
-                       line_map: dict[uuid.UUID, TransportLine]) -> None:
-        station_lines: dict[uuid.UUID, list[tuple[uuid.UUID, str, str, str | None]]] = defaultdict(list)
+    def _add_transfers(
+        self,
+        stops_by_line: dict[uuid.UUID, list[LineStop]],
+        line_map: dict[uuid.UUID, TransportLine],
+    ) -> None:
+        station_lines: dict[uuid.UUID, list[tuple[uuid.UUID, str, str, str | None]]] = defaultdict(
+            list
+        )
         for line_id, line_stops in stops_by_line.items():
             line = line_map.get(line_id)
             if not line:
@@ -131,24 +138,28 @@ class TransitGraph:
                 for j in range(i + 1, len(lines_at_station)):
                     li = lines_at_station[i]
                     lj = lines_at_station[j]
-                    self._adj[station_id].append(GraphEdge(
-                        to_station_id=station_id,
-                        line_id=li[0],
-                        line_name=f"Transfer: {li[1]} ↔ {lj[1]}",
-                        mode=lj[2],
-                        operator="Transfer",
-                        color=lj[3],
-                        weight=0.0,
-                    ))
-                    self._adj[station_id].append(GraphEdge(
-                        to_station_id=station_id,
-                        line_id=lj[0],
-                        line_name=f"Transfer: {lj[1]} ↔ {li[1]}",
-                        mode=li[2],
-                        operator="Transfer",
-                        color=li[3],
-                        weight=0.0,
-                    ))
+                    self._adj[station_id].append(
+                        GraphEdge(
+                            to_station_id=station_id,
+                            line_id=li[0],
+                            line_name=f"Transfer: {li[1]} ↔ {lj[1]}",
+                            mode=lj[2],
+                            operator="Transfer",
+                            color=lj[3],
+                            weight=0.0,
+                        )
+                    )
+                    self._adj[station_id].append(
+                        GraphEdge(
+                            to_station_id=station_id,
+                            line_id=lj[0],
+                            line_name=f"Transfer: {lj[1]} ↔ {li[1]}",
+                            mode=li[2],
+                            operator="Transfer",
+                            color=li[3],
+                            weight=0.0,
+                        )
+                    )
 
     def get_station_by_name(self, name: str) -> Station | None:
         sid = self._station_name_map.get(name)
@@ -160,7 +171,9 @@ class TransitGraph:
     def all_stations(self) -> list[Station]:
         return list(self._stations.values())
 
-    def find_route(self, from_station_id: uuid.UUID, to_station_id: uuid.UUID) -> RouteResult | None:
+    def find_route(
+        self, from_station_id: uuid.UUID, to_station_id: uuid.UUID
+    ) -> RouteResult | None:
         if from_station_id == to_station_id:
             return None
 
@@ -208,28 +221,34 @@ class TransitGraph:
             _sid, cur_edge = path[i]
             if cur_edge.operator == "Transfer":
                 from_sid = from_station_id if i == 0 else path[i - 1][0]
-                segments.append(RouteSegment(
-                    mode=cur_edge.mode,
-                    operator="Transfer",
-                    line_name=cur_edge.line_name,
-                    line_id=cur_edge.line_id,
-                    line_color=cur_edge.color,
-                    from_station=self._stations[from_sid].name,
-                    to_station=self._stations[from_sid].name,
-                    from_station_id=from_sid,
-                    to_station_id=from_sid,
-                    stop_count=0,
-                    estimated_minutes=0,
-                    departure_time=None,
-                    arrival_time=None,
-                    pricing=None,
-                    schedule=None,
-                ))
+                segments.append(
+                    RouteSegment(
+                        mode=cur_edge.mode,
+                        operator="Transfer",
+                        line_name=cur_edge.line_name,
+                        line_id=cur_edge.line_id,
+                        line_color=cur_edge.color,
+                        from_station=self._stations[from_sid].name,
+                        to_station=self._stations[from_sid].name,
+                        from_station_id=from_sid,
+                        to_station_id=from_sid,
+                        stop_count=0,
+                        estimated_minutes=0,
+                        departure_time=None,
+                        arrival_time=None,
+                        pricing=None,
+                        schedule=None,
+                    )
+                )
                 i += 1
                 continue
 
             j = i + 1
-            while j < len(path) and path[j][1].line_id == cur_edge.line_id and path[j][1].operator != "Transfer":
+            while (
+                j < len(path)
+                and path[j][1].line_id == cur_edge.line_id
+                and path[j][1].operator != "Transfer"
+            ):
                 j += 1
 
             from_sid = from_station_id if i == 0 else path[i - 1][0]
@@ -240,23 +259,25 @@ class TransitGraph:
             est_min = max(1, int(dist_km / 30 * 60))
             total_min += est_min
 
-            segments.append(RouteSegment(
-                mode=cur_edge.mode,
-                operator=cur_edge.operator,
-                line_name=cur_edge.line_name,
-                line_id=cur_edge.line_id,
-                line_color=cur_edge.color,
-                from_station=self._stations[from_sid].name,
-                to_station=self._stations[to_sid].name,
-                from_station_id=from_sid,
-                to_station_id=to_sid,
-                stop_count=stop_count,
-                estimated_minutes=est_min,
-                departure_time=None,
-                arrival_time=None,
-                pricing=None,
-                schedule=None,
-            ))
+            segments.append(
+                RouteSegment(
+                    mode=cur_edge.mode,
+                    operator=cur_edge.operator,
+                    line_name=cur_edge.line_name,
+                    line_id=cur_edge.line_id,
+                    line_color=cur_edge.color,
+                    from_station=self._stations[from_sid].name,
+                    to_station=self._stations[to_sid].name,
+                    from_station_id=from_sid,
+                    to_station_id=to_sid,
+                    stop_count=stop_count,
+                    estimated_minutes=est_min,
+                    departure_time=None,
+                    arrival_time=None,
+                    pricing=None,
+                    schedule=None,
+                )
+            )
             i = j
 
         return RouteResult(
@@ -271,8 +292,9 @@ class TransitGraph:
             total_estimated_minutes=total_min,
         )
 
-    def nearest_stations(self, lat: float, lng: float,
-                         limit: int = 5, types: list[str] | None = None) -> list[tuple[Station, float]]:
+    def nearest_stations(
+        self, lat: float, lng: float, limit: int = 5, types: list[str] | None = None
+    ) -> list[tuple[Station, float]]:
         scored: list[tuple[float, Station]] = []
         for s in self._stations.values():
             if types and s.station_type not in types:
@@ -295,9 +317,9 @@ class TransitRoutingService:
             await self._graph.load(db)
             self._loaded = True
 
-    async def find_route(self, db: AsyncSession,
-                         from_lat: float, from_lng: float,
-                         to_lat: float, to_lng: float) -> RouteResult | None:
+    async def find_route(
+        self, db: AsyncSession, from_lat: float, from_lng: float, to_lat: float, to_lng: float
+    ) -> RouteResult | None:
         await self.ensure_loaded(db)
         from_stations = self._graph.nearest_stations(from_lat, from_lng, limit=3)
         to_stations = self._graph.nearest_stations(to_lat, to_lng, limit=3)
@@ -306,13 +328,23 @@ class TransitRoutingService:
         for fs, _ in from_stations:
             for ts, _ in to_stations:
                 route = self._graph.find_route(fs.id, ts.id)
-                if route and route.total_estimated_minutes and route.total_estimated_minutes < best_cost:
+                if (
+                    route
+                    and route.total_estimated_minutes
+                    and route.total_estimated_minutes < best_cost
+                ):
                     best = route
                     best_cost = route.total_estimated_minutes
         return best
 
-    async def nearest_stations(self, db: AsyncSession, lat: float, lng: float,
-                               limit: int = 5, types: list[str] | None = None) -> list[NearestStation]:
+    async def nearest_stations(
+        self,
+        db: AsyncSession,
+        lat: float,
+        lng: float,
+        limit: int = 5,
+        types: list[str] | None = None,
+    ) -> list[NearestStation]:
         await self.ensure_loaded(db)
         station_lines_map: dict[uuid.UUID, list[StationLineRef]] = {}
         rows = await db.execute(
@@ -323,20 +355,65 @@ class TransitRoutingService:
             sid = stop.station_id
             if sid not in station_lines_map:
                 station_lines_map[sid] = []
-            station_lines_map[sid].append(StationLineRef(
-                line_id=stop.line.id,
-                line_name=stop.line.name,
-                mode=stop.line.mode,
-                operator=stop.line.operator,
-                color=stop.line.color,
-                stop_order=stop.stop_order,
-            ))
+            station_lines_map[sid].append(
+                StationLineRef(
+                    line_id=stop.line.id,
+                    line_name=stop.line.name,
+                    mode=stop.line.mode,
+                    operator=stop.line.operator,
+                    color=stop.line.color,
+                    stop_order=stop.stop_order,
+                )
+            )
 
         nearest = self._graph.nearest_stations(lat, lng, limit, types)
         result = []
         for s, dist in nearest:
-            result.append(NearestStation(
-                station=StationRead(
+            result.append(
+                NearestStation(
+                    station=StationRead(
+                        id=s.id,
+                        name=s.name,
+                        name_ar=s.name_ar,
+                        name_en=s.name_en,
+                        wilaya_id=s.wilaya_id,
+                        latitude=s.latitude,
+                        longitude=s.longitude,
+                        station_type=s.station_type,
+                        operator=s.operator,
+                        address=s.address,
+                        is_active=s.is_active,
+                    ),
+                    distance_km=round(dist, 2),
+                    lines=station_lines_map.get(s.id, []),
+                )
+            )
+        return result
+
+    async def poi_access(
+        self, db: AsyncSession, poi_id: uuid.UUID, poi_lat: float, poi_lng: float, poi_name: str
+    ) -> POIAccess:
+        nearest = await self.nearest_stations(db, poi_lat, poi_lng, limit=3)
+        return POIAccess(
+            poi_id=poi_id,
+            poi_name=poi_name,
+            nearest_stations=nearest,
+            route_to_poi=None,
+        )
+
+    async def list_stations(
+        self, db: AsyncSession, wilaya_id: int | None = None, station_type: str | None = None
+    ) -> list[StationRead]:
+        await self.ensure_loaded(db)
+        stations = self._graph.all_stations
+        result = []
+        for s in stations:
+            if wilaya_id is not None and s.wilaya_id != wilaya_id:
+                continue
+            if station_type is not None and s.station_type != station_type:
+                continue
+            result.append(
+                StationRead(
                     id=s.id,
                     name=s.name,
                     name_ar=s.name_ar,
@@ -348,46 +425,8 @@ class TransitRoutingService:
                     operator=s.operator,
                     address=s.address,
                     is_active=s.is_active,
-                ),
-                distance_km=round(dist, 2),
-                lines=station_lines_map.get(s.id, []),
-            ))
-        return result
-
-    async def poi_access(self, db: AsyncSession, poi_id: uuid.UUID,
-                         poi_lat: float, poi_lng: float,
-                         poi_name: str) -> POIAccess:
-        nearest = await self.nearest_stations(db, poi_lat, poi_lng, limit=3)
-        return POIAccess(
-            poi_id=poi_id,
-            poi_name=poi_name,
-            nearest_stations=nearest,
-            route_to_poi=None,
-        )
-
-    async def list_stations(self, db: AsyncSession, wilaya_id: int | None = None,
-                            station_type: str | None = None) -> list[StationRead]:
-        await self.ensure_loaded(db)
-        stations = self._graph.all_stations
-        result = []
-        for s in stations:
-            if wilaya_id is not None and s.wilaya_id != wilaya_id:
-                continue
-            if station_type is not None and s.station_type != station_type:
-                continue
-            result.append(StationRead(
-                id=s.id,
-                name=s.name,
-                name_ar=s.name_ar,
-                name_en=s.name_en,
-                wilaya_id=s.wilaya_id,
-                latitude=s.latitude,
-                longitude=s.longitude,
-                station_type=s.station_type,
-                operator=s.operator,
-                address=s.address,
-                is_active=s.is_active,
-            ))
+                )
+            )
         return result
 
     async def list_lines(self, db: AsyncSession, mode: str | None = None) -> list:
@@ -401,38 +440,42 @@ class TransitRoutingService:
             stops = []
             for stop in line.stops:
                 s = stop.station
-                stops.append({
-                    "id": stop.id,
-                    "station": StationRead(
-                        id=s.id,
-                        name=s.name,
-                        name_ar=s.name_ar,
-                        name_en=s.name_en,
-                        wilaya_id=s.wilaya_id,
-                        latitude=s.latitude,
-                        longitude=s.longitude,
-                        station_type=s.station_type,
-                        operator=s.operator,
-                        address=s.address,
-                        is_active=s.is_active,
-                    ).model_dump(),
-                    "stop_order": stop.stop_order,
-                    "distance_from_start_km": stop.distance_from_start_km,
-                    "travel_time_from_start_min": stop.travel_time_from_start_min,
-                    "departure_time": stop.departure_time,
-                    "arrival_time": stop.arrival_time,
-                })
-            result.append({
-                "id": line.id,
-                "name": line.name,
-                "operator": line.operator,
-                "mode": line.mode,
-                "color": line.color,
-                "description": line.description,
-                "distance_km": line.distance_km,
-                "schedule_info": line.schedule_info,
-                "pricing_info": line.pricing_info,
-                "is_active": line.is_active,
-                "stops": stops,
-            })
+                stops.append(
+                    {
+                        "id": stop.id,
+                        "station": StationRead(
+                            id=s.id,
+                            name=s.name,
+                            name_ar=s.name_ar,
+                            name_en=s.name_en,
+                            wilaya_id=s.wilaya_id,
+                            latitude=s.latitude,
+                            longitude=s.longitude,
+                            station_type=s.station_type,
+                            operator=s.operator,
+                            address=s.address,
+                            is_active=s.is_active,
+                        ).model_dump(),
+                        "stop_order": stop.stop_order,
+                        "distance_from_start_km": stop.distance_from_start_km,
+                        "travel_time_from_start_min": stop.travel_time_from_start_min,
+                        "departure_time": stop.departure_time,
+                        "arrival_time": stop.arrival_time,
+                    }
+                )
+            result.append(
+                {
+                    "id": line.id,
+                    "name": line.name,
+                    "operator": line.operator,
+                    "mode": line.mode,
+                    "color": line.color,
+                    "description": line.description,
+                    "distance_km": line.distance_km,
+                    "schedule_info": line.schedule_info,
+                    "pricing_info": line.pricing_info,
+                    "is_active": line.is_active,
+                    "stops": stops,
+                }
+            )
         return result

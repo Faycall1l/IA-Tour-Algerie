@@ -50,6 +50,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 # ── Request schemas ──
 
+
 class AgentChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000, description="User's travel question")
     wilaya_id: int | None = Field(None, ge=1, le=58)
@@ -84,6 +85,7 @@ class EventsQueryRequest(BaseModel):
 
 
 # ── Response schemas ──
+
 
 class AgentChatResponse(BaseModel):
     reply: str
@@ -125,8 +127,12 @@ class SessionListResponse(BaseModel):
 
 # ── Trace helper ──
 
+
 async def _run_agent_traced(
-    agent, message: str, agent_deps: TravelAgentDeps, agent_name: str,
+    agent,
+    message: str,
+    agent_deps: TravelAgentDeps,
+    agent_name: str,
     *,
     allow_fallback: bool = True,
     from_wilaya: int | None = None,
@@ -168,8 +174,11 @@ async def _run_agent_traced(
             if not allow_fallback:
                 raise HTTPException(status_code=503, detail=str(exc))
             output = await attempt_fallback(
-                agent_name, sanitized, agent_deps,
-                from_wilaya=from_wilaya, to_wilaya=to_wilaya,
+                agent_name,
+                sanitized,
+                agent_deps,
+                from_wilaya=from_wilaya,
+                to_wilaya=to_wilaya,
             )
             if output is None:
                 raise HTTPException(status_code=503, detail=str(exc))
@@ -183,8 +192,11 @@ async def _run_agent_traced(
         if not allow_fallback:
             raise HTTPException(status_code=503, detail="Agents are not configured")
         output = await attempt_fallback(
-            agent_name, sanitized, agent_deps,
-            from_wilaya=from_wilaya, to_wilaya=to_wilaya,
+            agent_name,
+            sanitized,
+            agent_deps,
+            from_wilaya=from_wilaya,
+            to_wilaya=to_wilaya,
         )
         if output is None:
             raise HTTPException(
@@ -197,7 +209,8 @@ async def _run_agent_traced(
     if agent_deps.session_id and agent_deps.db:
         try:
             await store_agent_run(
-                agent_deps.db, agent_deps.session_id,
+                agent_deps.db,
+                agent_deps.session_id,
                 user_message=message,
                 assistant_reply=output,
                 turn_index=agent_deps.turn_index,
@@ -210,6 +223,7 @@ async def _run_agent_traced(
 
 # ── Dependency: extract agent from app.state ──
 
+
 def _get_agent(request: Request, name: str):
     """Get an agent from app.state (``None`` when not configured).
 
@@ -220,6 +234,7 @@ def _get_agent(request: Request, name: str):
 
 
 # ── Memory deps builder ──
+
 
 async def _make_memory_deps(
     current_user: User,
@@ -244,7 +259,8 @@ async def _make_memory_deps(
             )
 
     session = await get_or_create_session(
-        db, current_user.id,
+        db,
+        current_user.id,
         session_id=parsed_session_id,
         agent_type=agent_type,
     )
@@ -292,7 +308,11 @@ async def agent_chat(
     """Ask the travel assistant any Algeria travel question."""
     agent = _get_agent(request, "travel_agent")
     agent_deps = await _make_memory_deps(
-        current_user, db, request, body.session_id, "travel_agent",
+        current_user,
+        db,
+        request,
+        body.session_id,
+        "travel_agent",
     )
     reply, degraded = await _run_agent_traced(agent, body.message, agent_deps, "travel_agent")
     if degraded:
@@ -329,11 +349,14 @@ async def agent_plan_trip(
     """Create a detailed itinerary for an Algeria trip."""
     agent = _get_agent(request, "itinerary_agent")
     agent_deps = await _make_memory_deps(
-        current_user, db, request, body.session_id, "itinerary_agent",
+        current_user,
+        db,
+        request,
+        body.session_id,
+        "itinerary_agent",
     )
     prompt = (
-        f"Plan a {body.duration_days}-day trip to {body.destination} "
-        f"on a {body.budget} budget."
+        f"Plan a {body.duration_days}-day trip to {body.destination} on a {body.budget} budget."
     )
     if body.interests.strip():
         prompt += f"\nInterests: {body.interests}"
@@ -367,7 +390,11 @@ async def agent_search(
     """Unified search across POIs, stays, and experiences via agent."""
     agent = _get_agent(request, "search_agent")
     agent_deps = await _make_memory_deps(
-        current_user, db, request, body.session_id, "search_agent",
+        current_user,
+        db,
+        request,
+        body.session_id,
+        "search_agent",
     )
     reply, degraded = await _run_agent_traced(agent, body.query, agent_deps, "search_agent")
     if degraded:
@@ -402,11 +429,19 @@ async def agent_transport(
     """Ask the transport specialist about routes, schedules, or contacts."""
     agent = _get_agent(request, "transport_agent")
     agent_deps = await _make_memory_deps(
-        current_user, db, request, body.session_id, "transport_agent",
+        current_user,
+        db,
+        request,
+        body.session_id,
+        "transport_agent",
     )
     reply, degraded = await _run_agent_traced(
-        agent, body.query, agent_deps, "transport_agent",
-        from_wilaya=body.from_wilaya, to_wilaya=body.to_wilaya,
+        agent,
+        body.query,
+        agent_deps,
+        "transport_agent",
+        from_wilaya=body.from_wilaya,
+        to_wilaya=body.to_wilaya,
     )
     if degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
@@ -440,7 +475,11 @@ async def agent_events(
     """Ask the events specialist about festivals and cultural activities."""
     agent = _get_agent(request, "events_agent")
     agent_deps = await _make_memory_deps(
-        current_user, db, request, body.session_id, "events_agent",
+        current_user,
+        db,
+        request,
+        body.session_id,
+        "events_agent",
     )
     reply, degraded = await _run_agent_traced(agent, body.query, agent_deps, "events_agent")
     if degraded:
@@ -453,6 +492,7 @@ async def agent_events(
 
 
 # ── Session management ──
+
 
 @router.get(
     "/sessions",

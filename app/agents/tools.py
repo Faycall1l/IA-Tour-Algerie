@@ -6,7 +6,6 @@ function runs, outputs are validated before being returned to the LLM.
 """
 
 from datetime import date
-from uuid import UUID
 
 import httpx
 from pydantic import BaseModel, Field
@@ -22,7 +21,7 @@ def _truncate(text_str: str | None, max_len: int = 200) -> str | None:
         return text_str
     if len(text_str) <= max_len:
         return text_str
-    return text_str[:max_len - 3] + "..."
+    return text_str[: max_len - 3] + "..."
 
 
 def _estimate_tokens(text: str) -> int:
@@ -37,6 +36,7 @@ def _fit_to_budget(results: list, budget_tokens: int = 6000) -> list:
     until the total fits within the budget.
     """
     import json
+
     if not results:
         return results
 
@@ -59,13 +59,20 @@ def _fit_to_budget(results: list, budget_tokens: int = 6000) -> list:
 
 # ── POI Search ──
 
+
 class POISearchParams(BaseModel):
-    query: str = Field(..., min_length=1, max_length=200, description="Search query for POI names/descriptions")
+    query: str = Field(
+        ..., min_length=1, max_length=200, description="Search query for POI names/descriptions"
+    )
     wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by wilaya ID")
-    category: str | None = Field(None, description="Filter by category (historical, natural, cultural, museum, beach, etc.)")
+    category: str | None = Field(
+        None, description="Filter by category (historical, natural, cultural, museum, beach, etc.)"
+    )
     min_price: float | None = Field(None, ge=0, description="Min entry fee in DZD")
     max_price: float | None = Field(None, ge=0, description="Max entry fee in DZD")
-    limit: int = Field(5, ge=1, le=20, description="Max results to return (keep small to avoid context overflow)")
+    limit: int = Field(
+        5, ge=1, le=20, description="Max results to return (keep small to avoid context overflow)"
+    )
 
 
 class POISearchResult(BaseModel):
@@ -172,18 +179,28 @@ async def search_pois(ctx: RunContext[TravelAgentDeps], params: POISearchParams)
         total=total,
         results=[
             POISearchResult(
-                id=str(r[0]), name=r[1], name_ar=r[2], name_en=r[3],
-                category=r[4], subtype=r[5], wilaya_id=r[6], commune=r[7],
+                id=str(r[0]),
+                name=r[1],
+                name_ar=r[2],
+                name_en=r[3],
+                category=r[4],
+                subtype=r[5],
+                wilaya_id=r[6],
+                commune=r[7],
                 description=_truncate(r[8], 200),
                 latitude=float(r[9]) if r[9] else None,
                 longitude=float(r[10]) if r[10] else None,
                 photo_url=r[11],
                 entry_fee_dzd=float(r[12]) if r[12] else None,
-                price_level=r[13], is_featured=r[14],
-                featured_order=r[15], ranking_position=r[16],
+                price_level=r[13],
+                is_featured=r[14],
+                featured_order=r[15],
+                ranking_position=r[16],
                 ranking_total=r[17],
                 suggested_duration_min=r[18],
-                opening_hours=r[19], phone=r[20], website=r[21],
+                opening_hours=r[19],
+                phone=r[20],
+                website=r[21],
             )
             for r in rows
         ],
@@ -192,10 +209,13 @@ async def search_pois(ctx: RunContext[TravelAgentDeps], params: POISearchParams)
 
 # ── Stay Search ──
 
+
 class StaySearchParams(BaseModel):
     query: str = Field(..., min_length=1, max_length=200)
     wilaya_id: int | None = Field(None, ge=1, le=58)
-    property_type: str | None = Field(None, description="hotel, guesthouse, hostel, eco_lodge, riad, apartment")
+    property_type: str | None = Field(
+        None, description="hotel, guesthouse, hostel, eco_lodge, riad, apartment"
+    )
     min_price: float | None = Field(None, ge=0, description="Min price per night in DZD")
     max_price: float | None = Field(None, ge=0, description="Max price per night in DZD")
     limit: int = Field(5, ge=1, le=20, description="Max results (keep small for context)")
@@ -223,7 +243,9 @@ class StaySearchOutput(BaseModel):
     total: int
 
 
-async def search_stays(ctx: RunContext[TravelAgentDeps], params: StaySearchParams) -> StaySearchOutput:
+async def search_stays(
+    ctx: RunContext[TravelAgentDeps], params: StaySearchParams
+) -> StaySearchOutput:
     """Search accommodations (hotels, guesthouses, hostels) by query, wilaya, type, and price.
 
     Only returns active stays. Includes address, check-in/out times.
@@ -297,14 +319,20 @@ async def search_stays(ctx: RunContext[TravelAgentDeps], params: StaySearchParam
         total=total,
         results=[
             StaySearchResult(
-                id=str(r[0]), name=r[1], property_type=r[2],
-                wilaya_id=r[3], price_per_night_dzd=float(r[4]),
-                description=_truncate(r[5]), address=r[6],
+                id=str(r[0]),
+                name=r[1],
+                property_type=r[2],
+                wilaya_id=r[3],
+                price_per_night_dzd=float(r[4]),
+                description=_truncate(r[5]),
+                address=r[6],
                 latitude=float(r[7]) if r[7] else None,
                 longitude=float(r[8]) if r[8] else None,
                 photo_url=r[9][0] if r[9] else None,
-                amenities=r[10], max_guests=r[11],
-                check_in_time=r[12], check_out_time=r[13],
+                amenities=r[10],
+                max_guests=r[11],
+                check_in_time=r[12],
+                check_out_time=r[13],
             )
             for r in rows
         ],
@@ -313,11 +341,16 @@ async def search_stays(ctx: RunContext[TravelAgentDeps], params: StaySearchParam
 
 # ── Experience Search ──
 
+
 class ExperienceSearchParams(BaseModel):
     query: str = Field(..., min_length=1, max_length=200)
     wilaya_id: int | None = Field(None, ge=1, le=58)
-    category: str | None = Field(None, description="tour, workshop, homestay, hiking, cultural, food, adventure, wellness")
-    season: str | None = Field(None, description="spring, summer, autumn, winter (or month number 1-12)")
+    category: str | None = Field(
+        None, description="tour, workshop, homestay, hiking, cultural, food, adventure, wellness"
+    )
+    season: str | None = Field(
+        None, description="spring, summer, autumn, winter (or month number 1-12)"
+    )
     min_price: float | None = Field(None, ge=0, description="Min price in DZD")
     max_price: float | None = Field(None, ge=0, description="Max price in DZD")
     limit: int = Field(5, ge=1, le=20, description="Max results (keep small for context)")
@@ -346,13 +379,24 @@ class ExperienceSearchOutput(BaseModel):
 
 
 _MONTH_TO_SEASON = {
-    1: "winter", 2: "winter", 3: "spring", 4: "spring",
-    5: "spring", 6: "summer", 7: "summer", 8: "summer",
-    9: "autumn", 10: "autumn", 11: "autumn", 12: "winter",
+    1: "winter",
+    2: "winter",
+    3: "spring",
+    4: "spring",
+    5: "spring",
+    6: "summer",
+    7: "summer",
+    8: "summer",
+    9: "autumn",
+    10: "autumn",
+    11: "autumn",
+    12: "winter",
 }
 
 
-async def search_experiences(ctx: RunContext[TravelAgentDeps], params: ExperienceSearchParams) -> ExperienceSearchOutput:
+async def search_experiences(
+    ctx: RunContext[TravelAgentDeps], params: ExperienceSearchParams
+) -> ExperienceSearchOutput:
     """Search tours, activities, and cultural experiences by query, wilaya, category, and season.
 
     Season can be a word (spring/summer/autumn/winter) or a month number (1-12).
@@ -413,13 +457,19 @@ async def search_experiences(ctx: RunContext[TravelAgentDeps], params: Experienc
         total=total,
         results=[
             ExperienceSearchResult(
-                id=str(r[0]), title=r[1], category=r[2],
-                wilaya_id=r[3], price_dzd=float(r[4]) if r[4] else None,
+                id=str(r[0]),
+                title=r[1],
+                category=r[2],
+                wilaya_id=r[3],
+                price_dzd=float(r[4]) if r[4] else None,
                 duration_hours=float(r[5]) if r[5] else None,
-                max_participants=r[6], description=r[7],
-                meeting_point=r[8], season=r[9],
+                max_participants=r[6],
+                description=r[7],
+                meeting_point=r[8],
+                season=r[9],
                 photo_url=r[10][0] if r[10] else None,
-                included=r[11], what_to_bring=r[12],
+                included=r[11],
+                what_to_bring=r[12],
                 language=r[13],
             )
             for r in rows
@@ -429,10 +479,15 @@ async def search_experiences(ctx: RunContext[TravelAgentDeps], params: Experienc
 
 # ── Artisan Search ──
 
+
 class ArtisanSearchParams(BaseModel):
-    query: str = Field(..., min_length=1, max_length=200, description="Search query for artisan name/craft")
+    query: str = Field(
+        ..., min_length=1, max_length=200, description="Search query for artisan name/craft"
+    )
     wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by wilaya ID")
-    craft_type: str | None = Field(None, description="Filter by craft type (pottery, carpet_weaving, jewelry, etc.)")
+    craft_type: str | None = Field(
+        None, description="Filter by craft type (pottery, carpet_weaving, jewelry, etc.)"
+    )
     has_workshop: bool | None = Field(None, description="Only show artisans with workshops")
     limit: int = Field(5, ge=1, le=20, description="Max results (keep small for context)")
 
@@ -465,13 +520,17 @@ class ArtisanSearchOutput(BaseModel):
     total: int
 
 
-async def search_artisans(ctx: RunContext[TravelAgentDeps], params: ArtisanSearchParams) -> ArtisanSearchOutput:
+async def search_artisans(
+    ctx: RunContext[TravelAgentDeps], params: ArtisanSearchParams
+) -> ArtisanSearchOutput:
     """Search artisans/craftspeople by name, craft type, and wilaya.
 
     Returns artisans with full contact details, workshop info, and pricing.
     """
     q = params.query.strip()
-    conditions = ["(name ILIKE :q OR craft_type ILIKE :q OR description ILIKE :q OR specializations::text ILIKE :q)"]
+    conditions = [
+        "(name ILIKE :q OR craft_type ILIKE :q OR description ILIKE :q OR specializations::text ILIKE :q)"  # noqa: E501
+    ]
     bind: dict = {"q": f"%{q}%"}
 
     if params.wilaya_id is not None:
@@ -511,11 +570,18 @@ async def search_artisans(ctx: RunContext[TravelAgentDeps], params: ArtisanSearc
         total=total,
         results=[
             ArtisanSearchResult(
-                id=str(r[0]), name=r[1], craft_type=r[2],
-                wilaya_id=r[3], description=r[4],
-                address=r[5], commune=r[6],
-                latitude=r[7], longitude=r[8],
-                phone=r[9], whatsapp=r[10], website=r[11],
+                id=str(r[0]),
+                name=r[1],
+                craft_type=r[2],
+                wilaya_id=r[3],
+                description=r[4],
+                address=r[5],
+                commune=r[6],
+                latitude=r[7],
+                longitude=r[8],
+                phone=r[9],
+                whatsapp=r[10],
+                website=r[11],
                 photo_url=r[12][0] if r[12] else None,
                 years_experience=r[13],
                 specializations=r[14],
@@ -533,13 +599,27 @@ async def search_artisans(ctx: RunContext[TravelAgentDeps], params: ArtisanSearc
 # ── Weather ──
 
 WMO_MAP = {
-    0: "Clear sky", 1: "Mainly clear", 2: "Partly cloudy", 3: "Overcast",
-    45: "Foggy", 48: "Depositing rime fog",
-    51: "Light drizzle", 53: "Moderate drizzle", 55: "Dense drizzle",
-    61: "Slight rain", 63: "Moderate rain", 65: "Heavy rain",
-    71: "Slight snowfall", 73: "Moderate snowfall", 75: "Heavy snowfall",
-    80: "Slight rain showers", 81: "Moderate rain showers", 82: "Violent rain showers",
-    95: "Thunderstorm", 96: "Thunderstorm with slight hail", 99: "Thunderstorm with heavy hail",
+    0: "Clear sky",
+    1: "Mainly clear",
+    2: "Partly cloudy",
+    3: "Overcast",
+    45: "Foggy",
+    48: "Depositing rime fog",
+    51: "Light drizzle",
+    53: "Moderate drizzle",
+    55: "Dense drizzle",
+    61: "Slight rain",
+    63: "Moderate rain",
+    65: "Heavy rain",
+    71: "Slight snowfall",
+    73: "Moderate snowfall",
+    75: "Heavy snowfall",
+    80: "Slight rain showers",
+    81: "Moderate rain showers",
+    82: "Violent rain showers",
+    95: "Thunderstorm",
+    96: "Thunderstorm with slight hail",
+    99: "Thunderstorm with heavy hail",
 }
 
 
@@ -563,13 +643,12 @@ class WeatherOutput(BaseModel):
     summary: str
 
 
-async def get_weather(ctx: RunContext[TravelAgentDeps], params: WeatherParams) -> WeatherOutput:
+async def get_weather(_ctx: RunContext[TravelAgentDeps], params: WeatherParams) -> WeatherOutput:
     """Get weather forecast for a location (lat/lng) using Open-Meteo (free, no API key).
 
     Returns daily high/low temperatures, conditions, and precipitation.
     Summary covers all forecast days.
     """
-    target_date = params.date or date.today().isoformat()
     url = (
         "https://api.open-meteo.com/v1/forecast?"
         f"latitude={params.latitude}&longitude={params.longitude}"
@@ -594,13 +673,15 @@ async def get_weather(ctx: RunContext[TravelAgentDeps], params: WeatherParams) -
     days = []
     for i in range(len(times)):
         code = codes[i] if i < len(codes) else 0
-        days.append(WeatherDay(
-            date=times[i],
-            temp_max=float(maxs[i]) if i < len(maxs) else 0,
-            temp_min=float(mins[i]) if i < len(mins) else 0,
-            condition=WMO_MAP.get(int(code), f"Code {code}"),
-            precipitation_mm=float(precips[i]) if i < len(precips) else 0,
-        ))
+        days.append(
+            WeatherDay(
+                date=times[i],
+                temp_max=float(maxs[i]) if i < len(maxs) else 0,
+                temp_min=float(mins[i]) if i < len(mins) else 0,
+                condition=WMO_MAP.get(int(code), f"Code {code}"),
+                precipitation_mm=float(precips[i]) if i < len(precips) else 0,
+            )
+        )
 
     # Build summary covering all days
     summary_parts = []
@@ -619,9 +700,12 @@ async def get_weather(ctx: RunContext[TravelAgentDeps], params: WeatherParams) -
 
 # ── Wilaya Travel Guide ──
 
+
 class WilayaGuideParams(BaseModel):
     wilaya_id: int = Field(..., ge=1, le=58, description="Wilaya ID (1-58)")
-    top_per_category: int = Field(3, ge=1, le=10, description="Max POIs per category (keep small to avoid context overflow)")
+    top_per_category: int = Field(
+        3, ge=1, le=10, description="Max POIs per category (keep small to avoid context overflow)"
+    )
 
 
 class GuidePOIOutput(BaseModel):
@@ -699,7 +783,9 @@ async def _lookup_wilaya_names(ctx: RunContext[TravelAgentDeps], ids: list[int])
     return {r[0]: r[1] for r in rows.all()}
 
 
-async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuideParams) -> WilayaGuideOutput:
+async def get_wilaya_guide(
+    ctx: RunContext[TravelAgentDeps], params: WilayaGuideParams
+) -> WilayaGuideOutput:
     """Get a curated travel guide for an Algerian wilaya.
 
     Returns featured attractions, top POIs by category (sorted by ranking),
@@ -717,9 +803,12 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
     w = w_row.one_or_none()
     if not w:
         return WilayaGuideOutput(
-            wilaya_id=wid, wilaya_name=f"Wilaya {wid}",
-            total_pois=0, total_featured=0,
-            featured_pois=[], categories=[],
+            wilaya_id=wid,
+            wilaya_name=f"Wilaya {wid}",
+            total_pois=0,
+            total_featured=0,
+            featured_pois=[],
+            categories=[],
         )
 
     name = w[0] or w[2] or f"Wilaya {wid}"
@@ -727,7 +816,9 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
 
     # Total counts
     cnt = await ctx.deps.db.execute(
-        text("SELECT COUNT(*), COALESCE(SUM(CASE WHEN is_featured THEN 1 ELSE 0 END), 0) FROM pois WHERE wilaya_id = :wid"),
+        text(
+            "SELECT COUNT(*), COALESCE(SUM(CASE WHEN is_featured THEN 1 ELSE 0 END), 0) FROM pois WHERE wilaya_id = :wid"  # noqa: E501
+        ),
         {"wid": wid},
     )
     total_pois, total_featured = cnt.one()
@@ -739,7 +830,8 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
     total_stays = stays_cnt.scalar() or 0
 
     exp_cnt = await ctx.deps.db.execute(
-        text("SELECT COUNT(*) FROM experiences WHERE wilaya_id = :wid AND status = 'active'"), {"wid": wid}
+        text("SELECT COUNT(*) FROM experiences WHERE wilaya_id = :wid AND status = 'active'"),
+        {"wid": wid},
     )
     total_experiences = exp_cnt.scalar() or 0
 
@@ -764,10 +856,15 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
     )
     featured_pois = [
         GuidePOIOutput(
-            id=str(r[0]), name=r[1], category=r[2], subtype=r[3],
-            description=_truncate(r[4]), is_featured=r[5],
+            id=str(r[0]),
+            name=r[1],
+            category=r[2],
+            subtype=r[3],
+            description=_truncate(r[4]),
+            is_featured=r[5],
             entry_fee_dzd=float(r[6]) if r[6] else None,
-            price_level=r[7], suggested_duration_min=r[8],
+            price_level=r[7],
+            suggested_duration_min=r[8],
             photo_url=r[9],
             nearest_station=r[10],
         )
@@ -802,21 +899,28 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
             """),
             {"wid": wid, "cat": cat_name, "top": top},
         )
-        categories.append(GuideCategoryOutput(
-            category=cat_name,
-            count=cat_row[1],
-            pois=[
-                GuidePOIOutput(
-                    id=str(r[0]), name=r[1], category=r[2], subtype=r[3],
-                    description=_truncate(r[4]), is_featured=r[5],
-                    entry_fee_dzd=float(r[6]) if r[6] else None,
-                    price_level=r[7], suggested_duration_min=r[8],
-                    photo_url=r[9],
-                    nearest_station=r[10],
-                )
-                for r in pois.all()
-            ],
-        ))
+        categories.append(
+            GuideCategoryOutput(
+                category=cat_name,
+                count=cat_row[1],
+                pois=[
+                    GuidePOIOutput(
+                        id=str(r[0]),
+                        name=r[1],
+                        category=r[2],
+                        subtype=r[3],
+                        description=_truncate(r[4]),
+                        is_featured=r[5],
+                        entry_fee_dzd=float(r[6]) if r[6] else None,
+                        price_level=r[7],
+                        suggested_duration_min=r[8],
+                        photo_url=r[9],
+                        nearest_station=r[10],
+                    )
+                    for r in pois.all()
+                ],
+            )
+        )
 
     # Top stays
     stays_rows = await ctx.deps.db.execute(
@@ -831,7 +935,9 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
     )
     top_stays = [
         GuideStaySummary(
-            id=str(r[0]), name=r[1], property_type=r[2],
+            id=str(r[0]),
+            name=r[1],
+            property_type=r[2],
             price_per_night_dzd=float(r[3]),
             photo_url=r[4][0] if r[4] else None,
         )
@@ -851,7 +957,9 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
     )
     top_experiences = [
         GuideExperienceSummary(
-            id=str(r[0]), title=r[1], category=r[2],
+            id=str(r[0]),
+            title=r[1],
+            category=r[2],
             price_dzd=float(r[3]) if r[3] else None,
             duration_hours=float(r[4]) if r[4] else None,
             photo_url=r[5][0] if r[5] else None,
@@ -874,8 +982,12 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
     )
     upcoming_events = [
         GuideEventSummary(
-            id=str(r[0]), title=r[1], category=r[2], month=r[3],
-            duration_days=r[4], photo_url=r[5],
+            id=str(r[0]),
+            title=r[1],
+            category=r[2],
+            month=r[3],
+            duration_days=r[4],
+            photo_url=r[5],
         )
         for r in evt_rows.all()
     ]
@@ -885,26 +997,38 @@ async def get_wilaya_guide(ctx: RunContext[TravelAgentDeps], params: WilayaGuide
     if total_featured > 0:
         tips.append(f"There are {total_featured} must-see attractions in {name}.")
     if total_pois > 50:
-        tips.append(f"With {total_pois} points of interest, plan at least 2-3 days to explore {name}.")
+        tips.append(
+            f"With {total_pois} points of interest, plan at least 2-3 days to explore {name}."
+        )
     if total_stays > 0:
         tips.append(f"{total_stays} accommodations available, from budget to mid-range.")
     if total_experiences > 0:
-        tips.append(f"{total_experiences} bookable experiences including tours, workshops, and hikes.")
+        tips.append(
+            f"{total_experiences} bookable experiences including tours, workshops, and hikes."
+        )
     if total_events > 0:
         tips.append(f"{total_events} cultural events and festivals throughout the year.")
 
     return WilayaGuideOutput(
-        wilaya_id=wid, wilaya_name=name, description=desc,
-        total_pois=total_pois or 0, total_featured=total_featured or 0,
-        total_stays=total_stays, total_experiences=total_experiences,
+        wilaya_id=wid,
+        wilaya_name=name,
+        description=desc,
+        total_pois=total_pois or 0,
+        total_featured=total_featured or 0,
+        total_stays=total_stays,
+        total_experiences=total_experiences,
         total_events=total_events,
-        featured_pois=featured_pois, categories=categories,
-        top_stays=top_stays, top_experiences=top_experiences,
-        upcoming_events=upcoming_events, tips=tips,
+        featured_pois=featured_pois,
+        categories=categories,
+        top_stays=top_stays,
+        top_experiences=top_experiences,
+        upcoming_events=upcoming_events,
+        tips=tips,
     )
 
 
 # ── Multi-Modal Transport Route ──
+
 
 class TransportRouteParams(BaseModel):
     origin_wilaya_id: int = Field(..., ge=1, le=58, description="Departure wilaya ID")
@@ -943,7 +1067,9 @@ class TransportRouteResult(BaseModel):
     best_recommendation: str | None = None
 
 
-async def get_transport_route(ctx: RunContext[TravelAgentDeps], params: TransportRouteParams) -> TransportRouteResult:
+async def get_transport_route(
+    ctx: RunContext[TravelAgentDeps], params: TransportRouteParams
+) -> TransportRouteResult:
     """Get multi-modal transport options between two Algerian wilayas.
 
     Returns driving, train (direct + multi-hop), SOGRAL bus, and flight options
@@ -963,10 +1089,12 @@ async def get_transport_route(ctx: RunContext[TravelAgentDeps], params: Transpor
 
     if not route_options:
         return TransportRouteResult(
-            origin_wilaya=o_name, dest_wilaya=d_name,
+            origin_wilaya=o_name,
+            dest_wilaya=d_name,
             origin_wilaya_id=params.origin_wilaya_id,
             dest_wilaya_id=params.dest_wilaya_id,
-            options=[], best_recommendation="No transport route data available between these wilayas.",
+            options=[],
+            best_recommendation="No transport route data available between these wilayas.",
         )
 
     options = []
@@ -974,9 +1102,13 @@ async def get_transport_route(ctx: RunContext[TravelAgentDeps], params: Transpor
     driving_time = None
     for opt in route_options:
         mode_opt = TransportModeOption(
-            mode=opt.mode, line_name=opt.line_name, operator=opt.operator,
-            cost_dzd=opt.cost_dzd, duration_min=opt.duration_min,
-            schedule=opt.schedule, pricing=opt.pricing,
+            mode=opt.mode,
+            line_name=opt.line_name,
+            operator=opt.operator,
+            cost_dzd=opt.cost_dzd,
+            duration_min=opt.duration_min,
+            schedule=opt.schedule,
+            pricing=opt.pricing,
             transfers=opt.transfers,
             contacts=[OperatorContactInfo(**c.__dict__) for c in opt.contacts],
             available=True,
@@ -1004,7 +1136,8 @@ async def get_transport_route(ctx: RunContext[TravelAgentDeps], params: Transpor
         driving_dist = driving_opt.pricing.get("private_taxi", 0) / 20.0
 
     return TransportRouteResult(
-        origin_wilaya=o_name, dest_wilaya=d_name,
+        origin_wilaya=o_name,
+        dest_wilaya=d_name,
         origin_wilaya_id=params.origin_wilaya_id,
         dest_wilaya_id=params.dest_wilaya_id,
         driving_distance_km=driving_dist,
@@ -1016,8 +1149,11 @@ async def get_transport_route(ctx: RunContext[TravelAgentDeps], params: Transpor
 
 # ── Operator Contacts ──
 
+
 class OperatorContactsParams(BaseModel):
-    mode: str | None = Field(None, description="Filter by mode: train, flight, bus, taxi, tram, cablecar")
+    mode: str | None = Field(
+        None, description="Filter by mode: train, flight, bus, taxi, tram, cablecar"
+    )
     wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by headquarters wilaya")
 
 
@@ -1038,7 +1174,9 @@ class OperatorContactsOutput(BaseModel):
     total: int
 
 
-async def get_operator_contacts(ctx: RunContext[TravelAgentDeps], params: OperatorContactsParams) -> OperatorContactsOutput:
+async def get_operator_contacts(
+    ctx: RunContext[TravelAgentDeps], params: OperatorContactsParams
+) -> OperatorContactsOutput:
     """Get contact information for Algerian transport operators.
 
     Returns phone numbers, websites, and emails for SNTF, Air Algérie,
@@ -1055,17 +1193,25 @@ async def get_operator_contacts(ctx: RunContext[TravelAgentDeps], params: Operat
 
     where = " AND ".join(conditions)
     rows = await ctx.deps.db.execute(
-        text(f"SELECT name, name_ar, mode, phone, website, email, headquarters_wilaya_id, description, coverage_type "
-             f"FROM transport_operators WHERE {where} ORDER BY mode, name"),
+        text(
+            f"SELECT name, name_ar, mode, phone, website, email, headquarters_wilaya_id, description, coverage_type "  # noqa: E501
+            f"FROM transport_operators WHERE {where} ORDER BY mode, name"
+        ),
         bind,
     )
     return OperatorContactsOutput(
         total=rows.rowcount,
         results=[
             OperatorContactResult(
-                name=r[0], name_ar=r[1], mode=r[2], phone=r[3],
-                website=r[4], email=r[5], headquarters_wilaya=r[6],
-                description=_truncate(r[7]), coverage_type=r[8],
+                name=r[0],
+                name_ar=r[1],
+                mode=r[2],
+                phone=r[3],
+                website=r[4],
+                email=r[5],
+                headquarters_wilaya=r[6],
+                description=_truncate(r[7]),
+                coverage_type=r[8],
             )
             for r in rows.all()
         ],
@@ -1074,9 +1220,13 @@ async def get_operator_contacts(ctx: RunContext[TravelAgentDeps], params: Operat
 
 # ── Events / Festivals ──
 
+
 class EventSearchParams(BaseModel):
     wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by wilaya ID")
-    category: str | None = Field(None, description="Filter by category: cultural, food, music, religious, adventure, hiking, beach")
+    category: str | None = Field(
+        None,
+        description="Filter by category: cultural, food, music, religious, adventure, hiking, beach",  # noqa: E501
+    )
     month: int | None = Field(None, ge=1, le=12, description="Filter by month (1-12)")
     query: str | None = Field(None, max_length=200, description="Text search on title/description")
     limit: int = Field(5, ge=1, le=20, description="Max results (keep small for context)")
@@ -1099,7 +1249,9 @@ class EventSearchOutput(BaseModel):
     total: int
 
 
-async def find_events(ctx: RunContext[TravelAgentDeps], params: EventSearchParams) -> EventSearchOutput:
+async def find_events(
+    ctx: RunContext[TravelAgentDeps], params: EventSearchParams
+) -> EventSearchOutput:
     """Find cultural events and festivals in Algeria.
 
     Filter by wilaya, category (cultural, food, music, religious, adventure, hiking, beach),
@@ -1145,9 +1297,14 @@ async def find_events(ctx: RunContext[TravelAgentDeps], params: EventSearchParam
         total=total,
         results=[
             EventResult(
-                id=str(r[0]), title=r[1], wilaya_id=r[2], category=r[3],
-                description=_truncate(r[4]), month=r[5],
-                duration_days=r[6], is_recurring=r[7],
+                id=str(r[0]),
+                title=r[1],
+                wilaya_id=r[2],
+                category=r[3],
+                description=_truncate(r[4]),
+                month=r[5],
+                duration_days=r[6],
+                is_recurring=r[7],
                 photo_url=r[8],
             )
             for r in rows.all()

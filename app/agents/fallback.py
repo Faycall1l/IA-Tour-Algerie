@@ -63,9 +63,7 @@ def _fold(value: str) -> str:
 async def _wilaya_alias_table(deps) -> dict[int, list[str]]:
     aliases: dict[int, list[str]] = {}
     try:
-        rows = await deps.db.execute(
-            text("SELECT id, name_en, name_ar, name_fr FROM wilayas")
-        )
+        rows = await deps.db.execute(text("SELECT id, name_en, name_ar, name_fr FROM wilayas"))
         for r in rows.all():
             names = {str(x) for x in (r[1], r[2], r[3]) if x}
             aliases[int(r[0])] = [_fold(n) for n in names if _fold(n)]
@@ -126,13 +124,82 @@ def _remove_alias(folded: str, alias: str) -> str:
 #: `plainto_tsquery('french', 'beaches in')` -> `'beach' & 'in'`) silently kills
 #: otherwise-valid matches. The fallback strips them before searching.
 _STOPWORDS = {
-    "a", "about", "am", "an", "and", "any", "are", "around", "as", "at", "au",
-    "aux", "avec", "be", "by", "can", "ce", "ces", "cette", "d", "dans", "de",
-    "des", "do", "does", "du", "en", "et", "for", "from", "get", "go", "has",
-    "have", "how", "i", "in", "is", "it", "l", "la", "le", "les", "me", "my",
-    "near", "next", "of", "on", "or", "ou", "pour", "que", "qui", "s", "se",
-    "show", "some", "sur", "t", "tell", "the", "there", "these", "they", "to",
-    "un", "une", "vers", "want", "was", "what", "where", "which", "with", "you",
+    "a",
+    "about",
+    "am",
+    "an",
+    "and",
+    "any",
+    "are",
+    "around",
+    "as",
+    "at",
+    "au",
+    "aux",
+    "avec",
+    "be",
+    "by",
+    "can",
+    "ce",
+    "ces",
+    "cette",
+    "d",
+    "dans",
+    "de",
+    "des",
+    "do",
+    "does",
+    "du",
+    "en",
+    "et",
+    "for",
+    "from",
+    "get",
+    "go",
+    "has",
+    "have",
+    "how",
+    "i",
+    "in",
+    "is",
+    "it",
+    "l",
+    "la",
+    "le",
+    "les",
+    "me",
+    "my",
+    "near",
+    "next",
+    "of",
+    "on",
+    "or",
+    "ou",
+    "pour",
+    "que",
+    "qui",
+    "s",
+    "se",
+    "show",
+    "some",
+    "sur",
+    "t",
+    "tell",
+    "the",
+    "there",
+    "these",
+    "they",
+    "to",
+    "un",
+    "une",
+    "vers",
+    "want",
+    "was",
+    "what",
+    "where",
+    "which",
+    "with",
+    "you",
 }
 
 
@@ -186,9 +253,10 @@ _OPERATOR_INTENT_WORDS = (
 
 
 def _has_operator_intent(folded: str) -> bool:
-    return _has_keywords(folded, _OPERATOR_INTENT_WORDS) or re.search(
-        rf"\b({_OPERATOR_NAMES})\b", folded
-    ) is not None
+    return (
+        _has_keywords(folded, _OPERATOR_INTENT_WORDS)
+        or re.search(rf"\b({_OPERATOR_NAMES})\b", folded) is not None
+    )
 
 
 # ── Category/field detection (for precise tool filters) ──
@@ -199,10 +267,25 @@ _POI_CATEGORY_WORDS: dict[str, tuple[str, ...]] = {
     "restaurant": ("restaurant", "food", "eat", "dinner", "lunch", "brunch"),
     "cafe": ("cafe", "coffee", "tea"),
     "historical": (
-        "histor", "ruin", "roman", "monument", "fort", "palace", "castle", "archaeol", "antiqu",
+        "histor",
+        "ruin",
+        "roman",
+        "monument",
+        "fort",
+        "palace",
+        "castle",
+        "archaeol",
+        "antiqu",
     ),
     "religious": (
-        "mosque", "church", "cathedral", "mausole", "zawiya", "synagog", "shrine", "tomb",
+        "mosque",
+        "church",
+        "cathedral",
+        "mausole",
+        "zawiya",
+        "synagog",
+        "shrine",
+        "tomb",
     ),
     "mountain": ("mountain", "peak", "summit", "ridge", "jebel"),
     "park": ("park", "garden"),
@@ -247,11 +330,33 @@ def _detect_event_category(text: str) -> str | None:
 
 
 _MONTHS = {
-    "january": 1, "janvier": 1, "february": 2, "fevrier": 2, "février": 2,
-    "march": 3, "mars": 3, "april": 4, "avril": 4, "may": 5, "mai": 5,
-    "june": 6, "juin": 6, "july": 7, "juillet": 7, "august": 8, "aout": 8, "août": 8,
-    "september": 9, "septembre": 9, "october": 10, "octobre": 10,
-    "november": 11, "novembre": 11, "december": 12, "decembre": 12, "décembre": 12,
+    "january": 1,
+    "janvier": 1,
+    "february": 2,
+    "fevrier": 2,
+    "février": 2,
+    "march": 3,
+    "mars": 3,
+    "april": 4,
+    "avril": 4,
+    "may": 5,
+    "mai": 5,
+    "june": 6,
+    "juin": 6,
+    "july": 7,
+    "juillet": 7,
+    "august": 8,
+    "aout": 8,
+    "août": 8,
+    "september": 9,
+    "septembre": 9,
+    "october": 10,
+    "octobre": 10,
+    "november": 11,
+    "novembre": 11,
+    "december": 12,
+    "decembre": 12,
+    "décembre": 12,
 }
 
 
@@ -277,8 +382,13 @@ async def _handle_wilaya_guide(deps, wilaya_id: int) -> str | None:
     except Exception as e:  # pragma: no cover
         logger.warning("Fallback wilaya guide failed: %s", e)
         return None
-    if not (out.featured_pois or out.categories or out.top_stays
-            or out.top_experiences or out.upcoming_events):
+    if not (
+        out.featured_pois
+        or out.categories
+        or out.top_stays
+        or out.top_experiences
+        or out.upcoming_events
+    ):
         return None
 
     lines = [f"{out.wilaya_name} — travel guide"]
@@ -331,7 +441,7 @@ async def _handle_poi_search(folded: str, deps, wilaya: tuple[int, str] | None) 
     if not out.results:
         return None
 
-    lines = [f"Points of interest matching \"{query}\":"]
+    lines = [f'Points of interest matching "{query}":']
     for r in out.results[:_MAX_RESULTS]:
         price = r.price_level or (f"{r.entry_fee_dzd:.0f} DZD" if r.entry_fee_dzd else "Free")
         duration = f", ~{r.suggested_duration_min} min" if r.suggested_duration_min else ""
@@ -358,7 +468,7 @@ async def _handle_stays(folded: str, deps, wilaya: tuple[int, str] | None) -> st
         return None
 
     where = f" in wilaya {wilaya[0]}" if wilaya else ""
-    lines = [f"Accommodation{where} matching \"{query}\":"]
+    lines = [f'Accommodation{where} matching "{query}":']
     for r in out.results[:_MAX_RESULTS]:
         lines.append(f"• {r.name} ({r.property_type}) — {r.price_per_night_dzd:.0f} DZD/night")
     lines.append("\n(Offline search — the AI assistant is temporarily unavailable)")
@@ -381,7 +491,7 @@ async def _handle_experiences(folded: str, deps, wilaya: tuple[int, str] | None)
     if not out.results:
         return None
 
-    lines = [f"Experiences matching \"{query}\":"]
+    lines = [f'Experiences matching "{query}":']
     for r in out.results[:_MAX_RESULTS]:
         price = f", {r.price_dzd:.0f} DZD" if r.price_dzd else ""
         duration = f", ~{r.duration_hours:.0f}h" if r.duration_hours else ""

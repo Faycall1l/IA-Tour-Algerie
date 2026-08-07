@@ -1,10 +1,9 @@
 import pytest
+from app.models.provider_profile import ProviderProfile
+from app.models.user import User
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.provider_profile import ProviderProfile
-from app.models.user import User
 
 
 @pytest.mark.asyncio

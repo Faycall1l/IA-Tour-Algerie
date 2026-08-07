@@ -11,13 +11,12 @@ Reference: Moai Agentic Product Standard, 8-layer harness.
 """
 
 import asyncio
-import hashlib
 import logging
 import re
 import time
 import uuid
 from dataclasses import dataclass, field
-from enum import Enum
+from enum import StrEnum
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -29,9 +28,11 @@ logger = logging.getLogger(__name__)
 
 # ── Trace context ──
 
+
 @dataclass
 class AgentTrace:
     """Immutable trace record for one agent run."""
+
     trace_id: str
     agent_name: str
     start_time: float
@@ -57,7 +58,8 @@ class AgentTrace:
 
 # ── Circuit breaker ──
 
-class CircuitState(str, Enum):
+
+class CircuitState(StrEnum):
     CLOSED = "closed"
     OPEN = "open"
     HALF_OPEN = "half_open"
@@ -72,6 +74,7 @@ class CircuitBreaker:
     HALF_OPEN → CLOSED: on first success
     HALF_OPEN → OPEN: on first failure
     """
+
     name: str
     failure_threshold: int = 3
     recovery_timeout: float = 30.0
@@ -95,7 +98,8 @@ class CircuitBreaker:
             self.state = CircuitState.OPEN
             logger.warning(
                 "Circuit breaker %s: tripped OPEN after %d failures",
-                self.name, self.failure_count,
+                self.name,
+                self.failure_count,
             )
 
     def allow_request(self) -> bool:
@@ -220,6 +224,7 @@ def sanitize_history(messages: list[dict]) -> list[dict]:
 
 # ── Output validation ──
 
+
 def validate_output(data: Any, schema: type[BaseModel]) -> tuple[bool, str | None]:
     """Validate agent output against expected Pydantic schema."""
     if schema is None:
@@ -233,6 +238,7 @@ def validate_output(data: Any, schema: type[BaseModel]) -> tuple[bool, str | Non
 
 # ── Token estimation ──
 
+
 def estimate_tokens(text: str) -> int:
     """Rough token estimate: ~4 chars per token for English."""
     return max(1, len(text) // 4)
@@ -240,12 +246,13 @@ def estimate_tokens(text: str) -> int:
 
 # ── Cost calculation ──
 
+
 def estimate_cost(input_tokens: int, output_tokens: int, model: str = "gemma-4-31b") -> float:
     """Estimate cost in USD. vLLM self-hosted = near-zero cost."""
     if "vllm" in model.lower() or "gemma" in model.lower():
         return 0.0
     # Placeholder for hosted models
-    return (input_tokens * 0.000001 + output_tokens * 0.000002)
+    return input_tokens * 0.000001 + output_tokens * 0.000002
 
 
 # ── Global circuit breakers ──
@@ -266,11 +273,10 @@ def reset_circuit_breakers() -> None:
 
 # ── Harness decorator ──
 
+
 def agent_harness(
     agent_name: str,
     output_schema: type[BaseModel] | None = None,
-    max_tokens: int = 8192,
-    max_tool_calls: int = MAX_TOOL_CALLS_PER_RUN,
 ):
     """Decorator that wraps an agent call with the full harness.
 
@@ -282,6 +288,7 @@ def agent_harness(
         async def run_travel_agent(user_input: str, deps: TravelAgentDeps):
             ...
     """
+
     def decorator(func):
         async def wrapper(user_input: str, *args, **kwargs) -> tuple[Any, Trace]:
             trace = Trace(
@@ -317,7 +324,7 @@ def agent_harness(
                 )
                 cb.record_success()
                 trace.finish(success=True)
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 cb.record_failure()
                 trace.finish(success=False, error=f"Agent {agent_name} timed out after 30s")
                 trace_store.record(trace)
@@ -344,7 +351,9 @@ def agent_harness(
 
             logger.info(
                 "Agent %s [trace=%s] completed in %.0fms, ~%d tokens",
-                agent_name, trace.trace_id[:8], trace.duration_ms,
+                agent_name,
+                trace.trace_id[:8],
+                trace.duration_ms,
                 trace.total_tokens,
             )
             trace_store.record(trace)

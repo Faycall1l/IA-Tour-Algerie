@@ -1,13 +1,11 @@
 import uuid
 
 import pytest
-from httpx import AsyncClient
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.favorite import Favorite
 from app.models.poi import POI
-from app.models.recommendation import UserPreference
 from app.models.user import User
+from httpx import AsyncClient
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 @pytest.mark.asyncio
@@ -21,7 +19,11 @@ async def test_get_recommendations_empty(client: AsyncClient, auth_headers: dict
 
 @pytest.mark.asyncio
 async def test_get_recommendations_with_pois(
-    client: AsyncClient, auth_headers: dict, sample_poi: POI, db: AsyncSession, test_user: User,
+    client: AsyncClient,
+    auth_headers: dict,
+    sample_poi: POI,  # noqa: ARG001  # seeds the fixture POI
+    db: AsyncSession,
+    test_user: User,  # noqa: ARG001  # created via auth_headers chain
 ):
     # Create several POIs for recommendations
     cats = ["historical", "natural", "museum", "beach", "cultural"]
@@ -55,7 +57,10 @@ async def test_get_recommendations_with_pois(
 
 @pytest.mark.asyncio
 async def test_get_recommendations_with_favorites(
-    client: AsyncClient, auth_headers: dict, db: AsyncSession, test_user: User,
+    client: AsyncClient,
+    auth_headers: dict,
+    db: AsyncSession,
+    test_user: User,
 ):
     # Create POIs and add some as favorites
     for i in range(5):
@@ -117,7 +122,9 @@ async def test_derive_preferences(client: AsyncClient, auth_headers: dict):
 
 
 @pytest.mark.asyncio
-async def test_recommendations_feedback(client: AsyncClient, auth_headers: dict, db: AsyncSession, test_user: User):
+async def test_recommendations_feedback(
+    client: AsyncClient, auth_headers: dict, db: AsyncSession, test_user: User
+):
     # Create a POI, generate a rec, then feedback on it
     from app.models.recommendation import Recommendation
 

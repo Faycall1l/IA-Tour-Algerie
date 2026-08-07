@@ -18,10 +18,11 @@ _transport_service = TransportService()
 
 # ── Legacy inter-wilaya route endpoints ─────────────────────────────
 
+
 @router.get(
     "/routes/from/{origin_wilaya_id}",
     summary="Destinations from a wilaya",
-    description="List reachable wilayas from an origin with driving distance/time, ordered by distance.",
+    description="List reachable wilayas from an origin with driving distance/time, ordered by distance.",  # noqa: E501
     responses={
         422: {"description": "Invalid origin_wilaya_id"},
         200: {"description": "Origin + destinations with driving estimates"},
@@ -83,9 +84,7 @@ async def get_transport_route(
     """
     # Multi-modal options
     router_instance = MultiModalRouter()
-    options = await router_instance.get_inter_wilaya_options(
-        db, origin_wilaya_id, dest_wilaya_id
-    )
+    options = await router_instance.get_inter_wilaya_options(db, origin_wilaya_id, dest_wilaya_id)
 
     if not options:
         # Fallback to legacy flat estimates
@@ -124,8 +123,13 @@ async def get_transport_route(
             "pricing": opt.pricing,
             "transfers": opt.transfers,
             "contacts": [
-                {"name": c.name, "mode": c.mode, "phone": c.phone,
-                 "website": c.website, "email": c.email}
+                {
+                    "name": c.name,
+                    "mode": c.mode,
+                    "phone": c.phone,
+                    "website": c.website,
+                    "email": c.email,
+                }
                 for c in opt.contacts
             ],
         }
@@ -146,10 +150,11 @@ async def get_transport_route(
 
 # ── New multi-modal transit routing endpoints ──────────────────────
 
+
 @router.get(
     "/stations",
     summary="List stations",
-    description="All transit stations, optionally filtered by wilaya and type (bus, train, tram, taxi, airport, ferry, cablecar).",
+    description="All transit stations, optionally filtered by wilaya and type (bus, train, tram, taxi, airport, ferry, cablecar).",  # noqa: E501
     responses={
         200: {"description": "Station list"},
         422: {"description": "Invalid filter"},
@@ -167,7 +172,7 @@ async def list_stations(
 @router.get(
     "/stations/nearby",
     summary="Nearest stations",
-    description="Stations nearest to a lat/lng point, optionally filtered by type. Uses the transit graph spatial index.",
+    description="Stations nearest to a lat/lng point, optionally filtered by type. Uses the transit graph spatial index.",  # noqa: E501
     responses={
         200: {"description": "Stations with distance"},
         422: {"description": "Missing/invalid lat/lng"},
@@ -188,7 +193,7 @@ async def nearest_stations(
 @router.get(
     "/lines",
     summary="List transport lines",
-    description="Transport lines, optionally filtered by mode (bus, train, tram, taxi, flight, ferry, cablecar, walking). Includes schedules and pricing.",
+    description="Transport lines, optionally filtered by mode (bus, train, tram, taxi, flight, ferry, cablecar, walking). Includes schedules and pricing.",  # noqa: E501
     responses={
         200: {"description": "Line list"},
         422: {"description": "Invalid mode"},
@@ -241,7 +246,7 @@ async def plan_route(
 @router.get(
     "/access/{poi_id}",
     summary="Transit access for a POI",
-    description="Nearest stations and routing summary for a POI, useful for the 'how to get there' panel.",
+    description="Nearest stations and routing summary for a POI, useful for the 'how to get there' panel.",  # noqa: E501
     responses={
         200: {"description": "Nearest stations + distances"},
         404: {"description": "POI not found"},
@@ -317,10 +322,11 @@ async def route_to_poi(
 
 # ── Transport operators ──────────────────────────────────────────────
 
+
 @router.get(
     "/operators",
     summary="List transport operators",
-    description="Active transport operators with contact info (phone, website, email) and coverage, filtered by mode: train, flight, bus, taxi, tram, cablecar, ferry.",
+    description="Active transport operators with contact info (phone, website, email) and coverage, filtered by mode: train, flight, bus, taxi, tram, cablecar, ferry.",  # noqa: E501
     responses={
         200: {"description": "Operator list with contacts"},
         422: {"description": "Invalid mode"},
@@ -328,10 +334,13 @@ async def route_to_poi(
 )
 async def list_operators(
     db: AsyncSession = Depends(get_db),
-    mode: str | None = Query(None, description="Filter by mode: train, flight, bus, taxi, tram, cablecar"),
+    mode: str | None = Query(
+        None, description="Filter by mode: train, flight, bus, taxi, tram, cablecar"
+    ),
 ) -> list:
     """List transport operators with contact information."""
     from sqlalchemy import text as sa_text
+
     conditions = ["is_active = TRUE"]
     bind: dict = {}
     if mode:
@@ -339,16 +348,23 @@ async def list_operators(
         bind["mode"] = mode
     where = " AND ".join(conditions)
     rows = await db.execute(
-        sa_text(f"SELECT name, name_ar, mode, phone, website, email, "
-                f"headquarters_wilaya_id, description, coverage_type "
-                f"FROM transport_operators WHERE {where} ORDER BY mode, name"),
+        sa_text(
+            f"SELECT name, name_ar, mode, phone, website, email, "
+            f"headquarters_wilaya_id, description, coverage_type "
+            f"FROM transport_operators WHERE {where} ORDER BY mode, name"
+        ),
         bind,
     )
     return [
         {
-            "name": r[0], "name_ar": r[1], "mode": r[2],
-            "phone": r[3], "website": r[4], "email": r[5],
-            "headquarters_wilaya_id": r[6], "description": r[7],
+            "name": r[0],
+            "name_ar": r[1],
+            "mode": r[2],
+            "phone": r[3],
+            "website": r[4],
+            "email": r[5],
+            "headquarters_wilaya_id": r[6],
+            "description": r[7],
             "coverage_type": r[8],
         }
         for r in rows.all()

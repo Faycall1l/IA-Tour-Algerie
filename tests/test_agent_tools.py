@@ -8,10 +8,6 @@ import uuid
 from unittest.mock import MagicMock
 
 import pytest
-import pytest_asyncio
-from pydantic_ai import RunContext
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.agents.deps import TravelAgentDeps
 from app.agents.tools import (
     EventSearchParams,
@@ -26,6 +22,8 @@ from app.models.poi import POI
 from app.models.user import User
 from app.models.wilaya import Wilaya
 from app.models.wilaya_distance import WilayaDistance
+from pydantic_ai import RunContext
+from sqlalchemy.ext.asyncio import AsyncSession
 
 pytestmark = pytest.mark.asyncio
 
@@ -37,6 +35,7 @@ def _make_ctx(db: AsyncSession) -> RunContext[TravelAgentDeps]:
 
 
 # ── get_wilaya_guide ──
+
 
 class TestGetWilayaGuide:
     async def test_not_found(self, db: AsyncSession):
@@ -59,16 +58,23 @@ class TestGetWilayaGuide:
 
     async def test_with_pois(self, db: AsyncSession):
         # Seed POIs
-        for i, (name, cat, featured) in enumerate([
-            ("Mosquée d'Adrar", "religious", True),
-            ("Marché d'Adrar", "market", False),
-            ("Musée d'Adrar", "museum", False),
-        ]):
-            db.add(POI(
-                name=name, category=cat, wilaya_id=1,
-                is_featured=featured, featured_order=i if featured else None,
-                description=f"A nice {cat} in Adrar",
-            ))
+        for i, (name, cat, featured) in enumerate(
+            [
+                ("Mosquée d'Adrar", "religious", True),
+                ("Marché d'Adrar", "market", False),
+                ("Musée d'Adrar", "museum", False),
+            ]
+        ):
+            db.add(
+                POI(
+                    name=name,
+                    category=cat,
+                    wilaya_id=1,
+                    is_featured=featured,
+                    featured_order=i if featured else None,
+                    description=f"A nice {cat} in Adrar",
+                )
+            )
         await db.commit()
 
         ctx = _make_ctx(db)
@@ -99,21 +105,29 @@ class TestGetWilayaGuide:
 
 # ── get_transport_route ──
 
+
 class TestGetTransportRoute:
     async def test_no_route_data(self, db: AsyncSession):
         ctx = _make_ctx(db)
-        result = await get_transport_route(ctx, TransportRouteParams(origin_wilaya_id=1, dest_wilaya_id=2))
+        result = await get_transport_route(
+            ctx, TransportRouteParams(origin_wilaya_id=1, dest_wilaya_id=2)
+        )
         assert len(result.options) == 0
         assert "No transport route data" in (result.best_recommendation or "")
 
     async def test_with_route_data(self, db: AsyncSession):
         # Seed a WilayaDistance row
-        db.add(WilayaDistance(
-            origin_wilaya_id=1, dest_wilaya_id=2,
-            driving_distance_km=400.0, driving_time_minutes=300,
-            road_classification="national",
-            has_train_route=False, has_direct_flight=False,
-        ))
+        db.add(
+            WilayaDistance(
+                origin_wilaya_id=1,
+                dest_wilaya_id=2,
+                driving_distance_km=400.0,
+                driving_time_minutes=300,
+                road_classification="national",
+                has_train_route=False,
+                has_direct_flight=False,
+            )
+        )
         # Ensure both wilayas exist
         w1 = await db.get(Wilaya, 1)
         w2 = await db.get(Wilaya, 2)
@@ -124,7 +138,9 @@ class TestGetTransportRoute:
         await db.commit()
 
         ctx = _make_ctx(db)
-        result = await get_transport_route(ctx, TransportRouteParams(origin_wilaya_id=1, dest_wilaya_id=2))
+        result = await get_transport_route(
+            ctx, TransportRouteParams(origin_wilaya_id=1, dest_wilaya_id=2)
+        )
         # Should have driving option (always available)
         assert len(result.options) >= 1
         modes = {o.mode for o in result.options}
@@ -137,18 +153,45 @@ class TestGetTransportRoute:
 
     async def test_same_wilaya(self, db: AsyncSession):
         ctx = _make_ctx(db)
-        result = await get_transport_route(ctx, TransportRouteParams(origin_wilaya_id=1, dest_wilaya_id=1))
+        result = await get_transport_route(
+            ctx, TransportRouteParams(origin_wilaya_id=1, dest_wilaya_id=1)
+        )
         assert len(result.options) == 0
 
 
 # ── find_events ──
 
+
 class TestFindEvents:
     async def seed_events(self, db: AsyncSession):
         events = [
-            Event(title="Festival du Couscous", wilaya_id=1, category="cultural", month=7, description="Annual couscous festival", duration_days=3, is_recurring=True),
-            Event(title="Date Festival", wilaya_id=1, category="food", month=10, description="Date harvest celebration", duration_days=2, is_recurring=True),
-            Event(title="Régate d'Oran", wilaya_id=31, category="beach", month=6, description="Sailing regatta", duration_days=1, is_recurring=True),
+            Event(
+                title="Festival du Couscous",
+                wilaya_id=1,
+                category="cultural",
+                month=7,
+                description="Annual couscous festival",
+                duration_days=3,
+                is_recurring=True,
+            ),
+            Event(
+                title="Date Festival",
+                wilaya_id=1,
+                category="food",
+                month=10,
+                description="Date harvest celebration",
+                duration_days=2,
+                is_recurring=True,
+            ),
+            Event(
+                title="Régate d'Oran",
+                wilaya_id=31,
+                category="beach",
+                month=6,
+                description="Sailing regatta",
+                duration_days=1,
+                is_recurring=True,
+            ),
         ]
         for e in events:
             db.add(e)

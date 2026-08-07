@@ -1,7 +1,6 @@
 """Tests for the agent prompt management system — versioning, registry, context."""
 
 import pytest
-
 from app.agents.prompts import (
     AgentContext,
     Prompt,
@@ -123,6 +122,7 @@ class TestAgentContext:
         class FakeUser:
             full_name = "Faycal"
             role = "traveler"
+
         ctx = AgentContext.from_user(FakeUser())
         assert ctx.user_name == "Faycal"
         assert ctx.today  # Should have today's date
@@ -149,6 +149,7 @@ class TestBuildPrompt:
         class FakeUser:
             full_name = "Test"
             role = "traveler"
+
         p = build_prompt("travel_agent.main", user=FakeUser())
         assert "Test" in p
         assert "TODAY'S DATE" in p

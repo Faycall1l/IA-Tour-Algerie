@@ -1,11 +1,7 @@
-import uuid
-
 import pytest
 from app.models.experience import Experience
-from app.models.poi import POI
 from app.models.provider_profile import ProviderProfile
 from app.models.user import User
-from app.models.wilaya import Wilaya
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -121,7 +117,6 @@ async def test_approve_provider(
 
 
 # ── Content Moderation ─────────────────────────────────────────────
-
 
 
 @pytest.mark.asyncio

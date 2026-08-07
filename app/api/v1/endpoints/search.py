@@ -100,7 +100,7 @@ SELECT COUNT(*) FROM (
     "/suggest",
     response_model=SuggestFeed,
     summary="Search suggestions",
-    description="Fast prefix autocomplete across POI names, experience titles, and stay names. Sorted by name length.",
+    description="Fast prefix autocomplete across POI names, experience titles, and stay names. Sorted by name length.",  # noqa: E501
     responses={422: {"description": "Query required (min 1 char)"}},
 )
 async def suggest(
@@ -113,16 +113,31 @@ async def suggest(
 
     like = f"{q.strip()}%"
 
-    poi_sql = text("SELECT id, name, category, wilaya_id, photo_url FROM pois WHERE name ILIKE :q LIMIT :lim")
-    exp_sql = text("SELECT id, title, category, wilaya_id, COALESCE(photos[1], NULL) FROM experiences WHERE title ILIKE :q LIMIT :lim")
-    stay_sql = text("SELECT id, name, property_type, wilaya_id, COALESCE(photos[1], NULL) FROM stays WHERE name ILIKE :q LIMIT :lim")
+    poi_sql = text(
+        "SELECT id, name, category, wilaya_id, photo_url FROM pois WHERE name ILIKE :q LIMIT :lim"
+    )
+    exp_sql = text(
+        "SELECT id, title, category, wilaya_id, COALESCE(photos[1], NULL) FROM experiences WHERE title ILIKE :q LIMIT :lim"  # noqa: E501
+    )
+    stay_sql = text(
+        "SELECT id, name, property_type, wilaya_id, COALESCE(photos[1], NULL) FROM stays WHERE name ILIKE :q LIMIT :lim"  # noqa: E501
+    )
 
     items: list[SuggestItem] = []
 
     for sql, etype in [(poi_sql, "poi"), (exp_sql, "experience"), (stay_sql, "stay")]:
         rows = (await db.execute(sql, {"q": like, "lim": limit})).fetchall()
         for r in rows:
-            items.append(SuggestItem(entity_type=etype, entity_id=r[0], name=r[1], category=r[2], wilaya_id=r[3], photo_url=r[4]))
+            items.append(
+                SuggestItem(
+                    entity_type=etype,
+                    entity_id=r[0],
+                    name=r[1],
+                    category=r[2],
+                    wilaya_id=r[3],
+                    photo_url=r[4],
+                )
+            )
 
     items.sort(key=lambda x: len(x.name))
     return SuggestFeed(query=q, items=items[:limit])
@@ -146,7 +161,9 @@ async def search(
     db: AsyncSession = Depends(get_db),
 ):
     if not q.strip():
-        return SearchFeed(query=q, results=[], total=0, page=page, page_size=page_size, total_pages=0)
+        return SearchFeed(
+            query=q, results=[], total=0, page=page, page_size=page_size, total_pages=0
+        )
 
     # Count
     count_result = await db.execute(text(SEARCH_COUNT_UNION), {"q": q.strip()})

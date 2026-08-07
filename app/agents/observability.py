@@ -26,6 +26,7 @@ logger = logging.getLogger("athar.agent.traces")
 @dataclass
 class Span:
     """A single span within a trace (one tool call, one LLM call, etc.)."""
+
     span_id: str
     name: str
     start_time: float
@@ -52,6 +53,7 @@ class Span:
 @dataclass
 class Trace:
     """Full trace for one agent run — contains spans."""
+
     trace_id: str
     agent_name: str
     user_id: str | None = None
@@ -122,7 +124,7 @@ class TraceStore:
     def record(self, trace: Trace) -> None:
         self._traces.append(trace)
         if len(self._traces) > self._max_size:
-            self._traces = self._traces[-self._max_size:]
+            self._traces = self._traces[-self._max_size :]
         trace.log()
 
     def recent(self, limit: int = 50) -> list[Trace]:

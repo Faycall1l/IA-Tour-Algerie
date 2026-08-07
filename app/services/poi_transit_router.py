@@ -44,6 +44,7 @@ class StepCoordinate:
 @dataclass
 class WalkingStep:
     """Walking from one point to another (first/last mile or transfer)."""
+
     from_location: StepCoordinate
     to_location: StepCoordinate
     distance_km: float
@@ -54,6 +55,7 @@ class WalkingStep:
 @dataclass
 class TransitStep:
     """Riding a transit line between two stations."""
+
     mode: str
     line_name: str
     line_color: str | None
@@ -70,6 +72,7 @@ class TransitStep:
 @dataclass
 class TransferStep:
     """Changing lines at an intermediate station."""
+
     station: StationRead
     from_line: str
     to_line: str
@@ -80,6 +83,7 @@ class TransferStep:
 @dataclass
 class RoutePlan:
     """A complete point-to-point route with walking + transit segments."""
+
     from_lat: float
     from_lng: float
     from_name: str
@@ -110,46 +114,52 @@ class RoutePlan:
         }
         for step in self.steps:
             if isinstance(step, WalkingStep):
-                result["steps"].append({
-                    "type": "walking",
-                    "description": step.description,
-                    "from": {
-                        "lat": step.from_location.lat,
-                        "lng": step.from_location.lng,
-                        "name": step.from_location.name,
-                    },
-                    "to": {
-                        "lat": step.to_location.lat,
-                        "lng": step.to_location.lng,
-                        "name": step.to_location.name,
-                    },
-                    "distance_km": round(step.distance_km, 2),
-                    "estimated_minutes": step.estimated_minutes,
-                })
+                result["steps"].append(
+                    {
+                        "type": "walking",
+                        "description": step.description,
+                        "from": {
+                            "lat": step.from_location.lat,
+                            "lng": step.from_location.lng,
+                            "name": step.from_location.name,
+                        },
+                        "to": {
+                            "lat": step.to_location.lat,
+                            "lng": step.to_location.lng,
+                            "name": step.to_location.name,
+                        },
+                        "distance_km": round(step.distance_km, 2),
+                        "estimated_minutes": step.estimated_minutes,
+                    }
+                )
             elif isinstance(step, TransitStep):
-                result["steps"].append({
-                    "type": "transit",
-                    "mode": step.mode,
-                    "line_name": step.line_name,
-                    "line_color": step.line_color,
-                    "operator": step.operator,
-                    "from_station": step.from_station.model_dump(mode="json"),
-                    "to_station": step.to_station.model_dump(mode="json"),
-                    "stop_count": step.stop_count,
-                    "distance_km": round(step.distance_km, 2),
-                    "estimated_minutes": step.estimated_minutes,
-                    "schedule": step.schedule,
-                    "pricing": step.pricing,
-                })
+                result["steps"].append(
+                    {
+                        "type": "transit",
+                        "mode": step.mode,
+                        "line_name": step.line_name,
+                        "line_color": step.line_color,
+                        "operator": step.operator,
+                        "from_station": step.from_station.model_dump(mode="json"),
+                        "to_station": step.to_station.model_dump(mode="json"),
+                        "stop_count": step.stop_count,
+                        "distance_km": round(step.distance_km, 2),
+                        "estimated_minutes": step.estimated_minutes,
+                        "schedule": step.schedule,
+                        "pricing": step.pricing,
+                    }
+                )
             elif isinstance(step, TransferStep):
-                result["steps"].append({
-                    "type": "transfer",
-                    "description": step.description,
-                    "station": step.station.model_dump(mode="json"),
-                    "from_line": step.from_line,
-                    "to_line": step.to_line,
-                    "wait_minutes": step.wait_minutes,
-                })
+                result["steps"].append(
+                    {
+                        "type": "transfer",
+                        "description": step.description,
+                        "station": step.station.model_dump(mode="json"),
+                        "from_line": step.from_line,
+                        "to_line": step.to_line,
+                        "wait_minutes": step.wait_minutes,
+                    }
+                )
         return result
 
 
@@ -177,7 +187,7 @@ class PoiTransitRouter:
         if self._graph is None:
             self._graph = self._routing._graph
             lines = (await db.execute(select(TransportLine))).scalars().all()
-            self._line_cache = {l.id: l for l in lines}
+            self._line_cache = {line.id: line for line in lines}
         return self._graph
 
     def _walk_time(self, km: float) -> int:
@@ -186,9 +196,9 @@ class PoiTransitRouter:
     def _station_nearby(self, lat: float, lng: float, station: Station) -> float:
         return _haversine_km(lat, lng, station.latitude, station.longitude)
 
-    def _station_to_read(self, s: Station,
-                         lines: dict[uuid.UUID, list[StationLineRef]]) -> StationRead:
-        station_lines = lines.get(s.id, [])
+    def _station_to_read(
+        self, s: Station, lines: dict[uuid.UUID, list[StationLineRef]]
+    ) -> StationRead:
         return StationRead(
             id=s.id,
             name=s.name,
@@ -213,14 +223,16 @@ class PoiTransitRouter:
             sid = stop.station_id
             if sid not in station_lines:
                 station_lines[sid] = []
-            station_lines[sid].append(StationLineRef(
-                line_id=stop.line.id,
-                line_name=stop.line.name,
-                mode=stop.line.mode,
-                operator=stop.line.operator,
-                color=stop.line.color,
-                stop_order=stop.stop_order,
-            ))
+            station_lines[sid].append(
+                StationLineRef(
+                    line_id=stop.line.id,
+                    line_name=stop.line.name,
+                    mode=stop.line.mode,
+                    operator=stop.line.operator,
+                    color=stop.line.color,
+                    stop_order=stop.stop_order,
+                )
+            )
         return station_lines
 
     async def route_to_poi(
@@ -270,23 +282,29 @@ class PoiTransitRouter:
 
         if not from_nearby and not to_nearby:
             return RoutePlan(
-                from_lat=from_lat, from_lng=from_lng, from_name=from_name,
-                to_lat=to_lat, to_lng=to_lng, to_name=to_name,
+                from_lat=from_lat,
+                from_lng=from_lng,
+                from_name=from_name,
+                to_lat=to_lat,
+                to_lng=to_lng,
+                to_name=to_name,
                 total_walking_km=direct_walk_km,
                 total_transit_km=0,
                 total_transfers=0,
                 total_estimated_minutes=self._walk_time(direct_walk_km),
-                steps=[WalkingStep(
-                    from_location=StepCoordinate(from_lat, from_lng, from_name),
-                    to_location=StepCoordinate(to_lat, to_lng, to_name),
-                    distance_km=direct_walk_km,
-                    estimated_minutes=self._walk_time(direct_walk_km),
-                    description=(
-                        f"Walk {direct_walk_km:.1f} km "
-                        f"({self._walk_time(direct_walk_km)} min) to {to_name}. "
-                        f"No transit stations within {MAX_WALK_KM} km."
-                    ),
-                )],
+                steps=[
+                    WalkingStep(
+                        from_location=StepCoordinate(from_lat, from_lng, from_name),
+                        to_location=StepCoordinate(to_lat, to_lng, to_name),
+                        distance_km=direct_walk_km,
+                        estimated_minutes=self._walk_time(direct_walk_km),
+                        description=(
+                            f"Walk {direct_walk_km:.1f} km "
+                            f"({self._walk_time(direct_walk_km)} min) to {to_name}. "
+                            f"No transit stations within {MAX_WALK_KM} km."
+                        ),
+                    )
+                ],
                 available_modes=["walking"],
                 is_walking_only=True,
                 is_driving_recommended=direct_walk_km > 1.0,
@@ -295,45 +313,57 @@ class PoiTransitRouter:
         if not from_nearby:
             nearest_to = to_nearby[0] if to_nearby else (None, 0)
             return RoutePlan(
-                from_lat=from_lat, from_lng=from_lng, from_name=from_name,
-                to_lat=to_lat, to_lng=to_lng, to_name=to_name,
+                from_lat=from_lat,
+                from_lng=from_lng,
+                from_name=from_name,
+                to_lat=to_lat,
+                to_lng=to_lng,
+                to_name=to_name,
                 total_walking_km=direct_walk_km,
                 total_transit_km=0,
                 total_transfers=0,
                 total_estimated_minutes=self._walk_time(direct_walk_km),
-                steps=[WalkingStep(
-                    from_location=StepCoordinate(from_lat, from_lng, from_name),
-                    to_location=StepCoordinate(to_lat, to_lng, to_name),
-                    distance_km=direct_walk_km,
-                    estimated_minutes=self._walk_time(direct_walk_km),
-                    description=(
-                        f"No station near origin. Walk {direct_walk_km:.1f} km "
-                        f"({self._walk_time(direct_walk_km)} min) or drive. "
-                        f"Nearest station: {nearest_to[0].name if nearest_to[0] else 'none'}"
-                    ),
-                )],
+                steps=[
+                    WalkingStep(
+                        from_location=StepCoordinate(from_lat, from_lng, from_name),
+                        to_location=StepCoordinate(to_lat, to_lng, to_name),
+                        distance_km=direct_walk_km,
+                        estimated_minutes=self._walk_time(direct_walk_km),
+                        description=(
+                            f"No station near origin. Walk {direct_walk_km:.1f} km "
+                            f"({self._walk_time(direct_walk_km)} min) or drive. "
+                            f"Nearest station: {nearest_to[0].name if nearest_to[0] else 'none'}"
+                        ),
+                    )
+                ],
                 available_modes=["walking", "driving"],
                 is_driving_recommended=True,
             )
 
         if not to_nearby:
             return RoutePlan(
-                from_lat=from_lat, from_lng=from_lng, from_name=from_name,
-                to_lat=to_lat, to_lng=to_lng, to_name=to_name,
+                from_lat=from_lat,
+                from_lng=from_lng,
+                from_name=from_name,
+                to_lat=to_lat,
+                to_lng=to_lng,
+                to_name=to_name,
                 total_walking_km=direct_walk_km,
                 total_transit_km=0,
                 total_transfers=0,
                 total_estimated_minutes=self._walk_time(direct_walk_km),
-                steps=[WalkingStep(
-                    from_location=StepCoordinate(from_lat, from_lng, from_name),
-                    to_location=StepCoordinate(to_lat, to_lng, to_name),
-                    distance_km=direct_walk_km,
-                    estimated_minutes=self._walk_time(direct_walk_km),
-                    description=(
-                        f"No station near {to_name}. Walk {direct_walk_km:.1f} km "
-                        f"({self._walk_time(direct_walk_km)} min) or drive."
-                    ),
-                )],
+                steps=[
+                    WalkingStep(
+                        from_location=StepCoordinate(from_lat, from_lng, from_name),
+                        to_location=StepCoordinate(to_lat, to_lng, to_name),
+                        distance_km=direct_walk_km,
+                        estimated_minutes=self._walk_time(direct_walk_km),
+                        description=(
+                            f"No station near {to_name}. Walk {direct_walk_km:.1f} km "
+                            f"({self._walk_time(direct_walk_km)} min) or drive."
+                        ),
+                    )
+                ],
                 available_modes=["walking", "driving"],
                 is_driving_recommended=True,
             )
@@ -364,7 +394,6 @@ class PoiTransitRouter:
                 )
 
                 total_min = from_walk_min + transit_min + to_walk_min
-                total_km = from_walk + transit_km + to_walk
 
                 if total_min < best_cost:
                     best_cost = total_min
@@ -373,77 +402,84 @@ class PoiTransitRouter:
 
                     from_station_read = self._station_to_read(from_s, station_lines)
 
-                    steps.append(WalkingStep(
-                        from_location=StepCoordinate(from_lat, from_lng, from_name),
-                        to_location=StepCoordinate(
-                            from_s.latitude, from_s.longitude, from_s.name
-                        ),
-                        distance_km=from_walk,
-                        estimated_minutes=from_walk_min,
-                        description=(
-                            f"Walk {from_walk_min} min ({from_walk:.1f} km) "
-                            f"to {from_s.name}"
-                        ),
-                    ))
+                    steps.append(
+                        WalkingStep(
+                            from_location=StepCoordinate(from_lat, from_lng, from_name),
+                            to_location=StepCoordinate(
+                                from_s.latitude, from_s.longitude, from_s.name
+                            ),
+                            distance_km=from_walk,
+                            estimated_minutes=from_walk_min,
+                            description=(
+                                f"Walk {from_walk_min} min ({from_walk:.1f} km) to {from_s.name}"
+                            ),
+                        )
+                    )
 
                     for seg in route.segments:
                         if seg.operator == "Transfer":
                             if seg.from_station_id in graph._stations:
                                 st = graph._stations[seg.from_station_id]
                                 st_read = self._station_to_read(st, station_lines)
-                                steps.append(TransferStep(
-                                    station=st_read,
-                                    from_line="",
-                                    to_line=seg.line_name,
-                                    wait_minutes=5,
-                                    description=f"Transfer at {st.name} — {seg.line_name}",
-                                ))
+                                steps.append(
+                                    TransferStep(
+                                        station=st_read,
+                                        from_line="",
+                                        to_line=seg.line_name,
+                                        wait_minutes=5,
+                                        description=f"Transfer at {st.name} — {seg.line_name}",
+                                    )
+                                )
                         else:
                             from_st = graph._stations.get(seg.from_station_id)
                             to_st = graph._stations.get(seg.to_station_id)
                             if from_st and to_st:
                                 seg_dist = _haversine_km(
-                                    from_st.latitude, from_st.longitude,
-                                    to_st.latitude, to_st.longitude,
+                                    from_st.latitude,
+                                    from_st.longitude,
+                                    to_st.latitude,
+                                    to_st.longitude,
                                 )
-                                from_read = self._station_to_read(from_st, station_lines) if from_st else from_station_read
+                                from_read = (
+                                    self._station_to_read(from_st, station_lines)
+                                    if from_st
+                                    else from_station_read
+                                )
                                 to_read = self._station_to_read(to_st, station_lines)
                                 line = self._line_cache.get(seg.line_id)
                                 schedule = line.schedule_info if line else None
                                 pricing = line.pricing_info if line else None
                                 seen_modes.add(seg.mode)
-                                steps.append(TransitStep(
-                                    mode=seg.mode,
-                                    line_name=seg.line_name,
-                                    line_color=seg.line_color,
-                                    operator=seg.operator,
-                                    from_station=from_read,
-                                    to_station=to_read,
-                                    stop_count=seg.stop_count,
-                                    distance_km=seg_dist,
-                                    estimated_minutes=seg.estimated_minutes or 0,
-                                    schedule=schedule,
-                                    pricing=pricing,
-                                ))
+                                steps.append(
+                                    TransitStep(
+                                        mode=seg.mode,
+                                        line_name=seg.line_name,
+                                        line_color=seg.line_color,
+                                        operator=seg.operator,
+                                        from_station=from_read,
+                                        to_station=to_read,
+                                        stop_count=seg.stop_count,
+                                        distance_km=seg_dist,
+                                        estimated_minutes=seg.estimated_minutes or 0,
+                                        schedule=schedule,
+                                        pricing=pricing,
+                                    )
+                                )
 
-                    to_station_read = self._station_to_read(to_s, station_lines)
-
-                    steps.append(WalkingStep(
-                        from_location=StepCoordinate(
-                            to_s.latitude, to_s.longitude, to_s.name
-                        ),
-                        to_location=StepCoordinate(to_lat, to_lng, to_name),
-                        distance_km=to_walk,
-                        estimated_minutes=to_walk_min,
-                        description=(
-                            f"Walk {to_walk_min} min ({to_walk:.1f} km) "
-                            f"from {to_s.name} to {to_name}"
-                        ),
-                    ))
-
-                    transfers = sum(
-                        1 for s in route.segments if s.operator == "Transfer"
+                    steps.append(
+                        WalkingStep(
+                            from_location=StepCoordinate(to_s.latitude, to_s.longitude, to_s.name),
+                            to_location=StepCoordinate(to_lat, to_lng, to_name),
+                            distance_km=to_walk,
+                            estimated_minutes=to_walk_min,
+                            description=(
+                                f"Walk {to_walk_min} min ({to_walk:.1f} km) "
+                                f"from {to_s.name} to {to_name}"
+                            ),
+                        )
                     )
+
+                    transfers = sum(1 for s in route.segments if s.operator == "Transfer")
 
                     best_plan = RoutePlan(
                         from_lat=from_lat,
@@ -462,22 +498,28 @@ class PoiTransitRouter:
 
         if best_plan is None:
             return RoutePlan(
-                from_lat=from_lat, from_lng=from_lng, from_name=from_name,
-                to_lat=to_lat, to_lng=to_lng, to_name=to_name,
+                from_lat=from_lat,
+                from_lng=from_lng,
+                from_name=from_name,
+                to_lat=to_lat,
+                to_lng=to_lng,
+                to_name=to_name,
                 total_walking_km=direct_walk_km,
                 total_transit_km=0,
                 total_transfers=0,
                 total_estimated_minutes=self._walk_time(direct_walk_km),
-                steps=[WalkingStep(
-                    from_location=StepCoordinate(from_lat, from_lng, from_name),
-                    to_location=StepCoordinate(to_lat, to_lng, to_name),
-                    distance_km=direct_walk_km,
-                    estimated_minutes=self._walk_time(direct_walk_km),
-                    description=(
-                        f"No transit route found. Walk {direct_walk_km:.1f} km "
-                        f"({self._walk_time(direct_walk_km)} min) or drive."
-                    ),
-                )],
+                steps=[
+                    WalkingStep(
+                        from_location=StepCoordinate(from_lat, from_lng, from_name),
+                        to_location=StepCoordinate(to_lat, to_lng, to_name),
+                        distance_km=direct_walk_km,
+                        estimated_minutes=self._walk_time(direct_walk_km),
+                        description=(
+                            f"No transit route found. Walk {direct_walk_km:.1f} km "
+                            f"({self._walk_time(direct_walk_km)} min) or drive."
+                        ),
+                    )
+                ],
                 available_modes=["walking", "driving"],
                 is_driving_recommended=direct_walk_km > 1.0,
             )
@@ -504,15 +546,14 @@ class PoiTransitRouter:
         nearest = graph.nearest_stations(poi_lat, poi_lng, limit=MAX_NEARBY_STATIONS)
         nearby_stations: list[dict] = []
         for s, dist in nearest:
-            nearby_stations.append({
-                "station": self._station_to_read(s, station_lines).model_dump(mode="json"),
-                "distance_km": round(dist, 2),
-                "walking_minutes": self._walk_time(dist),
-                "lines": [
-                    sl.model_dump(mode="json")
-                    for sl in station_lines.get(s.id, [])
-                ],
-            })
+            nearby_stations.append(
+                {
+                    "station": self._station_to_read(s, station_lines).model_dump(mode="json"),
+                    "distance_km": round(dist, 2),
+                    "walking_minutes": self._walk_time(dist),
+                    "lines": [sl.model_dump(mode="json") for sl in station_lines.get(s.id, [])],
+                }
+            )
 
         modes_at_stations: set[str] = set()
         for s, _ in nearest:
@@ -527,7 +568,5 @@ class PoiTransitRouter:
             "nearby_stations": nearby_stations,
             "available_transit_modes": sorted(modes_at_stations),
             "has_transit_access": len(nearest) > 0 and any(d <= MAX_WALK_KM for _, d in nearest),
-            "closest_station": (
-                nearby_stations[0] if nearby_stations else None
-            ),
+            "closest_station": (nearby_stations[0] if nearby_stations else None),
         }

@@ -166,7 +166,9 @@ class TripOptimizer:
                     if walk_time is not None:
                         cost = walk_time
                     else:
-                        cost = _haversine_km(current_coord, Coord(candidate.latitude, candidate.longitude))
+                        cost = _haversine_km(
+                            current_coord, Coord(candidate.latitude, candidate.longitude)
+                        )
                 if cost < nearest_cost:
                     nearest_cost = cost
                     nearest_idx = i
@@ -177,8 +179,11 @@ class TripOptimizer:
         return sorted_items + without_coords, round(total_cost, 1)
 
     async def detect_gaps(
-        self, db: AsyncSession, enriched: list[TripItemRead],
-        day_start_hour: int = 9, day_end_hour: int = 18
+        self,
+        db: AsyncSession,
+        enriched: list[TripItemRead],
+        day_start_hour: int = 9,
+        day_end_hour: int = 18,
     ) -> list[str]:
         if not enriched:
             return []
@@ -203,7 +208,9 @@ class TripOptimizer:
                         travel = _walk_time_minutes(
                             _haversine_km(
                                 Coord(enriched[i].latitude or 0, enriched[i].longitude or 0),
-                                Coord(enriched[i + 1].latitude or 0, enriched[i + 1].longitude or 0),
+                                Coord(
+                                    enriched[i + 1].latitude or 0, enriched[i + 1].longitude or 0
+                                ),
                             )
                         )
                 used_minutes += travel
@@ -231,7 +238,7 @@ class TripOptimizer:
                         suggestions.append(
                             OptimizationSuggestion(
                                 item_id=poi.id,
-                                reason=f"Walkable cluster near {cluster.pois[0].name}: {poi.name} ({poi.category})",
+                                reason=f"Walkable cluster near {cluster.pois[0].name}: {poi.name} ({poi.category})",  # noqa: E501
                                 action="add_to_trip",
                             )
                         )
@@ -291,6 +298,7 @@ class TripBriefGenerator:
         if origin_wilaya_id != wilaya_id:
             try:
                 from app.services.multimodal_router import MultiModalRouter
+
                 router = MultiModalRouter()
                 multimodal_options = await router.get_inter_wilaya_options(
                     db, origin_wilaya_id, wilaya_id
@@ -409,9 +417,15 @@ class TripBriefGenerator:
             tips.append(f"Most popular: {top_pois[0].name}")
             featured_count = sum(1 for p in top_pois if p.is_featured)
             if featured_count:
-                tips.append(f"{featured_count} featured attraction{'s' if featured_count > 1 else ''} in this wilaya")
-            tips.append(f"{len(top_pois)} top POIs and {len(top_experiences)} experiences available")
-            accessible = [p for p in top_pois if p.accessibility_score and p.accessibility_score >= 60]
+                tips.append(
+                    f"{featured_count} featured attraction{'s' if featured_count > 1 else ''} in this wilaya"  # noqa: E501
+                )
+            tips.append(
+                f"{len(top_pois)} top POIs and {len(top_experiences)} experiences available"
+            )
+            accessible = [
+                p for p in top_pois if p.accessibility_score and p.accessibility_score >= 60
+            ]
             if accessible:
                 tips.append(f"{len(accessible)} POIs within easy reach of public transport")
 

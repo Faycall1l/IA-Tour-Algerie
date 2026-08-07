@@ -105,7 +105,9 @@ class SlidingWindowCounter:
         self._buckets[key] = timestamps
         return True, max(0, limit - len(timestamps) - 1)
 
-    def _check_redis(self, client: redis.Redis, key: str, limit: int, window: int) -> tuple[bool, int]:
+    def _check_redis(
+        self, client: redis.Redis, key: str, limit: int, window: int
+    ) -> tuple[bool, int]:
         redis_key = f"rl:{key}"
         now = time.time()
         cutoff = now - window

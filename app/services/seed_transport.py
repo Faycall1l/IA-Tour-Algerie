@@ -3,6 +3,7 @@ Seed transport data (stations, lines, stops) into the database.
 
 Run via: python -m app.services.seed_transport
 """
+
 import asyncio
 import sys
 
@@ -66,7 +67,9 @@ async def seed() -> None:
                 )
                 db.add(stop)
 
-            print(f"  + {line_entry['mode']:>8} {line_entry['name']} ({len(line_entry['stops'])} stops)")
+            print(
+                f"  + {line_entry['mode']:>8} {line_entry['name']} ({len(line_entry['stops'])} stops)"  # noqa: E501
+            )
 
         await db.commit()
         print(f"\n✅ Seeded {len(STATIONS_SEED)} stations and {len(LINES_SEED)} lines")

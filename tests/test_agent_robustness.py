@@ -62,6 +62,7 @@ def _make_agent(return_value=None, side_effect=None):
 
 # ── Retrying HTTP transport ──
 
+
 class TestRetryHttpTransport:
     pytestmark = pytest.mark.asyncio
 
@@ -116,9 +117,7 @@ class TestRetryHttpTransport:
             async def handle_async_request(self, request):
                 if self.failures:
                     self.failures -= 1
-                    return httpx.Response(
-                        429, request=request, headers={"Retry-After": "2"}
-                    )
+                    return httpx.Response(429, request=request, headers={"Retry-After": "2"})
                 return httpx.Response(200, text="ok", request=request)
 
         t = _RetryHttpTransport(RA(), attempts=2)
@@ -134,6 +133,7 @@ class TestRetryHttpTransport:
 
 
 # ── run_agent_safely ──
+
 
 class TestRunAgentSafely:
     pytestmark = pytest.mark.asyncio
@@ -210,15 +210,14 @@ class TestRunAgentSafely:
 
 # ── tool_call_names extraction ──
 
+
 class TestToolCallNames:
     def _result_with_parts(self, parts):
         message = SimpleNamespace(parts=parts)
         return SimpleNamespace(all_messages=lambda: [message])
 
     def test_dict_parts(self):
-        result = self._result_with_parts(
-            ({"part_kind": "tool-call", "tool_name": "search_pois"},)
-        )
+        result = self._result_with_parts(({"part_kind": "tool-call", "tool_name": "search_pois"},))
         assert tool_call_names(result) == ["search_pois"]
 
     def test_object_parts(self):
@@ -238,9 +237,7 @@ class TestToolCallNames:
         assert tool_call_names(result) == ["search_pois", "get_weather"]
 
     def test_ignores_non_tool_parts(self):
-        result = self._result_with_parts(
-            ({"part_kind": "text", "content": "hi"},)
-        )
+        result = self._result_with_parts(({"part_kind": "text", "content": "hi"},))
         assert tool_call_names(result) == []
 
     def test_returns_empty_on_malformed(self):
@@ -248,6 +245,7 @@ class TestToolCallNames:
 
 
 # ── Injection detection (new patterns) ──
+
 
 class TestExpandedInjectionPatterns:
     @pytest.mark.parametrize(
@@ -288,6 +286,7 @@ class TestExpandedInjectionPatterns:
 
 # ── History sanitization ──
 
+
 class TestSanitizeHistory:
     def test_drops_injected_entries(self):
         history = [
@@ -320,6 +319,7 @@ class TestSanitizeHistory:
 
 
 # ── Endpoint integration ──
+
 
 class TestEndpointCircuitBreaker:
     pytestmark = pytest.mark.asyncio
@@ -375,6 +375,7 @@ class TestEndpointCircuitBreaker:
 
 # ── RunContextProvider ──
 
+
 class TestRunContextProvider:
     def test_for_tool_exposes_deps(self):
         deps = _deps()
@@ -384,16 +385,20 @@ class TestRunContextProvider:
 
 # ── Memory hardening (service-level caps) ──
 
+
 class TestMemoryCaps:
     pytestmark = pytest.mark.asyncio
+
     async def test_remember_rejects_empty_key(self, db, test_user):
         from app.agents.memory_service import get_or_create_session, remember
+
         session = await get_or_create_session(db, test_user.id)
         with pytest.raises(ValueError, match="empty"):
             await remember(db, session.id, "  ", "value")
 
     async def test_remember_rejects_oversized_value(self, db, test_user):
         from app.agents.memory_service import get_or_create_session, remember
+
         session = await get_or_create_session(db, test_user.id)
         with pytest.raises(ValueError, match="too long"):
             await remember(db, session.id, "k", "v" * 3000)
@@ -403,6 +408,7 @@ class TestMemoryCaps:
         from app.agents.deps import TravelAgentDeps
         from app.agents.memory_service import get_or_create_session
         from app.agents.memory_tools import remember as remember_tool
+
         session = await get_or_create_session(db, test_user.id)
         deps = TravelAgentDeps(user=test_user, db=db, session_id=session.id)
         ctx = MagicMock()
@@ -417,6 +423,7 @@ class TestMemoryCaps:
 
     async def test_remember_sanitizes_inputs(self, db, test_user):
         from app.agents.memory_service import get_or_create_session, recall, remember
+
         session = await get_or_create_session(db, test_user.id)
         await remember(db, session.id, "  name  ", "  Oran  ")
         results = await recall(db, session.id, key="name")

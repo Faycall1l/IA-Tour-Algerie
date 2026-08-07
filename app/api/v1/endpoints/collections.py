@@ -16,7 +16,6 @@ from app.schemas.collection import (
     CollectionCreate,
     CollectionFeed,
     CollectionItemBatchCreate,
-    CollectionItemCreate,
     CollectionItemRead,
     CollectionRead,
     CollectionUpdate,
@@ -26,7 +25,9 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/collections", tags=["Collections"])
 
 
-async def _get_user_collection(collection_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession) -> Collection:
+async def _get_user_collection(
+    collection_id: uuid.UUID, user_id: uuid.UUID, db: AsyncSession
+) -> Collection:
     result = await db.execute(
         select(Collection).where(Collection.id == collection_id, Collection.user_id == user_id)
     )
@@ -38,13 +39,17 @@ async def _get_user_collection(collection_id: uuid.UUID, user_id: uuid.UUID, db:
 
 def _brief(c: Collection) -> CollectionBrief:
     return CollectionBrief(
-        id=c.id, name=c.name, description=c.description,
-        is_public=c.is_public, item_count=len(c.items) if c.items else 0,
+        id=c.id,
+        name=c.name,
+        description=c.description,
+        is_public=c.is_public,
+        item_count=len(c.items) if c.items else 0,
         created_at=c.created_at,
     )
 
 
 # ── CRUD ──
+
 
 @router.get(
     "",
@@ -75,7 +80,7 @@ async def list_collections(
     response_model=CollectionRead,
     status_code=201,
     summary="Create a collection",
-    description="Create a named wishlist/trip collection, optionally public and with a description.",
+    description="Create a named wishlist/trip collection, optionally public and with a description.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         422: {"description": "Validation error"},
@@ -86,14 +91,25 @@ async def create_collection(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    c = Collection(user_id=current_user.id, name=body.name, description=body.description, is_public=body.is_public)
+    c = Collection(
+        user_id=current_user.id,
+        name=body.name,
+        description=body.description,
+        is_public=body.is_public,
+    )
     db.add(c)
     await db.commit()
     await db.refresh(c)
     return CollectionRead(
-        id=c.id, user_id=c.user_id, name=c.name, description=c.description,
-        is_public=c.is_public, item_count=0, items=[],
-        created_at=c.created_at, updated_at=c.updated_at,
+        id=c.id,
+        user_id=c.user_id,
+        name=c.name,
+        description=c.description,
+        is_public=c.is_public,
+        item_count=0,
+        items=[],
+        created_at=c.created_at,
+        updated_at=c.updated_at,
     )
 
 
@@ -101,7 +117,7 @@ async def create_collection(
     "/{collection_id}",
     response_model=CollectionRead,
     summary="Get a collection",
-    description="A collection with all its items (sorted by sort_order then created_at). Owner only.",
+    description="A collection with all its items (sorted by sort_order then created_at). Owner only.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         404: {"description": "Collection not found"},
@@ -121,17 +137,25 @@ async def get_collection(
     )
     c = result.scalar_one()
     return CollectionRead(
-        id=c.id, user_id=c.user_id, name=c.name, description=c.description,
+        id=c.id,
+        user_id=c.user_id,
+        name=c.name,
+        description=c.description,
         is_public=c.is_public,
         item_count=len(c.items),
         items=[
             CollectionItemRead(
-                id=i.id, entity_type=i.entity_type, entity_id=i.entity_id,
-                notes=i.notes, sort_order=i.sort_order, created_at=i.created_at,
+                id=i.id,
+                entity_type=i.entity_type,
+                entity_id=i.entity_id,
+                notes=i.notes,
+                sort_order=i.sort_order,
+                created_at=i.created_at,
             )
             for i in sorted(c.items, key=lambda x: (x.sort_order, x.created_at))
         ],
-        created_at=c.created_at, updated_at=c.updated_at,
+        created_at=c.created_at,
+        updated_at=c.updated_at,
     )
 
 
@@ -163,9 +187,15 @@ async def update_collection(
     await db.refresh(c)
 
     return CollectionRead(
-        id=c.id, user_id=c.user_id, name=c.name, description=c.description,
-        is_public=c.is_public, item_count=len(c.items) if c.items else 0,
-        items=[], created_at=c.created_at, updated_at=c.updated_at,
+        id=c.id,
+        user_id=c.user_id,
+        name=c.name,
+        description=c.description,
+        is_public=c.is_public,
+        item_count=len(c.items) if c.items else 0,
+        items=[],
+        created_at=c.created_at,
+        updated_at=c.updated_at,
     )
 
 
@@ -191,12 +221,13 @@ async def delete_collection(
 
 # ── Items ──
 
+
 @router.post(
     "/{collection_id}/items",
     response_model=list[CollectionItemRead],
     status_code=201,
     summary="Add items to a collection",
-    description="Batch-add items to a collection. Duplicates (same entity_type + entity_id) are skipped. At least one item required.",
+    description="Batch-add items to a collection. Duplicates (same entity_type + entity_id) are skipped. At least one item required.",  # noqa: E501
     responses={
         400: {"description": "At least one item required"},
         401: {"description": "Authentication required"},
@@ -209,7 +240,7 @@ async def add_items(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    c = await _get_user_collection(collection_id, current_user.id, db)
+    await _get_user_collection(collection_id, current_user.id, db)
 
     if not body.items:
         raise BadRequestException(message="At least one item required")
@@ -245,8 +276,12 @@ async def add_items(
 
     return [
         CollectionItemRead(
-            id=i.id, entity_type=i.entity_type, entity_id=i.entity_id,
-            notes=i.notes, sort_order=i.sort_order, created_at=i.created_at,
+            id=i.id,
+            entity_type=i.entity_type,
+            entity_id=i.entity_id,
+            notes=i.notes,
+            sort_order=i.sort_order,
+            created_at=i.created_at,
         )
         for i in created
     ]
@@ -268,7 +303,7 @@ async def remove_item(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    c = await _get_user_collection(collection_id, current_user.id, db)
+    await _get_user_collection(collection_id, current_user.id, db)
     result = await db.execute(
         select(CollectionItem).where(
             CollectionItem.id == item_id,

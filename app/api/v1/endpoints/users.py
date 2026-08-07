@@ -2,7 +2,7 @@ import logging
 import uuid
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import joinedload
 
@@ -37,7 +37,7 @@ router = APIRouter(prefix="/users", tags=["Users"])
     "/me",
     response_model=UserRead,
     summary="Get current user",
-    description="Return the authenticated user's profile, including role, verification status, and provider profile link.",
+    description="Return the authenticated user's profile, including role, verification status, and provider profile link.",  # noqa: E501
     responses={401: {"description": "Authentication required"}},
 )
 async def get_me(
@@ -50,7 +50,7 @@ async def get_me(
     "/me",
     response_model=UserRead,
     summary="Update current user",
-    description="Update the authenticated user's profile fields. Role changes must use PUT /users/me/role.",
+    description="Update the authenticated user's profile fields. Role changes must use PUT /users/me/role.",  # noqa: E501
     responses={
         401: {"description": "Authentication required"},
         422: {"description": "Validation error"},
@@ -242,23 +242,30 @@ async def provider_dashboard(
     experiences = exp_result.scalars().all()
     active_experiences = [e for e in experiences if e.status == "active"]
 
-    stay_result = await db.execute(
-        select(Stay).where(Stay.provider_id == current_user.id)
-    )
+    stay_result = await db.execute(select(Stay).where(Stay.provider_id == current_user.id))
     stays = stay_result.scalars().all()
     active_stays = [s for s in stays if s.is_active]
 
     top_experiences = [
         DashboardExperienceSummary(
-            id=e.id, title=e.title, category=e.category, wilaya_id=e.wilaya_id,
-            status=e.status, price_dzd=e.price_dzd, photo_count=len(e.photos or []),
+            id=e.id,
+            title=e.title,
+            category=e.category,
+            wilaya_id=e.wilaya_id,
+            status=e.status,
+            price_dzd=e.price_dzd,
+            photo_count=len(e.photos or []),
         )
         for e in active_experiences[:5]
     ]
     top_stays = [
         DashboardStaySummary(
-            id=s.id, name=s.name, property_type=s.property_type, wilaya_id=s.wilaya_id,
-            is_active=s.is_active, price_per_night_dzd=s.price_per_night_dzd,
+            id=s.id,
+            name=s.name,
+            property_type=s.property_type,
+            wilaya_id=s.wilaya_id,
+            is_active=s.is_active,
+            price_per_night_dzd=s.price_per_night_dzd,
         )
         for s in active_stays[:5]
     ]

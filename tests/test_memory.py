@@ -1,12 +1,9 @@
 """Tests for agent memory system — models, service, and tools."""
 
 import uuid
-from unittest.mock import AsyncMock, MagicMock
+from unittest.mock import MagicMock
 
 import pytest
-import pytest_asyncio
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.agents.memory_service import (
     build_message_history,
     delete_session,
@@ -20,7 +17,8 @@ from app.agents.memory_service import (
 )
 from app.agents.memory_tools import recall as recall_tool
 from app.agents.memory_tools import remember as remember_tool
-from app.models.agent_memory import AgentMemory, AgentSession
+from app.models.agent_memory import AgentSession
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class TestSession:
@@ -38,17 +36,22 @@ class TestSession:
     @pytest.mark.asyncio
     async def test_resume_existing_session(self, db: AsyncSession, test_user):
         s1 = await self._create_test_session(db, test_user.id)
-        s2 = await get_or_create_session(db, test_user.id, session_id=s1.id, agent_type="travel_agent")
+        s2 = await get_or_create_session(
+            db, test_user.id, session_id=s1.id, agent_type="travel_agent"
+        )
         assert s2.id == s1.id
 
     @pytest.mark.asyncio
     async def test_resume_wrong_user_rejected(self, db: AsyncSession, test_user):
         from app.models.user import User
+
         s1 = await self._create_test_session(db, test_user.id)
         other_user = User(id=uuid.uuid4(), phone="+213555999999")
         db.add(other_user)
         await db.commit()
-        s2 = await get_or_create_session(db, other_user.id, session_id=s1.id, agent_type="travel_agent")
+        s2 = await get_or_create_session(
+            db, other_user.id, session_id=s1.id, agent_type="travel_agent"
+        )
         assert s2.id != s1.id  # New session created for different user
 
 
@@ -58,7 +61,8 @@ class TestEpisodicMemory:
         session = await get_or_create_session(db, test_user.id, agent_type="travel_agent")
 
         await store_agent_run(
-            db, session.id,
+            db,
+            session.id,
             user_message="What to see in Algiers?",
             assistant_reply="Visit the Casbah and Martyrs Memorial.",
             turn_index=1,
@@ -165,6 +169,7 @@ class TestSessionManagement:
     @pytest.mark.asyncio
     async def test_delete_other_user_session(self, db: AsyncSession, test_user):
         from app.models.user import User
+
         session = await get_or_create_session(db, test_user.id, agent_type="travel_agent")
         other_user = User(id=uuid.uuid4(), phone="+213555888888")
         db.add(other_user)

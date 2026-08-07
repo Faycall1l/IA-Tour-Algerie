@@ -1,4 +1,5 @@
 """Content-based recommendation engine with interaction signal extraction."""
+
 import logging
 import uuid
 from collections import defaultdict
@@ -7,12 +8,12 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.collection import Collection, CollectionItem
+from app.models.experience import Experience
 from app.models.favorite import Favorite
 from app.models.poi import POI
 from app.models.recommendation import Recommendation, UserPreference
-from app.models.trip import Trip, TripItem
-from app.models.experience import Experience
 from app.models.stay import Stay
+from app.models.trip import Trip, TripItem
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +22,9 @@ INTERACTION_WEIGHTS = {"favorite": 3.0, "trip_item": 2.0, "collection": 2.5}
 
 
 class RecommendationEngine:
-
-    async def get_or_create_preferences(self, db: AsyncSession, user_id: uuid.UUID) -> UserPreference:
+    async def get_or_create_preferences(
+        self, db: AsyncSession, user_id: uuid.UUID
+    ) -> UserPreference:
         result = await db.execute(select(UserPreference).where(UserPreference.user_id == user_id))
         pref = result.scalar_one_or_none()
         if not pref:
@@ -95,7 +97,9 @@ class RecommendationEngine:
                     durations.append(poi.suggested_duration_min)
 
             # Experience signals
-            exp_result = await db.execute(select(Experience).where(Experience.id.in_(all_entity_ids)))
+            exp_result = await db.execute(
+                select(Experience).where(Experience.id.in_(all_entity_ids))
+            )
             for exp in exp_result.scalars().all():
                 cat_scores[exp.category] += 1.0
                 wilaya_scores[exp.wilaya_id] += 1.0
@@ -118,7 +122,9 @@ class RecommendationEngine:
             "avg_duration_min": int(sum(durations) / len(durations)) if durations else None,
         }
 
-    async def update_preferences_from_interactions(self, db: AsyncSession, user_id: uuid.UUID) -> UserPreference:
+    async def update_preferences_from_interactions(
+        self, db: AsyncSession, user_id: uuid.UUID
+    ) -> UserPreference:
         pref = await self.get_or_create_preferences(db, user_id)
         scores = await self.extract_interaction_scores(db, user_id)
         pref.interaction_score = scores
@@ -149,37 +155,42 @@ class RecommendationEngine:
         reasons = []
 
         # --- Category/type match ---
-        if entity_type == "poi":
-            entity_category = getattr(candidate, "category", None)
-        elif entity_type == "experience":
+        if entity_type == "poi" or entity_type == "experience":
             entity_category = getattr(candidate, "category", None)
         elif entity_type == "stay":
             entity_category = getattr(candidate, "property_type", None)
         else:
             entity_category = None
 
-        if entity_category and pref.preferred_categories:
-            if entity_category in pref.preferred_categories:
-                idx = pref.preferred_categories.index(entity_category)
-                score += 3.0 - idx * 0.5
-                reasons.append(f"matches your interest in {entity_category}")
+        if (
+            entity_category
+            and pref.preferred_categories
+            and entity_category in pref.preferred_categories
+        ):
+            idx = pref.preferred_categories.index(entity_category)
+            score += 3.0 - idx * 0.5
+            reasons.append(f"matches your interest in {entity_category}")
 
-        if entity_category and pref.avoided_categories:
-            if entity_category in pref.avoided_categories:
-                score -= 5.0
-                reasons.append(f"avoids {entity_category} per your preference")
+        if (
+            entity_category
+            and pref.avoided_categories
+            and entity_category in pref.avoided_categories
+        ):
+            score -= 5.0
+            reasons.append(f"avoids {entity_category} per your preference")
 
         # --- Wilaya match ---
         wilaya_id = getattr(candidate, "wilaya_id", None)
-        if wilaya_id and pref.preferred_wilayas:
-            if wilaya_id in pref.preferred_wilayas:
-                score += 2.0
-                reasons.append(f"in wilaya {wilaya_id}")
+        if wilaya_id and pref.preferred_wilayas and wilaya_id in pref.preferred_wilayas:
+            score += 2.0
+            reasons.append(f"in wilaya {wilaya_id}")
 
         # --- Interaction score boost ---
         if pref.interaction_score:
             if entity_category:
-                cat_boost = pref.interaction_score.get("category_scores", {}).get(entity_category, 0)
+                cat_boost = pref.interaction_score.get("category_scores", {}).get(
+                    entity_category, 0
+                )
                 score += min(cat_boost * 0.3, 3.0)
             if wilaya_id:
                 wil_boost = pref.interaction_score.get("wilaya_scores", {}).get(str(wilaya_id), 0)
@@ -210,7 +221,11 @@ class RecommendationEngine:
             reasons.append("featured attraction")
 
         # --- Has photo ---
-        photos = getattr(candidate, "photos", None) or getattr(candidate, "photo_url", None) or getattr(candidate, "photo_urls", None)
+        photos = (
+            getattr(candidate, "photos", None)
+            or getattr(candidate, "photo_url", None)
+            or getattr(candidate, "photo_urls", None)
+        )
         if photos:
             score += 0.5
 

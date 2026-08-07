@@ -15,9 +15,18 @@ from app.models.user import User
 from app.models.wilaya import Wilaya
 
 CATEGORY_ORDER = {
-    "museum": 1, "cultural": 2, "historical": 3, "natural": 4,
-    "beach": 5, "park": 6, "mountain": 7, "market": 8,
-    "religious": 9, "restaurant": 10, "cafe": 11, "other": 12,
+    "museum": 1,
+    "cultural": 2,
+    "historical": 3,
+    "natural": 4,
+    "beach": 5,
+    "park": 6,
+    "mountain": 7,
+    "market": 8,
+    "religious": 9,
+    "restaurant": 10,
+    "cafe": 11,
+    "other": 12,
 }
 
 
@@ -172,7 +181,7 @@ class ExperienceFilterPOI(BaseModel):
     "/wilayas",
     response_model=list[WilayaSummary],
     summary="All wilayas summary",
-    description="Every wilaya with aggregate stats: POI/featured/experience/stay/artisan counts, top categories, highlight POI + photo, and coordinates.",
+    description="Every wilaya with aggregate stats: POI/featured/experience/stay/artisan counts, top categories, highlight POI + photo, and coordinates.",  # noqa: E501
     responses={
         200: {"description": "List of wilaya summaries"},
         422: {"description": "Validation error"},
@@ -181,16 +190,22 @@ class ExperienceFilterPOI(BaseModel):
 async def list_wilayas(
     db: AsyncSession = Depends(get_db),
 ):
-    result = await db.execute(
-        select(Wilaya).order_by(Wilaya.id)
-    )
+    result = await db.execute(select(Wilaya).order_by(Wilaya.id))
     wilayas = result.scalars().all()
 
     summaries = []
     for w in wilayas:
         poi_rows = (
             await db.execute(
-                select(POI.id, POI.is_featured, POI.category, POI.name, POI.photo_url, POI.photo_urls, POI.getting_there)
+                select(
+                    POI.id,
+                    POI.is_featured,
+                    POI.category,
+                    POI.name,
+                    POI.photo_url,
+                    POI.photo_urls,
+                    POI.getting_there,
+                )
                 .where(POI.wilaya_id == w.id)
                 .order_by(
                     POI.is_featured.desc().nullslast(),
@@ -236,31 +251,31 @@ async def list_wilayas(
         )
 
         stay_count = await db.scalar(
-            select(func.count(Stay.id)).where(
-                Stay.wilaya_id == w.id, Stay.is_active.is_(True)
-            )
+            select(func.count(Stay.id)).where(Stay.wilaya_id == w.id, Stay.is_active.is_(True))
         )
 
         artisan_count = await db.scalar(
             select(func.count(Artisan.id)).where(Artisan.wilaya_id == w.id)
         )
 
-        summaries.append(WilayaSummary(
-            id=w.id,
-            name=_wilaya_name(w),
-            description=w.description,
-            total_pois=total_pois,
-            total_featured=featured_count,
-            total_experiences=exp_count or 0,
-            total_stays=stay_count or 0,
-            total_artisans=artisan_count or 0,
-            top_categories=top_cats,
-            highlight_poi=highlight_poi,
-            highlight_poi_photo=highlight_photo,
-            highlight_category=highlight_cat,
-            latitude=w.latitude,
-            longitude=w.longitude,
-        ))
+        summaries.append(
+            WilayaSummary(
+                id=w.id,
+                name=_wilaya_name(w),
+                description=w.description,
+                total_pois=total_pois,
+                total_featured=featured_count,
+                total_experiences=exp_count or 0,
+                total_stays=stay_count or 0,
+                total_artisans=artisan_count or 0,
+                top_categories=top_cats,
+                highlight_poi=highlight_poi,
+                highlight_poi_photo=highlight_photo,
+                highlight_category=highlight_cat,
+                latitude=w.latitude,
+                longitude=w.longitude,
+            )
+        )
 
     return summaries
 
@@ -269,7 +284,7 @@ async def list_wilayas(
     "/wilayas/{wilaya_id}",
     response_model=DiscoverResponse,
     summary="Consolidated wilaya view",
-    description="All content for a wilaya in one payload: POIs (alphabetical), active experiences (with provider info), active stays (by price), and artisans.",
+    description="All content for a wilaya in one payload: POIs (alphabetical), active experiences (with provider info), active stays (by price), and artisans.",  # noqa: E501
     responses={
         404: {"description": "Wilaya not found"},
         422: {"description": "Invalid wilaya_id"},
@@ -382,9 +397,11 @@ async def discover_wilaya(
 
     # Artisans
     artisan_rows = (
-        (await db.execute(
-            select(Artisan).where(Artisan.wilaya_id == wilaya_id).order_by(Artisan.name)
-        ))
+        (
+            await db.execute(
+                select(Artisan).where(Artisan.wilaya_id == wilaya_id).order_by(Artisan.name)
+            )
+        )
         .scalars()
         .all()
     )
@@ -425,6 +442,8 @@ async def discover_wilaya(
         stays=stays,
         artisans=artisans,
     )
+
+
 @router.get(
     "/wilayas/{wilaya_id}/guide",
     response_model=GuideResponse,
@@ -483,7 +502,9 @@ async def wilaya_guide(
             description=p.description,
             latitude=p.latitude,
             longitude=p.longitude,
-            photo_urls=[u for u in (p.photo_urls or []) if u] if p.photo_urls else ([p.photo_url] if p.photo_url else None),
+            photo_urls=[u for u in (p.photo_urls or []) if u]
+            if p.photo_urls
+            else ([p.photo_url] if p.photo_url else None),
             is_featured=p.is_featured or False,
             entry_fee_dzd=p.entry_fee_dzd,
             price_level=p.price_level,
@@ -605,7 +626,7 @@ async def wilaya_guide(
     "/experiences/by-poi/{poi_id}",
     response_model=list[ExperienceFilterPOI],
     summary="Experiences for a POI",
-    description="Active experiences in the POI's wilaya whose title/description mentions the POI (falls back to all wilaya experiences).",
+    description="Active experiences in the POI's wilaya whose title/description mentions the POI (falls back to all wilaya experiences).",  # noqa: E501
     responses={
         404: {"description": "POI not found"},
         422: {"description": "Invalid UUID"},

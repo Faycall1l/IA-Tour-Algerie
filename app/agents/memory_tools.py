@@ -17,11 +17,15 @@ from app.agents.memory_service import remember as _remember
 
 class RememberParams(BaseModel):
     key: str = Field(
-        ..., min_length=1, max_length=64,
+        ...,
+        min_length=1,
+        max_length=64,
         description="Fact label (e.g., 'user_budget', 'destination', 'dietary_pref')",
     )
     value: str = Field(
-        ..., min_length=1, max_length=2000,
+        ...,
+        min_length=1,
+        max_length=2000,
         description="Fact content to remember",
     )
 
@@ -32,7 +36,11 @@ class RememberOutput(BaseModel):
 
 
 class RecallParams(BaseModel):
-    key: str | None = Field(None, max_length=100, description="Fact key to search for. Omit to retrieve all stored facts.")
+    key: str | None = Field(
+        None,
+        max_length=100,
+        description="Fact key to search for. Omit to retrieve all stored facts.",
+    )
 
 
 class RecallResult(BaseModel):

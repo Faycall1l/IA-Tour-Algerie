@@ -44,47 +44,56 @@ async def _seed_catalog(db, user):
     from app.models.poi import POI
     from app.models.stay import Stay
 
-    db.add(POI(
-        name="Plage des Sablettes",
-        category="beach",
-        wilaya_id=16,
-        latitude=36.81,
-        longitude=3.16,
-        description="Sandy beach on the Algiers bay with family facilities.",
-        price_level="Free",
-        suggested_duration_min=60,
-    ))
-    db.add(Stay(
-        provider_id=user.id,
-        name="Hotel Ibis Oran",
-        property_type="hotel",
-        wilaya_id=31,
-        price_per_night_dzd=6500.0,
-        description="Centrally located hotel in Oran.",
-    ))
-    db.add(Event(
-        title="Yennayer Festival",
-        wilaya_id=15,
-        category="cultural",
-        month=1,
-        description="Berber new year celebrations in the Kabylie region.",
-        duration_days=2,
-        is_recurring=True,
-    ))
-    db.add(Experience(
-        provider_id=user.id,
-        title="Kabyle Hiking Tour",
-        category="hiking",
-        wilaya_id=15,
-        status="active",
-        price_dzd=4500.0,
-        duration_hours=6.0,
-        description="Guided hiking tour through the Djurdjura mountains.",
-    ))
+    db.add(
+        POI(
+            name="Plage des Sablettes",
+            category="beach",
+            wilaya_id=16,
+            latitude=36.81,
+            longitude=3.16,
+            description="Sandy beach on the Algiers bay with family facilities.",
+            price_level="Free",
+            suggested_duration_min=60,
+        )
+    )
+    db.add(
+        Stay(
+            provider_id=user.id,
+            name="Hotel Ibis Oran",
+            property_type="hotel",
+            wilaya_id=31,
+            price_per_night_dzd=6500.0,
+            description="Centrally located hotel in Oran.",
+        )
+    )
+    db.add(
+        Event(
+            title="Yennayer Festival",
+            wilaya_id=15,
+            category="cultural",
+            month=1,
+            description="Berber new year celebrations in the Kabylie region.",
+            duration_days=2,
+            is_recurring=True,
+        )
+    )
+    db.add(
+        Experience(
+            provider_id=user.id,
+            title="Kabyle Hiking Tour",
+            category="hiking",
+            wilaya_id=15,
+            status="active",
+            price_dzd=4500.0,
+            duration_hours=6.0,
+            description="Guided hiking tour through the Djurdjura mountains.",
+        )
+    )
     await db.commit()
 
 
 # ── Pure helper units ──
+
 
 class TestHelpers:
     def test_fold_strips_accents_and_case(self):
@@ -123,6 +132,7 @@ class TestHelpers:
 
 # ── attempt_fallback (real test DB) ──
 
+
 class TestAttemptFallback:
     pytestmark = pytest.mark.asyncio
 
@@ -137,18 +147,14 @@ class TestAttemptFallback:
 
     async def test_poi_search(self, db, test_user):
         await _seed_catalog(db, test_user)
-        reply = await attempt_fallback(
-            "travel_agent", "beaches in Algiers", _deps(db, test_user)
-        )
+        reply = await attempt_fallback("travel_agent", "beaches in Algiers", _deps(db, test_user))
         assert reply is not None
         assert "Sablettes" in reply
         assert "Offline" in reply
 
     async def test_stay_search(self, db, test_user):
         await _seed_catalog(db, test_user)
-        reply = await attempt_fallback(
-            "travel_agent", "hotels in Oran", _deps(db, test_user)
-        )
+        reply = await attempt_fallback("travel_agent", "hotels in Oran", _deps(db, test_user))
         assert reply is not None
         assert "Ibis" in reply
         assert "DZD/night" in reply
@@ -177,9 +183,15 @@ class TestAttemptFallback:
 
     async def test_operator_contacts(self, db, test_user):
         from app.models import TransportOperator
-        db.add(TransportOperator(
-            name="SNTF", mode="train", phone="+213211711510", is_active=True,
-        ))
+
+        db.add(
+            TransportOperator(
+                name="SNTF",
+                mode="train",
+                phone="+213211711510",
+                is_active=True,
+            )
+        )
         await db.commit()
         reply = await attempt_fallback(
             "travel_agent", "what is the SNTF phone number?", _deps(db, test_user)
@@ -194,16 +206,22 @@ class TestAttemptFallback:
         async def fake_route(_ctx, params):
             assert (params.origin_wilaya_id, params.dest_wilaya_id) == (16, 31)
             return TransportRouteResult(
-                origin_wilaya="Algiers", dest_wilaya="Oran",
-                origin_wilaya_id=16, dest_wilaya_id=31,
-                driving_distance_km=430.0, driving_time_minutes=330,
+                origin_wilaya="Algiers",
+                dest_wilaya="Oran",
+                origin_wilaya_id=16,
+                dest_wilaya_id=31,
+                driving_distance_km=430.0,
+                driving_time_minutes=330,
                 options=[
                     TransportModeOption(
-                        mode="train", line_name="Algiers-Oran", operator="SNTF",
-                        cost_dzd=2500.0, duration_min=180,
-                        contacts=[OperatorContactInfo(
-                            name="SNTF", mode="train", phone="+213211711510"
-                        )],
+                        mode="train",
+                        line_name="Algiers-Oran",
+                        operator="SNTF",
+                        cost_dzd=2500.0,
+                        duration_min=180,
+                        contacts=[
+                            OperatorContactInfo(name="SNTF", mode="train", phone="+213211711510")
+                        ],
                     ),
                 ],
                 best_recommendation="Cheapest: train at 2500 DZD",
@@ -220,21 +238,27 @@ class TestAttemptFallback:
 
     async def test_transport_route_from_explicit_ids(self, db, test_user, monkeypatch):
         from app.agents import fallback as fb
+
         calls = {}
 
         async def fake_route(_ctx, params):
             calls["ids"] = (params.origin_wilaya_id, params.dest_wilaya_id)
             return TransportRouteResult(
-                origin_wilaya="Algiers", dest_wilaya="Oran",
-                origin_wilaya_id=16, dest_wilaya_id=31,
+                origin_wilaya="Algiers",
+                dest_wilaya="Oran",
+                origin_wilaya_id=16,
+                dest_wilaya_id=31,
                 options=[TransportModeOption(mode="taxi", cost_dzd=1500.0, duration_min=270)],
                 best_recommendation="Cheapest: taxi at 1500 DZD",
             )
 
         monkeypatch.setattr(fb, "get_transport_route", fake_route)
         reply = await attempt_fallback(
-            "transport_agent", "how do I get between these", _deps(db, test_user),
-            from_wilaya=16, to_wilaya=31,
+            "transport_agent",
+            "how do I get between these",
+            _deps(db, test_user),
+            from_wilaya=16,
+            to_wilaya=31,
         )
         assert reply is not None
         assert calls["ids"] == (16, 31)
@@ -245,9 +269,7 @@ class TestAttemptFallback:
         assert await attempt_fallback("travel_agent", "zzzz qqqqq", _deps(db, test_user)) is None
 
     async def test_itinerary_never_falls_back(self, db, test_user):
-        reply = await attempt_fallback(
-            "itinerary_agent", "plan Algiers", _deps(db, test_user)
-        )
+        reply = await attempt_fallback("itinerary_agent", "plan Algiers", _deps(db, test_user))
         assert reply is None
 
     async def test_empty_message_returns_none(self, db, test_user):
@@ -257,7 +279,11 @@ class TestAttemptFallback:
 # ── Endpoint integration ──
 
 _AGENT_STATE_KEYS = (
-    "travel_agent", "search_agent", "transport_agent", "events_agent", "itinerary_agent",
+    "travel_agent",
+    "search_agent",
+    "transport_agent",
+    "events_agent",
+    "itinerary_agent",
 )
 
 
@@ -294,12 +320,18 @@ class TestEndpointFallback:
     ):
         from app.main import app
         from app.models.stay import Stay
+
         restore = _clear_agent_state(app)
         try:
-            db.add(Stay(
-                provider_id=test_user.id, name="Hotel Ibis Oran", property_type="hotel",
-                wilaya_id=31, price_per_night_dzd=6500.0,
-            ))
+            db.add(
+                Stay(
+                    provider_id=test_user.id,
+                    name="Hotel Ibis Oran",
+                    property_type="hotel",
+                    wilaya_id=31,
+                    price_per_night_dzd=6500.0,
+                )
+            )
             await db.commit()
 
             resp = await client.post(
@@ -315,11 +347,10 @@ class TestEndpointFallback:
 
     async def test_no_agent_no_match_503(self, client: AsyncClient, auth_headers):
         from app.main import app
+
         restore = _clear_agent_state(app)
         try:
-            resp = await client.post(
-                self.ENDPOINT, json={"message": "hello"}, headers=auth_headers
-            )
+            resp = await client.post(self.ENDPOINT, json={"message": "hello"}, headers=auth_headers)
             assert resp.status_code == 503
             assert "VLLM" in resp.json()["detail"]
         finally:
@@ -332,10 +363,15 @@ class TestEndpointFallback:
         from app.main import app
         from app.models.stay import Stay
 
-        db.add(Stay(
-            provider_id=test_user.id, name="Hotel Panorama Tlemcen", property_type="hotel",
-            wilaya_id=13, price_per_night_dzd=8000.0,
-        ))
+        db.add(
+            Stay(
+                provider_id=test_user.id,
+                name="Hotel Panorama Tlemcen",
+                property_type="hotel",
+                wilaya_id=13,
+                price_per_night_dzd=8000.0,
+            )
+        )
         await db.commit()
 
         cb = get_circuit_breaker("travel_agent")

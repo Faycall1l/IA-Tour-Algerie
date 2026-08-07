@@ -1,7 +1,18 @@
 from datetime import date as date_type
 
 import sqlalchemy as sa
-from sqlalchemy import ARRAY, Boolean, CheckConstraint, Computed, Date, Float, ForeignKey, Index, Integer, String, Text
+from sqlalchemy import (
+    ARRAY,
+    CheckConstraint,
+    Computed,
+    Date,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    Text,
+)
 from sqlalchemy.dialects.postgresql import TSVECTOR, UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -66,7 +77,13 @@ class Experience(UUIDPkMixin, TimestampMixin, Base):
     source: Mapped[str | None] = mapped_column(String(100), nullable=True)
     source_url: Mapped[str | None] = mapped_column(String(500), nullable=True)
     search_vector: Mapped[str | None] = mapped_column(
-        TSVECTOR, Computed("to_tsvector('french', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(category, ''))"), nullable=True
+        TSVECTOR,
+        Computed(
+            "to_tsvector('french', coalesce(title, '') || ' ' || coalesce(description, '') || ' ' || coalesce(category, ''))"  # noqa: E501
+        ),
+        nullable=True,
     )
     is_verified: Mapped[bool] = mapped_column(sa.Boolean, default=False, server_default=sa.false())
-    completion_count: Mapped[int] = mapped_column(sa.Integer, default=0, server_default=sa.text('0'))
+    completion_count: Mapped[int] = mapped_column(
+        sa.Integer, default=0, server_default=sa.text("0")
+    )
