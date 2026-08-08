@@ -71,8 +71,17 @@ def _encode_upsert_shard(args: tuple) -> tuple[int, float]:
             (start + len(chunk)) / t_enc,
         )
     t0 = time.time()
-    vs.client.upsert(collection_name=POIS_COLLECTION, points=points, wait=True)
-    logger.info("shard %d: upserted %d points in %.0fs", shard_id, len(points), time.time() - t0)
+    UPSERT_BATCH = 5000
+    for start in range(0, len(points), UPSERT_BATCH):
+        batch = points[start : start + UPSERT_BATCH]
+        vs.client.upsert(collection_name=POIS_COLLECTION, points=batch, wait=True)
+        logger.info(
+            "shard %d: upserted %d/%d points (%.0fs)",
+            shard_id,
+            start + len(batch),
+            len(points),
+            time.time() - t0,
+        )
     return shard_id, time.time() - t0
 
 
