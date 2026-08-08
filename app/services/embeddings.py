@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 MODEL_NAME = "paraphrase-multilingual-MiniLM-L12-v2"
 MODEL_LOCAL_PATH = "/Users/faycalamrouche/.cache/athar-mlmini"
 EMBEDDING_DIM = 384
+ONNX_PROVIDERS = ["CPUExecutionProvider"]
 
 
 class EmbeddingService:
@@ -59,10 +60,7 @@ class EmbeddingService:
                         local_files_only=True,
                         model_kwargs={
                             **kwargs,
-                            "providers": [
-                                "CoreMLExecutionProvider",
-                                "CPUExecutionProvider",
-                            ],
+                            "providers": ONNX_PROVIDERS,
                         },
                     )
                 else:
