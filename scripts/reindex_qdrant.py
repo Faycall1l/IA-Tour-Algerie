@@ -74,14 +74,43 @@ def _encode_upsert_shard(args: tuple) -> tuple[int, float]:
     UPSERT_BATCH = 5000
     for start in range(0, len(points), UPSERT_BATCH):
         batch = points[start : start + UPSERT_BATCH]
-        vs.client.upsert(collection_name=POIS_COLLECTION, points=batch, wait=True)
-        logger.info(
-            "shard %d: upserted %d/%d points (%.0fs)",
-            shard_id,
-            start + len(batch),
-            len(points),
-            time.time() - t0,
-        )
+        try:
+            vs.client.upsert(collection_name=POIS_COLLECTION, points=batch, wait=True)
+            logger.info(
+                "shard %d: upserted %d/%d points (%.0fs)",
+                shard_id,
+                start + len(batch),
+                len(points),
+                time.time() - t0,
+            )
+        except Exception as exc:  # noqa: BLE001
+            logger.warning(
+                "shard %d: upsert batch %d failed (%s) — retrying 3x",
+                shard_id,
+                start // UPSERT_BATCH,
+                exc,
+            )
+            for attempt in range(3):
+                time.sleep(5 * (attempt + 1))
+                try:
+                    vs.client.upsert(
+                        collection_name=POIS_COLLECTION, points=batch, wait=True
+                    )
+                    logger.info(
+                        "shard %d: upserted %d/%d points (retry %d, %.0fs)",
+                        shard_id,
+                        start + len(batch),
+                        len(points),
+                        attempt + 1,
+                        time.time() - t0,
+                    )
+                    break
+                except Exception as retry_exc:  # noqa: BLE001
+                    logger.warning(
+                        "shard %d: retry %d also failed (%s)", shard_id, attempt + 1, retry_exc
+                    )
+            else:
+                logger.error("shard %d: giving up on batch %d", shard_id, start // UPSERT_BATCH)
     return shard_id, time.time() - t0
 
 
@@ -127,28 +156,43 @@ async def main() -> None:
     logger.info("Collections dropped + recreated (dim=%d)", EMBEDDING_DIM)
 
     n_workers = min(args.workers, 6)
-    rows = [_poi_row(p) for p in pois]
-    shard_size = max(1, len(rows) // n_workers)
-    shards = [
-        (i, rows[i * shard_size : (i + 1) * shard_size])
-        for i in range(n_workers)
-    ]
-    if shards and len(shards[-1][1]) == 0:
-        shards = shards[:-1]
+    if n_workers == 1:
+        logger.info("Encoding %d POIs in-process (single worker)...", len(pois))
+        t0 = time.time()
+        vs = VectorSearchService(EmbeddingService())
+        shard_id, _ = _encode_upsert_shard((0, [_poi_row(p) for p in pois]))
+        ok = 1 if shard_id == 0 else 0
+        elapsed = time.time() - t0
+        logger.info(
+            "POIs indexed: %d/%d shards in %.0fs (%.1f texts/s)",
+            ok,
+            1,
+            elapsed,
+            len(pois) / elapsed,
+        )
+    else:
+        rows = [_poi_row(p) for p in pois]
+        shard_size = max(1, len(rows) // n_workers)
+        shards = [
+            (i, rows[i * shard_size : (i + 1) * shard_size])
+            for i in range(n_workers)
+        ]
+        if shards and len(shards[-1][1]) == 0:
+            shards = shards[:-1]
 
-    t0 = time.time()
-    logger.info("Encoding %d POIs with %d workers...", len(rows), len(shards))
-    with mp.Pool(len(shards)) as pool:
-        results = pool.map(_encode_upsert_shard, shards)
-    elapsed = time.time() - t0
-    ok = sum(1 for _, dt in results if dt > 0)
-    logger.info(
-        "POIs indexed: %d/%d shards in %.0fs (%.1f texts/s)",
-        ok,
-        len(shards),
-        elapsed,
-        len(rows) / elapsed,
-    )
+        t0 = time.time()
+        logger.info("Encoding %d POIs with %d workers...", len(rows), len(shards))
+        with mp.Pool(len(shards)) as pool:
+            results = pool.map(_encode_upsert_shard, shards)
+        elapsed = time.time() - t0
+        ok = sum(1 for _, dt in results if dt > 0)
+        logger.info(
+            "POIs indexed: %d/%d shards in %.0fs (%.1f texts/s)",
+            ok,
+            len(shards),
+            elapsed,
+            len(rows) / elapsed,
+        )
 
     t0 = time.time()
     n = await asyncio.get_running_loop().run_in_executor(None, vs.index_experiences_bulk, exps)
