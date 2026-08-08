@@ -50,14 +50,29 @@ def _encode_upsert_shard(args: tuple) -> tuple[int, float]:
     from qdrant_client.http.models import PointStruct
 
     pois = [POI(**row) for row in rows]
-    texts = [_poi_index_text(p) for p in pois]
-    vectors = embedder.encode_batch(texts)
-    points = [
-        PointStruct(id=p.id.hex, vector=vec, payload=_poi_payload(p))
-        for p, vec in zip(pois, vectors, strict=True)
-    ]
+    points: list[PointStruct] = []
+    t_enc = 0.0
+    CHUNK = 512
+    for start in range(0, len(pois), CHUNK):
+        chunk = pois[start : start + CHUNK]
+        texts = [_poi_index_text(p) for p in chunk]
+        t0 = time.time()
+        vectors = embedder.encode_batch(texts)
+        t_enc += time.time() - t0
+        for p, vec in zip(chunk, vectors, strict=True):
+            points.append(
+                PointStruct(id=p.id.hex, vector=vec, payload=_poi_payload(p))
+            )
+        logger.info(
+            "shard %d: encoded %d/%d (%.1f texts/s)",
+            shard_id,
+            start + len(chunk),
+            len(pois),
+            (start + len(chunk)) / t_enc,
+        )
     t0 = time.time()
     vs.client.upsert(collection_name=POIS_COLLECTION, points=points, wait=True)
+    logger.info("shard %d: upserted %d points in %.0fs", shard_id, len(points), time.time() - t0)
     return shard_id, time.time() - t0
 
 
