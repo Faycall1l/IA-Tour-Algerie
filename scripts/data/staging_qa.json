@@ -1,0 +1,36 @@
+{
+ "tripadvisor": 159,
+ "geoalgeria_culture": 1083,
+ "geoalgeria_attractions": 1248,
+ "geoalgeria_historic": 1184,
+ "geoalgeria_parks": 32,
+ "geoalgeria_thermal_springs": 282,
+ "geoalgeria_lodging": 1602,
+ "pois_total": 3988,
+ "stays_total": 1602,
+ "pois_by_source": {
+  "tripadvisor": 159,
+  "geoalgeria-culture": 1083,
+  "geoalgeria-tourisme": 2464,
+  "geoalgeria-asal": 282
+ },
+ "pois_by_category": {
+  "historical": 1789,
+  "natural": 425,
+  "museum": 246,
+  "cultural": 1290,
+  "other": 25,
+  "market": 22,
+  "restaurant": 44,
+  "park": 134,
+  "religious": 13
+ },
+ "stays_by_type": {
+  "hotel": 1093,
+  "hostel": 216,
+  "guesthouse": 215,
+  "apartment": 78
+ },
+ "with_both_names": 2254,
+ "wilaya_codes_covered": 69
+}
