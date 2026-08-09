@@ -162,6 +162,11 @@ def cdx_snapshots(geo_id: int, kind: str, max_age_years: int | None = None) -> l
         (f"{WAYBACK_ARCHIVE}/{ts}id_/{u}" for u, ts in buckets.items()),
         key=lambda x: 0 if "-oa" not in x else 1,
     )
+    if not urls:
+        # No captures within the freshness window — fall back to the widest
+        # window so cities with only older captures (e.g. Constantine, 2019)
+        # still yield real listings. verified_at marks their age downstream.
+        return cdx_snapshots(geo_id, kind, max_age_years=12)
     return urls
 
 
@@ -246,6 +251,61 @@ def parse_listing_html(html: str, geo_id: int, kind: str) -> list[dict]:
                     entry.get("name", ""),
                     link=url,
                 )
+    # Pre-2020 legacy layout: divs with data-locationid + ATTR_ENTRY ids
+    # e.g. <div id="ATTR_ENTRY_8489661" class="attraction_element" data-locationid="8489661">
+    if not items:
+        for m in re.finditer(r'<div[^>]*id="ATTR_ENTRY_(\d+)"', html):
+            d_id = m.group(1)
+            start = m.end()
+            end = html.find("</div>", start)
+            if end == -1:
+                end = start + 4000
+            block = html[start : end + 6]
+            if not block or (
+                "Attraction_Review" not in block
+                and "location-name" not in block
+                and "listing_title" not in block
+            ):
+                continue
+            name_m = re.search(
+                r'data-name="([^"]+)"|class="location-name[^"]*"[^>]*>\s*([^<]+)',
+                block,
+            )
+            name = (
+                (name_m.group(1) or name_m.group(2)).strip()
+                if name_m
+                else ""
+            )
+            if not name:
+                name_m = re.search(
+                    r'<a href="/Attraction_Review-g\d+-d\d+-Reviews-[^"]+">([^<]+)</a>',
+                    block,
+                )
+                name = name_m.group(1).strip() if name_m else ""
+            photo_m = re.search(
+                r'<img[^>]+src="(https://[^"]+)"', block
+            )
+            photo_url = photo_m.group(1).split("?")[0] if photo_m else None
+            rating_m = re.search(
+                r'alt="([\d.]+) of 5 stars"|class="ui_bubble_rating[^"]*bubble_(\d+)[^"]*"',
+                block,
+            )
+            rating = None
+            if rating_m:
+                if rating_m.group(1):
+                    rating = float(rating_m.group(1))
+                elif rating_m.group(2):
+                    rating = int(rating_m.group(2)) / 10
+            reviews_m = re.search(r"(\d+)\s+reviews?", block)
+            reviews = int(reviews_m.group(1)) if reviews_m else None
+            add(
+                d_id,
+                name,
+                photo_url,
+                rating,
+                reviews,
+                f"Attraction_Review-g{geo_id}-d{d_id}",
+            )
     return items
 
 
