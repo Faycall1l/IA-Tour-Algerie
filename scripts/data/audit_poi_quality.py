@@ -21,6 +21,7 @@ Output: per-category keep/drop table + a JSON file with the kept ids.
 
 Usage: python scripts/data/audit_poi_quality.py [--out /tmp/poi_audit.json]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -32,9 +33,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from sqlalchemy import text  # noqa: E402
-
 from app.db.session import async_session  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
 PLACEHOLDER_RE = re.compile(
     r"(non nomm|unnamed|sans nom|non identifi|inconnu|unknown|"
@@ -44,14 +44,57 @@ PLACEHOLDER_RE = re.compile(
 
 # generic labels that are not visitable destinations for a travel guide
 JUNK_NAMES = {
-    "resto", "snack", "snack-bar", "pizzeria", "cafe", "café", "restaurant",
-    "hotel", "king", "poisson", "boucherie", "boulangerie", "pharmacie",
-    "coiffeur", "salon", "barbier", "garage", "station", "station service",
-    "boutique", "magasin", "epicerie", "supermarché", "supermarch",
-    "dracena", "karantika", "lazhar", "adel", "nour", "farid", "karim",
-    "sami", "yacine", "amine", "mohamed", "slimane", "rachid", "said",
-    "hassan", "brahim", "omar", "ali", "moussa", "ahmed", "youcef",
-    "djaafar", "sofiane", "walid", "billel", "hocine", "madani",
+    "resto",
+    "snack",
+    "snack-bar",
+    "pizzeria",
+    "cafe",
+    "café",
+    "restaurant",
+    "hotel",
+    "king",
+    "poisson",
+    "boucherie",
+    "boulangerie",
+    "pharmacie",
+    "coiffeur",
+    "salon",
+    "barbier",
+    "garage",
+    "station",
+    "station service",
+    "boutique",
+    "magasin",
+    "epicerie",
+    "supermarché",
+    "supermarch",
+    "dracena",
+    "karantika",
+    "lazhar",
+    "adel",
+    "nour",
+    "farid",
+    "karim",
+    "sami",
+    "yacine",
+    "amine",
+    "mohamed",
+    "slimane",
+    "rachid",
+    "said",
+    "hassan",
+    "brahim",
+    "omar",
+    "ali",
+    "moussa",
+    "ahmed",
+    "youcef",
+    "djaafar",
+    "sofiane",
+    "walid",
+    "billel",
+    "hocine",
+    "madani",
 }
 
 # categories where a person-name-only POI is acceptable (real local shops)
@@ -85,7 +128,7 @@ async def main(out_path: Path, max_photo_share: int) -> None:
     for r in rows:
         poi_id, name, cat = str(r[0]), str(r[1] or ""), str(r[2] or "")
         lat, lng = r[3], r[4]
-        osm_id, osm_type, photo = r[5], r[6], r[7]
+        osm_id, photo = r[5], r[7]
         name = name.strip()
 
         drop = None
@@ -93,10 +136,7 @@ async def main(out_path: Path, max_photo_share: int) -> None:
             drop = "placeholder_name"
         elif name.lower() in JUNK_NAMES:
             drop = "junk_name"
-        elif (
-            PERSON_NAME_RE.match(name)
-            and cat not in PERSON_NAME_OK
-        ):
+        elif PERSON_NAME_RE.match(name) and cat not in PERSON_NAME_OK:
             drop = "person_name_only"
         elif lat is None or lng is None:
             drop = "no_coords"
@@ -108,12 +148,7 @@ async def main(out_path: Path, max_photo_share: int) -> None:
             drop = "no_osm_id"
 
         # photo sanity (non-fatal: affects photo quality, not existence)
-        photo_bad = False
-        if photo:
-            if PLACEHOLD_PHOTO in photo:
-                photo_bad = True
-            elif photo_use[photo] > max_photo_share:
-                photo_bad = True
+        photo_bad = bool(photo) and (PLACEHOLD_PHOTO in photo or photo_use[photo] > max_photo_share)
 
         if drop:
             reasons[drop] += 1
@@ -124,8 +159,11 @@ async def main(out_path: Path, max_photo_share: int) -> None:
         else:
             verdict.setdefault("kept", []).append(
                 {
-                    "id": poi_id, "name": name, "category": cat,
-                    "photo_bad": photo_bad, "photo_url": photo,
+                    "id": poi_id,
+                    "name": name,
+                    "category": cat,
+                    "photo_bad": photo_bad,
+                    "photo_url": photo,
                 }
             )
             kept_ids.append(poi_id)

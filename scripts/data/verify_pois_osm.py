@@ -13,6 +13,7 @@ so we validate the kept corpus against the live source of truth.
 
 Usage: python scripts/data/verify_pois_osm.py [--all] [--sample N]
 """
+
 from __future__ import annotations
 
 import argparse
@@ -26,9 +27,8 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from sqlalchemy import text  # noqa: E402
-
 from app.db.session import async_session  # noqa: E402
+from sqlalchemy import text  # noqa: E402
 
 OSM_API = "https://api.openstreetmap.org/api/0.6/node/{id}.json"
 UA = {"User-Agent": "athar-data/1.0"}
@@ -40,8 +40,8 @@ CATEGORY_TAGS = {
     "historical": {"historic": "*", "tourism": "attraction"},
     "cultural": {"tourism": "attraction", "historic": "*"},
     "natural": {"natural": "*", "leisure": "nature_reserve"},
-    "mountain": {"natural": "peak", "natural": "volcano"},
-    "park": {"leisure": "park", "leisure": "garden"},
+    "mountain": {"natural": "peak"},
+    "park": {"leisure": "park"},
     "market": {"amenity": "marketplace", "shop": "*"},
     "beach": {"natural": "beach", "leisure": "beach_resort"},
     "religious": {"amenity": "place_of_worship", "historic": "wayside_shrine"},
@@ -115,7 +115,7 @@ async def main(sample: int, all_: bool, audit_file: Path) -> None:
     issues: Counter[str] = Counter()
     results = []
     for i, r in enumerate(rows):
-        poi_id, name, cat = str(r[0]), str(r[1]), str(r[2])
+        poi_id, name = str(r[0]), str(r[1])
         lat, lng, node_id, osm_type = r[3], r[4], r[5], r[6]
         if not node_id or osm_type != "node":
             issues["no_osm_node"] += 1
@@ -136,8 +136,16 @@ async def main(sample: int, all_: bool, audit_file: Path) -> None:
         issues["total_checked"] += 1
         if dist_km > 0.2:
             issues["coord_mismatch_gt_200m"] += 1
-            results.append({"id": poi_id, "name": name, "osm": node_id,
-                            "db": (lat, lng), "osm_pt": (nlat, nlng), "km": round(dist_km, 3)})
+            results.append(
+                {
+                    "id": poi_id,
+                    "name": name,
+                    "osm": node_id,
+                    "db": (lat, lng),
+                    "osm_pt": (nlat, nlng),
+                    "km": round(dist_km, 3),
+                }
+            )
         elif not has_name:
             issues["no_name_on_osm"] += 1
         elif i % 20 == 0:
@@ -149,7 +157,9 @@ async def main(sample: int, all_: bool, audit_file: Path) -> None:
     if results:
         print("\ncoordinate mismatches (sample):")
         for x in results[:10]:
-            print(f"  {x['name'][:35]:<35} osm={x['osm']} db={x['db']} osm={x['osm_pt']} Δ{x['km']}km")
+            line = f"  {x['name'][:35]:<35} osm={x['osm']} db={x['db']} "
+            line += f"osm={x['osm_pt']} Δ{x['km']}km"
+            print(line)
 
 
 if __name__ == "__main__":
