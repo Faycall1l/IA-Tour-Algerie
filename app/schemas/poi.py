@@ -9,7 +9,7 @@ from app.models.poi import POI_CATEGORIES
 class POICreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     category: str = Field(..., pattern=f"^({'|'.join(POI_CATEGORIES)})$")
-    wilaya_id: int = Field(..., ge=1, le=58)
+    wilaya_id: int = Field(..., ge=1, le=69)
     latitude: float | None = None
     longitude: float | None = None
     description: str | None = Field(None, max_length=2000)

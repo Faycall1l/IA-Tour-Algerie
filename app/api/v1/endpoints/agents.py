@@ -53,7 +53,7 @@ limiter = Limiter(key_func=get_remote_address)
 
 class AgentChatRequest(BaseModel):
     message: str = Field(..., min_length=1, max_length=2000, description="User's travel question")
-    wilaya_id: int | None = Field(None, ge=1, le=58)
+    wilaya_id: int | None = Field(None, ge=1, le=69)
     session_id: str | None = Field(None, description="Resume an existing conversation session")
 
 
@@ -73,14 +73,14 @@ class AgentSearchRequest(BaseModel):
 
 class TransportQueryRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500, description="Transport question")
-    from_wilaya: int | None = Field(None, ge=1, le=58)
-    to_wilaya: int | None = Field(None, ge=1, le=58)
+    from_wilaya: int | None = Field(None, ge=1, le=69)
+    to_wilaya: int | None = Field(None, ge=1, le=69)
     session_id: str | None = Field(None, description="Resume an existing conversation session")
 
 
 class EventsQueryRequest(BaseModel):
     query: str = Field(..., min_length=1, max_length=500, description="Events/festivals question")
-    wilaya_id: int | None = Field(None, ge=1, le=58)
+    wilaya_id: int | None = Field(None, ge=1, le=69)
     session_id: str | None = Field(None, description="Resume an existing conversation session")
 
 

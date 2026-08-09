@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "ATHAR OS (أثر)",
-    "description": "ATHAR — agentic travel guide for Algeria. Discover POIs, stays, experiences and artisans; plan trips; route with real transit schedules across all 58 wilayas.",
+    "description": "ATHAR — agentic travel guide for Algeria. Discover POIs, stays, experiences and artisans; plan trips; route with real transit schedules across all 69 wilayas.",
     "contact": {
       "name": "ATHAR",
       "url": "https://github.com/Faycall1l"

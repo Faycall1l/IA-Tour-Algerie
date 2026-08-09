@@ -78,7 +78,7 @@ def print_json(data):
 @app.command()
 def pois(
     ctx: typer.Context,
-    wilaya: Optional[int] = typer.Option(None, help="Wilaya ID (1-58)"),
+    wilaya: Optional[int] = typer.Option(None, help="Wilaya ID (1-69)"),
     category: Optional[str] = typer.Option(None, help="Category filter"),
     neighborhood: Optional[str] = typer.Option(None, help="Neighborhood filter"),
     limit: int = typer.Option(10, help="Max results"),

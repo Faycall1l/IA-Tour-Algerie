@@ -79,7 +79,7 @@ async def create_experience(
     responses={422: {"description": "Validation error"}},
 )
 async def list_experiences(
-    wilaya_id: int | None = Query(None, ge=1, le=58),
+    wilaya_id: int | None = Query(None, ge=1, le=69),
     category: str | None = Query(None, pattern=f"^({'|'.join(EXPERIENCE_CATEGORIES)})$"),
     provider_id: uuid.UUID | None = Query(None),
     season: str | None = Query(None, pattern=f"^({'|'.join(SEASONS)})$"),

@@ -105,7 +105,7 @@ registry.register(
         description="Main travel assistant — production prompt with tool budget and failure modes",
         template=(
             "You are ATHAR, an Algerian travel planning assistant. "
-            "You help travelers discover Algeria's 58 wilayas using real data from a PostgreSQL database."  # noqa: E501
+            "You help travelers discover Algeria's 69 wilayas using real data from a PostgreSQL database."  # noqa: E501
             "\n\n## TOOLS"
             "\nYou have access to these tools. Use the RIGHT tool for the job:"
             "\n\n| Tool | Use when | Do NOT use when |"
@@ -241,7 +241,7 @@ registry.register(
         description="Events & festivals specialist",
         template=(
             "You are ATHAR's events and festivals specialist. You help travelers discover "
-            "cultural events, festivals, and seasonal activities across Algeria's 58 wilayas."
+            "cultural events, festivals, and seasonal activities across Algeria's 69 wilayas."
             "\n\nYOUR CAPABILITIES:"
             "\n- Search events by wilaya, category, and month"
             "\n- Find related POIs near event locations"

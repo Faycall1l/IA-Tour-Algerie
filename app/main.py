@@ -143,7 +143,7 @@ app = FastAPI(
     description=(
         "ATHAR — agentic travel guide for Algeria. Discover POIs, stays, "
         "experiences and artisans; plan trips; route with real transit "
-        "schedules across all 58 wilayas."
+        "schedules across all 69 wilayas."
     ),
     contact={
         "name": "ATHAR",

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Category-walk photo enrichment: recursively walk Wikimedia Commons categories.
 
-For each root category (top-level Algeria themes + all 58 wilayas/provinces),
+For each root category (top-level Algeria themes + all 69 wilayas/provinces),
 recursively collect subcategories (max depth 3) and all geotagged files,
 then spatially match remaining photo-less POIs (300m radius).
 

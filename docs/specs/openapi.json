@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "ATHAR OS (أثر)",
-    "description": "ATHAR — agentic travel guide for Algeria. Discover POIs, stays, experiences and artisans; plan trips; route with real transit schedules across all 58 wilayas.",
+    "description": "ATHAR — agentic travel guide for Algeria. Discover POIs, stays, experiences and artisans; plan trips; route with real transit schedules across all 69 wilayas.",
     "contact": {
       "name": "ATHAR",
       "url": "https://github.com/Faycall1l"
@@ -1882,7 +1882,7 @@
               "anyOf": [
                 {
                   "type": "integer",
-                  "maximum": 58,
+                  "maximum": 69,
                   "minimum": 1
                 },
                 {
@@ -3068,7 +3068,7 @@
               "anyOf": [
                 {
                   "type": "integer",
-                  "maximum": 58,
+                  "maximum": 69,
                   "minimum": 1
                 },
                 {
@@ -3879,7 +3879,7 @@
               "anyOf": [
                 {
                   "type": "integer",
-                  "maximum": 58,
+                  "maximum": 69,
                   "minimum": 1
                 },
                 {
@@ -6909,7 +6909,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 58.0,
+                "maximum": 69.0,
                 "minimum": 1.0
               },
               {
@@ -7173,7 +7173,7 @@
           },
           "wilaya_id": {
             "type": "integer",
-            "maximum": 58.0,
+            "maximum": 69.0,
             "minimum": 1.0,
             "title": "Wilaya Id"
           },
@@ -7691,7 +7691,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 58.0,
+                "maximum": 69.0,
                 "minimum": 1.0
               },
               {
@@ -8925,7 +8925,7 @@
           },
           "wilaya_id": {
             "type": "integer",
-            "maximum": 58.0,
+            "maximum": 69.0,
             "minimum": 1.0,
             "title": "Wilaya Id"
           },
@@ -9253,7 +9253,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 58.0,
+                "maximum": 69.0,
                 "minimum": 1.0
               },
               {
@@ -10743,7 +10743,7 @@
           },
           "wilaya_id": {
             "type": "integer",
-            "maximum": 58.0,
+            "maximum": 69.0,
             "minimum": 1.0,
             "title": "Wilaya Id"
           },
@@ -13893,7 +13893,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 58.0,
+                "maximum": 69.0,
                 "minimum": 1.0
               },
               {
@@ -13906,7 +13906,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 58.0,
+                "maximum": 69.0,
                 "minimum": 1.0
               },
               {

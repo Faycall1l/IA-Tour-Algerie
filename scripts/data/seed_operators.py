@@ -62,7 +62,7 @@ OPERATORS = [
         "website": 'https://www.sogral.dz',
         "email": None,
         "headquarters_wilaya_id": 16,
-        "description": 'National intercity bus company — connects all 58 wilayas. Contact: +213 21 77 00 66/77/88/99 (Hussein Dey). 40+ gares routières across Algeria.',
+        "description": 'National intercity bus company — connects all 69 wilayas. Contact: +213 21 77 00 66/77/88/99 (Hussein Dey). 40+ gares routières across Algeria.',
         "coverage_type": 'national',
     },
     {

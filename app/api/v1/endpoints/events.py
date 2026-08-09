@@ -24,7 +24,7 @@ router = APIRouter(prefix="/events", tags=["Events"])
     responses={422: {"description": "Validation error"}},
 )
 async def list_events(
-    wilaya_id: int | None = Query(None, ge=1, le=58),
+    wilaya_id: int | None = Query(None, ge=1, le=69),
     category: str | None = Query(None, max_length=50),
     month: int | None = Query(None, ge=1, le=12),
     page: int = Query(1, ge=1),

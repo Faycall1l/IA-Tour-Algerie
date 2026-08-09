@@ -10,7 +10,7 @@ class ArtisanCreate(BaseModel):
     name: str = Field(..., min_length=1, max_length=200)
     craft_type: str = Field(..., pattern=f"^({'|'.join(ARTISAN_CRAFTS)})$")
     description: str | None = Field(None, max_length=5000)
-    wilaya_id: int = Field(..., ge=1, le=58)
+    wilaya_id: int = Field(..., ge=1, le=69)
     address: str | None = Field(None, max_length=500)
     commune: str | None = Field(None, max_length=200)
     latitude: float | None = None
@@ -32,7 +32,7 @@ class ArtisanUpdate(BaseModel):
     name: str | None = Field(None, max_length=200)
     craft_type: str | None = Field(None, pattern=f"^({'|'.join(ARTISAN_CRAFTS)})$")
     description: str | None = Field(None, max_length=5000)
-    wilaya_id: int | None = Field(None, ge=1, le=58)
+    wilaya_id: int | None = Field(None, ge=1, le=69)
     address: str | None = Field(None, max_length=500)
     commune: str | None = Field(None, max_length=200)
     latitude: float | None = None

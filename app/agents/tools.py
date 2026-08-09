@@ -64,7 +64,7 @@ class POISearchParams(BaseModel):
     query: str = Field(
         ..., min_length=1, max_length=200, description="Search query for POI names/descriptions"
     )
-    wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by wilaya ID")
+    wilaya_id: int | None = Field(None, ge=1, le=69, description="Filter by wilaya ID")
     category: str | None = Field(
         None, description="Filter by category (historical, natural, cultural, museum, beach, etc.)"
     )
@@ -212,7 +212,7 @@ async def search_pois(ctx: RunContext[TravelAgentDeps], params: POISearchParams)
 
 class StaySearchParams(BaseModel):
     query: str = Field(..., min_length=1, max_length=200)
-    wilaya_id: int | None = Field(None, ge=1, le=58)
+    wilaya_id: int | None = Field(None, ge=1, le=69)
     property_type: str | None = Field(
         None, description="hotel, guesthouse, hostel, eco_lodge, riad, apartment"
     )
@@ -344,7 +344,7 @@ async def search_stays(
 
 class ExperienceSearchParams(BaseModel):
     query: str = Field(..., min_length=1, max_length=200)
-    wilaya_id: int | None = Field(None, ge=1, le=58)
+    wilaya_id: int | None = Field(None, ge=1, le=69)
     category: str | None = Field(
         None, description="tour, workshop, homestay, hiking, cultural, food, adventure, wellness"
     )
@@ -484,7 +484,7 @@ class ArtisanSearchParams(BaseModel):
     query: str = Field(
         ..., min_length=1, max_length=200, description="Search query for artisan name/craft"
     )
-    wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by wilaya ID")
+    wilaya_id: int | None = Field(None, ge=1, le=69, description="Filter by wilaya ID")
     craft_type: str | None = Field(
         None, description="Filter by craft type (pottery, carpet_weaving, jewelry, etc.)"
     )
@@ -702,7 +702,7 @@ async def get_weather(_ctx: RunContext[TravelAgentDeps], params: WeatherParams) 
 
 
 class WilayaGuideParams(BaseModel):
-    wilaya_id: int = Field(..., ge=1, le=58, description="Wilaya ID (1-58)")
+    wilaya_id: int = Field(..., ge=1, le=69, description="Wilaya ID (1-69)")
     top_per_category: int = Field(
         3, ge=1, le=10, description="Max POIs per category (keep small to avoid context overflow)"
     )
@@ -1031,8 +1031,8 @@ async def get_wilaya_guide(
 
 
 class TransportRouteParams(BaseModel):
-    origin_wilaya_id: int = Field(..., ge=1, le=58, description="Departure wilaya ID")
-    dest_wilaya_id: int = Field(..., ge=1, le=58, description="Destination wilaya ID")
+    origin_wilaya_id: int = Field(..., ge=1, le=69, description="Departure wilaya ID")
+    dest_wilaya_id: int = Field(..., ge=1, le=69, description="Destination wilaya ID")
 
 
 class OperatorContactInfo(BaseModel):
@@ -1154,7 +1154,7 @@ class OperatorContactsParams(BaseModel):
     mode: str | None = Field(
         None, description="Filter by mode: train, flight, bus, taxi, tram, cablecar"
     )
-    wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by headquarters wilaya")
+    wilaya_id: int | None = Field(None, ge=1, le=69, description="Filter by headquarters wilaya")
 
 
 class OperatorContactResult(BaseModel):
@@ -1222,7 +1222,7 @@ async def get_operator_contacts(
 
 
 class EventSearchParams(BaseModel):
-    wilaya_id: int | None = Field(None, ge=1, le=58, description="Filter by wilaya ID")
+    wilaya_id: int | None = Field(None, ge=1, le=69, description="Filter by wilaya ID")
     category: str | None = Field(
         None,
         description="Filter by category: cultural, food, music, religious, adventure, hiking, beach",  # noqa: E501

@@ -32,7 +32,7 @@ router = APIRouter(prefix="/recommendations", tags=["Recommendations"])
     },
 )
 async def get_recommendations(
-    wilaya_id: int | None = Query(None, ge=1, le=58),
+    wilaya_id: int | None = Query(None, ge=1, le=69),
     entity_type: str | None = Query(None, pattern="^(poi|experience|stay)$"),
     limit: int = Query(20, ge=1, le=50),
     current_user: User = Depends(get_current_user),

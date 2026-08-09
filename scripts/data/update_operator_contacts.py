@@ -20,7 +20,7 @@ engine = create_engine("postgresql://athar:athar_pass@localhost:5434/athar_db")
 
 UPDATES = [
     # ── FIX placeholder phone numbers ──
-    ("SOGRAL", {"phone": "+213 21 77 00 66", "description": "National intercity bus company — connects all 58 wilayas. Contact: +213 21 77 00 66/77/88/99 (Hussein Dey). 40+ gares routières across Algeria."}),
+    ("SOGRAL", {"phone": "+213 21 77 00 66", "description": "National intercity bus company — connects all 69 wilayas. Contact: +213 21 77 00 66/77/88/99 (Hussein Dey). 40+ gares routières across Algeria."}),
     ("ENTV", {"phone": "+213 21 77 00 66", "description": "National transport — shared taxis and intercity connections. Contact via SOGRAL HQ: +213 21 77 00 66/77/88/99."}),
 
     # ── FIX ETUSA phone ──

@@ -63,7 +63,7 @@ class RecommendationFeed(BaseModel):
 
 
 class RecommendationRequest(BaseModel):
-    wilaya_id: int | None = Field(None, ge=1, le=58)
+    wilaya_id: int | None = Field(None, ge=1, le=69)
     entity_type: str | None = Field(None, pattern="^(poi|experience|stay)$")
     limit: int = Field(20, ge=1, le=50)
 

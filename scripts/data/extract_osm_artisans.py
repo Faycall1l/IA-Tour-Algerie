@@ -1,7 +1,7 @@
 """Extract real artisan shops from OSM Overpass API and seed into artisans table.
 
 Sources: craft=* + shop=craft/pottery/carpet/leather/jewelry/ceramics/wool/textile
-Yields ~3,900 real, geolocated artisan shops across all 58 wilayas.
+Yields ~3,900 real, geolocated artisan shops across all 69 wilayas.
 
 Usage:
     python -m scripts.data.extract_osm_artisans
