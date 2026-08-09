@@ -1,0 +1,36 @@
+[
+ {
+  "d_id": "6848935",
+  "geo_id": 801303,
+  "geo_name": "Jijel",
+  "name": "Caves of Jijel",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "natural",
+  "subtype": "Nature & Parks",
+  "latitude": 36.69298,
+  "longitude": 5.52379,
+  "rating": "4.6",
+  "num_reviews": "18",
+  "price_level": null,
+  "address": {
+   "street1": "Ziama Mansouriah, 35 km west of Jijel",
+   "street2": null,
+   "city": null,
+   "state": null,
+   "country": "Algeria",
+   "postalcode": null
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/08/5d/d5/71/jijel.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/08/5d/d5/71/jijel.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/08/5d/d5/71/jijel.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/08/5d/d5/71/jijel.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/08/5d/d5/71/jijel.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/08/5d/d5/71/jijel.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2014-11-10"
+ }
+]

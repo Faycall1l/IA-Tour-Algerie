@@ -1,0 +1,36 @@
+[
+ {
+  "d_id": "7240386",
+  "geo_id": 946433,
+  "geo_name": "Djemila",
+  "name": "Roman Ruins of Djemila",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 36.319355,
+  "longitude": 5.736559,
+  "rating": "4.8",
+  "num_reviews": "81",
+  "price_level": null,
+  "address": {
+   "street1": null,
+   "street2": null,
+   "city": "Djemila",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": null
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/07/71/fd/7f/vue-d-ensemble.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/07/71/fd/7f/vue-d-ensemble.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/07/71/fd/7f/vue-d-ensemble.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/07/71/fd/7f/vue-d-ensemble.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/07/71/fd/7f/vue-d-ensemble.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/07/71/fd/7f/vue-d-ensemble.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-12-17"
+ }
+]

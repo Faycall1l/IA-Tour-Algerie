@@ -21,6 +21,7 @@ Usage:
 
 import argparse
 import asyncio
+import concurrent.futures
 import json
 import random
 import re
@@ -33,6 +34,7 @@ from curl_cffi import requests as cffi_requests
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT_FILE = ROOT / "scripts" / "data" / "tripadvisor_pois.json"
+CDX_CACHE = ROOT / "scripts" / "data" / ".cdx_cache.json"
 
 # City → (geo_id, type). geo_id is the TripAdvisor "narrow" city geo.
 # Verified via data/1.0/location/{id}.
@@ -74,6 +76,28 @@ KNOWN_GEO_IDS = {
     "Tipasa Province": (2602584, "province"),
     "Tissemsilt Province": (2602605, "province"),
     "Tlemcen Province": (2602628, "province"),
+    # Geo-discovery scan (2026-08-09, via country-page links + location API):
+    "Cherchell": (4363354, "city"),
+    "Setif": (424904, "city"),
+    "Oran": (303167, "city"),
+    "Jijel": (801303, "city"),
+    "Es Senia": (18717700, "suburb"),
+    "Blida": (2600838, "city"),
+    "Mascara": (2602256, "city"),
+    "Borj Bou Arreridj": (2600856, "city"),
+    "Alger Centre": (12017949, "suburb"),
+    "Djanet": (1984335, "city"),
+    "Ghardaia": (317053, "city"),
+    "Tamanrasset": (303168, "city"),
+    "Tipasa": (424906, "city"),
+    "Djemila": (946433, "site"),
+    "Batna": (424900, "city"),
+    "Skikda": (2602501, "city"),
+    "Bou-Saada": (1074167, "city"),
+    "Laghouat": (2602235, "city"),
+    "Hassi Messaoud": (3326190, "city"),
+    "M'sila": (424903, "city"),
+    "Ghardaia Province": (1536382, "province"),
 }
 
 # TripAdvisor category key → ATHAR poi.category (pois CHECK constraint)
@@ -111,6 +135,20 @@ KIND_CONFIG = {
 REVIEW_SLUG = r"(?:Attraction|Restaurant|Hotel)_Review"
 
 
+def _cdx_cache() -> dict:
+    try:
+        return json.loads(CDX_CACHE.read_text(encoding="utf-8"))
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+
+def _cdx_cache_save(cache: dict) -> None:
+    try:
+        CDX_CACHE.write_text(json.dumps(cache), encoding="utf-8")
+    except OSError:
+        pass
+
+
 def cdx_snapshots(geo_id: int, kind: str, max_age_years: int | None = None) -> list[str]:
     """Find newest Wayback snapshots of TripAdvisor listing pages.
 
@@ -123,25 +161,34 @@ def cdx_snapshots(geo_id: int, kind: str, max_age_years: int | None = None) -> l
     """
     slug, default_years, _ = KIND_CONFIG[kind]
     max_age_years = max_age_years or default_years
+    cache_key = f"{geo_id}:{kind}:{max_age_years}"
+    cache = _cdx_cache()
+    if cache_key in cache:
+        return cache[cache_key]
     url = (
         f"{WAYBACK_CDX}?url=tripadvisor.com/{slug}-g{geo_id}*"
         "&output=json&filter=statuscode:200&limit=100&collapse=urlkey"
     )
-    for attempt in range(3):
+    rows = []
+    for attempt in range(2):
         try:
-            resp = cffi_requests.get(url, impersonate="chrome", timeout=120)
+            print(f"  cdx> {kind} g{geo_id} window={max_age_years}y ...", flush=True)
+            resp = cffi_requests.get(url, impersonate="chrome", timeout=60)
             rows = json.loads(resp.text)
+            print(f"  cdx< {kind} g{geo_id}: {max(len(rows) - 1, 0)} rows", flush=True)
             break
         except Exception as exc:
-            if attempt == 2:
-                print(f"  cdx {kind} g{geo_id}: {exc}")
+            if attempt == 1:
+                print(f"  cdx! {kind} g{geo_id}: {exc}")
+                cache[cache_key] = []
+                _cdx_cache_save(cache)
                 return []
-            time.sleep(5 + attempt * 5)
-    if len(rows) < 2:
-        return []
+            time.sleep(3)
     primary: dict[str, str] = {}  # urlkey → snapshot ts: bare + -oaN pages
     category: dict[str, str] = {}  # -cN pages (same cards, URI-filtered)
     for row in rows[1:]:
+        if len(row) < 3:
+            continue
         ts, u = row[1], row[2]
         key = u.split("?")[0]
         year = int(ts[:4])
@@ -162,11 +209,15 @@ def cdx_snapshots(geo_id: int, kind: str, max_age_years: int | None = None) -> l
         (f"{WAYBACK_ARCHIVE}/{ts}id_/{u}" for u, ts in buckets.items()),
         key=lambda x: 0 if "-oa" not in x else 1,
     )
-    if not urls:
+    if not urls and max_age_years != 12:
         # No captures within the freshness window — fall back to the widest
         # window so cities with only older captures (e.g. Constantine, 2019)
         # still yield real listings. verified_at marks their age downstream.
-        return cdx_snapshots(geo_id, kind, max_age_years=12)
+        # Guarded against recursion: the 12y call itself never falls back.
+        print(f"  cdx~ {kind} g{geo_id}: empty in {max_age_years}y, retry 12y", flush=True)
+        urls = cdx_snapshots(geo_id, kind, max_age_years=12)
+    cache[cache_key] = urls
+    _cdx_cache_save(cache)
     return urls
 
 
@@ -253,14 +304,18 @@ def parse_listing_html(html: str, geo_id: int, kind: str) -> list[dict]:
                 )
     # Pre-2020 legacy layout: divs with data-locationid + ATTR_ENTRY ids
     # e.g. <div id="ATTR_ENTRY_8489661" class="attraction_element" data-locationid="8489661">
+    # (2011-2016 variant: <div class="listing ..." id="attraction_4172783">)
     if not items:
-        for m in re.finditer(r'<div[^>]*id="ATTR_ENTRY_(\d+)"', html):
+        for m in re.finditer(
+            r'<div[^>]*id="(?:ATTR_ENTRY_|attraction_)(\d+)"', html
+        ):
             d_id = m.group(1)
             start = m.end()
-            end = html.find("</div>", start)
-            if end == -1:
-                end = start + 4000
-            block = html[start : end + 6]
+            # window: next listing container or 6000 chars (the attraction_
+            # variant splits the listing into sibling divs)
+            nxt = re.search(r'<div[^>]*id="(?:ATTR_ENTRY_|attraction_)\d+"', html[start + 1 :])
+            end = (start + 1 + nxt.start()) if nxt else min(start + 6000, len(html))
+            block = html[start:end]
             if not block or (
                 "Attraction_Review" not in block
                 and "location-name" not in block
@@ -287,7 +342,7 @@ def parse_listing_html(html: str, geo_id: int, kind: str) -> list[dict]:
             )
             photo_url = photo_m.group(1).split("?")[0] if photo_m else None
             rating_m = re.search(
-                r'alt="([\d.]+) of 5 stars"|class="ui_bubble_rating[^"]*bubble_(\d+)[^"]*"',
+                r'alt="([\d.]+) of 5 stars"|class="ui_bubble_rating[^"]*bubble_(\d+)[^"]*"|class="rate rate_no no(\d+)',
                 block,
             )
             rating = None
@@ -296,6 +351,8 @@ def parse_listing_html(html: str, geo_id: int, kind: str) -> list[dict]:
                     rating = float(rating_m.group(1))
                 elif rating_m.group(2):
                     rating = int(rating_m.group(2)) / 10
+                elif rating_m.group(3):
+                    rating = int(rating_m.group(3)) / 10
             reviews_m = re.search(r"(\d+)\s+reviews?", block)
             reviews = int(reviews_m.group(1)) if reviews_m else None
             add(
@@ -355,6 +412,77 @@ def normalize_category(data: dict, kind: str) -> str:
     return "cultural"
 
 
+def snapshot_tail(snaps: list[str]) -> str:
+    return snaps[0].split("id_/")[-1][-45:] if snaps else ""
+
+def fetch_snapshot_items(
+    snap: str, geo_id: int, kind: str
+) -> tuple[str, list[dict]]:
+    """Fetch one archive snapshot and parse its listing cards (thread pool)."""
+    m = re.search(r"/web/(\d{14})id_/", snap)
+    verified_at = (
+        f"{m.group(1)[:4]}-{m.group(1)[4:6]}-{m.group(1)[6:8]}" if m else None
+    )
+    for attempt in range(3):
+        try:
+            resp = cffi_requests.get(snap, impersonate="chrome", timeout=60)
+            if resp.status_code != 200:
+                return verified_at, []
+            items = parse_listing_html(resp.text, geo_id, kind)
+            return verified_at, items
+        except Exception:
+            if attempt == 2:
+                return verified_at, []
+            time.sleep(2)
+    return verified_at, []
+
+
+def enrich_batch(items: list[dict], verified_at: str, geo_id: int, name: str, kind: str):
+    """Enrich parsed listing cards via the keyless location API (parallel)."""
+    found = []
+
+    def one(item: dict | None) -> dict | None:
+        if item is None:
+            return None
+        data = enrich_location(item["d_id"])
+        if not data or not data.get("latitude"):
+            return None
+        photo_url, photo_urls = pick_photo(data)
+        return {
+            "d_id": item["d_id"],
+            "geo_id": geo_id,
+            "geo_name": name,
+            "name": data.get("name") or item["name"],
+            "kind": kind,
+            "purpose": KIND_CONFIG[kind][2],
+            "category": normalize_category(data, kind),
+            "subtype": ",".join(
+                c.get("name", "") for c in (data.get("subcategory") or [])
+            ),
+            "latitude": float(data["latitude"]),
+            "longitude": float(data["longitude"]),
+            "rating": data.get("rating"),
+            "num_reviews": data.get("num_reviews"),
+            "price_level": (
+                (data.get("price_level") or {}).get("level", 0)
+                if isinstance(data.get("price_level"), dict)
+                else data.get("price_level")
+            ),
+            "address": data.get("address_obj"),
+            "description": data.get("description"),
+            "photo_url": photo_url,
+            "photo_urls": photo_urls,
+            "ranking": data.get("ranking_data"),
+            "verified_at": verified_at,
+        }
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=6) as ex:
+        for poi in ex.map(one, items):
+            if poi:
+                found.append(poi)
+    return found
+
+
 async def scrape_geo(
     geo_id: int, name: str, kinds: list[str], page_limit: int
 ) -> list[dict]:
@@ -365,53 +493,34 @@ async def scrape_geo(
         if not snaps:
             print(f"  no {kind} snapshot")
             continue
+        snapshot_items: list[tuple[str, list[dict]]] = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+            futures = [
+                ex.submit(fetch_snapshot_items, snap, geo_id, kind)
+                for snap in snaps[:page_limit]
+            ]
+            for fut in concurrent.futures.as_completed(futures):
+                try:
+                    snapshot_items.append(fut.result())
+                except Exception as exc:
+                    print(f"  {kind}: snapshot error {exc}")
+        for verified_at, items in snapshot_items:
+            if items:
+                print(
+                    f"  {kind}: {len(items)} listings from {snapshot_tail(snaps)} {verified_at}"
+                )
         seen_ids = set()
-        for snap in snaps[:page_limit]:
-            try:
-                m = re.search(r"/web/(\d{14})id_/", snap)
-                verified_at = f"{m.group(1)[:4]}-{m.group(1)[4:6]}-{m.group(1)[6:8]}" if m else None
-                resp = cffi_requests.get(snap, impersonate="chrome", timeout=90)
-                if resp.status_code != 200:
-                    print(f"  {kind}: snapshot HTTP {resp.status_code}")
-                    continue
-                items = parse_listing_html(resp.text, geo_id, kind)
-                print(f"  {kind}: {len(items)} listings from {snap[-60:]}")
-                for item in items:
-                    if item["d_id"] in seen_ids:
-                        continue
-                    seen_ids.add(item["d_id"])
-                    data = enrich_location(item["d_id"])
-                    if not data or not data.get("latitude"):
-                        continue
-                    found.append(
-                        {
-                            "d_id": item["d_id"],
-                            "geo_id": geo_id,
-                            "geo_name": name,
-                            "name": data.get("name") or item["name"],
-                            "kind": kind,
-                            "purpose": KIND_CONFIG[kind][2],
-                            "category": normalize_category(data, kind),
-                            "subtype": ",".join(
-                                c.get("name", "")
-                                for c in (data.get("subcategory") or [])
-                            ),
-                            "latitude": float(data["latitude"]),
-                            "longitude": float(data["longitude"]),
-                            "rating": data.get("rating"),
-                            "num_reviews": data.get("num_reviews"),
-                            "price_level": (data.get("price_level") or {}).get("level", 0) if isinstance(data.get("price_level"), dict) else data.get("price_level"),
-                            "address": data.get("address_obj"),
-                            "description": data.get("description"),
-                            "photo_url": pick_photo(data)[0],
-                            "photo_urls": pick_photo(data)[1],
-                            "ranking": data.get("ranking_data"),
-                            "verified_at": verified_at,
-                        }
-                    )
-                    await asyncio.sleep(random.uniform(0.1, 0.35))
-            except Exception as exc:
-                print(f"  {kind}: error {exc}")
+        for verified_at, items in snapshot_items:
+            fresh = [it for it in items if it["d_id"] not in seen_ids]
+            for it in fresh:
+                seen_ids.add(it["d_id"])
+            if not fresh:
+                continue
+            enriched = enrich_batch(
+                [it for it in fresh], verified_at, geo_id, name, kind
+            )
+            print(f"  {kind}: enriched {len(enriched)}/{len(fresh)}")
+            found.extend(enriched)
     return found
 
 

@@ -1,0 +1,138 @@
+[
+ {
+  "d_id": "8564221",
+  "geo_id": 2600838,
+  "geo_name": "Blida",
+  "name": "Chrea National Park",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "natural",
+  "subtype": "Nature & Parks",
+  "latitude": 36.42712,
+  "longitude": 2.87694,
+  "rating": "4.5",
+  "num_reviews": "40",
+  "price_level": null,
+  "address": {
+   "street1": null,
+   "street2": null,
+   "city": "Chrea",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": null
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/08/eb/d9/68/parc-national-de-chrea.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/08/eb/d9/68/parc-national-de-chrea.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/08/eb/d9/68/parc-national-de-chrea.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/08/eb/d9/68/parc-national-de-chrea.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/08/eb/d9/68/parc-national-de-chrea.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/08/eb/d9/68/parc-national-de-chrea.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-12-17"
+ },
+ {
+  "d_id": "8656605",
+  "geo_id": 2600838,
+  "geo_name": "Blida",
+  "name": "Chrea National Park",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "natural",
+  "subtype": "Nature & Parks",
+  "latitude": 36.42712,
+  "longitude": 2.87694,
+  "rating": "4.5",
+  "num_reviews": "40",
+  "price_level": null,
+  "address": {
+   "street1": null,
+   "street2": null,
+   "city": "Chrea",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": null
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/08/eb/d9/68/parc-national-de-chrea.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/08/eb/d9/68/parc-national-de-chrea.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/08/eb/d9/68/parc-national-de-chrea.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/08/eb/d9/68/parc-national-de-chrea.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/08/eb/d9/68/parc-national-de-chrea.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/08/eb/d9/68/parc-national-de-chrea.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-12-17"
+ },
+ {
+  "d_id": "8646656",
+  "geo_id": 2600838,
+  "geo_name": "Blida",
+  "name": "Place du 1er Novembre",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 36.47007,
+  "longitude": 2.828622,
+  "rating": "4.3",
+  "num_reviews": "23",
+  "price_level": null,
+  "address": {
+   "street1": "Place du 1er Novembre",
+   "street2": "Croisement avec la rue des Martyrs",
+   "city": "Blida",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": "09000"
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/0b/54/ac/6d/caption.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/0b/54/ac/6d/caption.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/0b/54/ac/6d/caption.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/0b/54/ac/6d/caption.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/0b/54/ac/6d/caption.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/0b/54/ac/6d/caption.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-12-17"
+ },
+ {
+  "d_id": "8564237",
+  "geo_id": 2600838,
+  "geo_name": "Blida",
+  "name": "Mausolee de Sidi Elkebir",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 36.446625,
+  "longitude": 2.839807,
+  "rating": "4.8",
+  "num_reviews": "8",
+  "price_level": null,
+  "address": {
+   "street1": "Route Sidi Elkebir",
+   "street2": null,
+   "city": "Blida",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": "09000"
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/08/eb/cd/52/mausolee-de-sidi-elkebir.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/08/eb/cd/52/mausolee-de-sidi-elkebir.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/08/eb/cd/52/mausolee-de-sidi-elkebir.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/08/eb/cd/52/mausolee-de-sidi-elkebir.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/08/eb/cd/52/mausolee-de-sidi-elkebir.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/08/eb/cd/52/mausolee-de-sidi-elkebir.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-12-17"
+ }
+]

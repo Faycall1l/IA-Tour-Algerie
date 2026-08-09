@@ -1,0 +1,104 @@
+[
+ {
+  "d_id": "4172783",
+  "geo_id": 424904,
+  "geo_name": "Setif",
+  "name": "8 May 1945 Stadium",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 36.18559,
+  "longitude": 5.39241,
+  "rating": "4.2",
+  "num_reviews": "11",
+  "price_level": null,
+  "address": {
+   "street1": "Ave Mokhtar Laaribi",
+   "street2": null,
+   "city": "Setif",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": null
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/05/3b/7f/07/setif.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/05/3b/7f/07/setif.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/05/3b/7f/07/setif.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/05/3b/7f/07/setif.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/05/3b/7f/07/setif.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/05/3b/7f/07/setif.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2014-06-12"
+ },
+ {
+  "d_id": "6417414",
+  "geo_id": 424904,
+  "geo_name": "Setif",
+  "name": "Ain El Fouara",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 36.18967,
+  "longitude": 5.40862,
+  "rating": "3.8",
+  "num_reviews": "78",
+  "price_level": null,
+  "address": {
+   "street1": "45 1 Avenue Du 8 Mai",
+   "street2": null,
+   "city": "Setif",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": null
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/10/ad/ab/33/photo-of-ein-alfoura.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/10/ad/ab/33/photo-of-ein-alfoura.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/10/ad/ab/33/photo-of-ein-alfoura.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/10/ad/ab/33/photo-of-ein-alfoura.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/10/ad/ab/33/photo-of-ein-alfoura.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/10/ad/ab/33/photo-of-ein-alfoura.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2014-06-12"
+ },
+ {
+  "d_id": "4703064",
+  "geo_id": 424904,
+  "geo_name": "Setif",
+  "name": "Bijoutrie el Kahina",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "market",
+  "subtype": "Shopping",
+  "latitude": 36.18858,
+  "longitude": 5.40744,
+  "rating": "4.0",
+  "num_reviews": "4",
+  "price_level": null,
+  "address": {
+   "street1": "N5 31 rue , colonel Amirouche",
+   "street2": null,
+   "city": "Setif",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": null
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/04/99/b6/be/bijoutrie-kahina.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/04/99/b6/be/bijoutrie-kahina.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/04/99/b6/be/bijoutrie-kahina.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/04/99/b6/be/bijoutrie-kahina.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/04/99/b6/be/bijoutrie-kahina.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/04/99/b6/be/bijoutrie-kahina.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2014-06-12"
+ }
+]

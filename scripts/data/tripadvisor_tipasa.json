@@ -1,0 +1,98 @@
+[
+ {
+  "d_id": "2279924",
+  "geo_id": 424906,
+  "geo_name": "Tipasa",
+  "name": "Tipasa Archaeological Park",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 36.594723,
+  "longitude": 2.443839,
+  "rating": "4.4",
+  "num_reviews": "159",
+  "price_level": null,
+  "address": {
+   "street1": "",
+   "street2": "",
+   "city": "Tipasa",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": ""
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/09/78/11/ba/tipasa-archaeological.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/09/78/11/ba/tipasa-archaeological.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/09/78/11/ba/tipasa-archaeological.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/09/78/11/ba/tipasa-archaeological.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/09/78/11/ba/tipasa-archaeological.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/09/78/11/ba/tipasa-archaeological.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2025-06-01"
+ },
+ {
+  "d_id": "14108961",
+  "geo_id": 424906,
+  "geo_name": "Tipasa",
+  "name": "Ruines Romaines Tipaza",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 36.59398,
+  "longitude": 2.443341,
+  "rating": "4.6",
+  "num_reviews": "32",
+  "price_level": null,
+  "address": {
+   "street1": null,
+   "street2": null,
+   "city": "Tipasa",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": null
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/14/4b/dc/63/img20180824151621-largejpg.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/14/4b/dc/63/img20180824151621-largejpg.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/14/4b/dc/63/img20180824151621-largejpg.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/14/4b/dc/63/img20180824151621-largejpg.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/14/4b/dc/63/img20180824151621-largejpg.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/14/4b/dc/63/img20180824151621-largejpg.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2025-06-01"
+ },
+ {
+  "d_id": "28127378",
+  "geo_id": 424906,
+  "geo_name": "Tipasa",
+  "name": "Ruines Romaines De Tipasa",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks,Nature & Parks",
+  "latitude": 36.58972,
+  "longitude": 2.44889,
+  "rating": null,
+  "num_reviews": "0",
+  "price_level": null,
+  "address": {
+   "street1": "Ruines Romaines De Tipasa",
+   "street2": null,
+   "city": "Tipasa",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": "42000"
+  },
+  "description": "",
+  "photo_url": null,
+  "photo_urls": [],
+  "ranking": null,
+  "verified_at": "2025-06-01"
+ }
+]

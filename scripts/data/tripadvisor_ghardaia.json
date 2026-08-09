@@ -1,0 +1,36 @@
+[
+ {
+  "d_id": "7837371",
+  "geo_id": 317053,
+  "geo_name": "Ghardaia",
+  "name": "Association d'orientation Touristique de Ghardaia",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "cultural",
+  "subtype": "Traveler Resources",
+  "latitude": 32.488007,
+  "longitude": 3.673055,
+  "rating": "4.4",
+  "num_reviews": "22",
+  "price_level": null,
+  "address": {
+   "street1": "Rue Cheikh Ammi Said",
+   "street2": null,
+   "city": "Ghardaia",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": "47000"
+  },
+  "description": "Since 1990 , the \"tourist orientation association of Ghardaia\" and our Official Guides welcome tourists, students, researchers and architects. Our Official Guides will help you discover the history , architecture, culture, customs and traditions of Ghardaia while respecting the specificities, privacy and the living environment of the local population.",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/0e/fd/07/8f/ghardaia.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/0e/fd/07/8f/ghardaia.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/0e/fd/07/8f/ghardaia.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/0e/fd/07/8f/ghardaia.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/0e/fd/07/8f/ghardaia.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/0e/fd/07/8f/ghardaia.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-12-08"
+ }
+]

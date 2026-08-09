@@ -1,0 +1,70 @@
+[
+ {
+  "d_id": "321419",
+  "geo_id": 424900,
+  "geo_name": "Batna",
+  "name": "Timgad",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 35.494705,
+  "longitude": 6.468524,
+  "rating": "4.7",
+  "num_reviews": "114",
+  "price_level": null,
+  "address": {
+   "street1": "",
+   "street2": "",
+   "city": "Timgad",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": ""
+  },
+  "description": "This ancient city still demonstrates Roman grid town planning.",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/06/55/3b/89/timgad.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/06/55/3b/89/timgad.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/06/55/3b/89/timgad.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/06/55/3b/89/timgad.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/06/55/3b/89/timgad.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/06/55/3b/89/timgad.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-11-20"
+ },
+ {
+  "d_id": "7124789",
+  "geo_id": 424900,
+  "geo_name": "Batna",
+  "name": "Mausoleo Real Numida de Medracen",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 35.70718,
+  "longitude": 6.433384,
+  "rating": "4.1",
+  "num_reviews": "23",
+  "price_level": null,
+  "address": {
+   "street1": "35 km northeast of Batna",
+   "street2": null,
+   "city": "Boumia",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": "05810"
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/07/a6/a9/47/mausoleo-real-numida.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/07/a6/a9/47/mausoleo-real-numida.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/07/a6/a9/47/mausoleo-real-numida.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/07/a6/a9/47/mausoleo-real-numida.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/07/a6/a9/47/mausoleo-real-numida.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/07/a6/a9/47/mausoleo-real-numida.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-11-20"
+ }
+]

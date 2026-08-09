@@ -1,0 +1,36 @@
+[
+ {
+  "d_id": "6684137",
+  "geo_id": 1074167,
+  "geo_name": "Bou-Saada",
+  "name": "Musee National Nasr Eddine Dinet",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "museum",
+  "subtype": "Museums",
+  "latitude": 35.216183,
+  "longitude": 4.181007,
+  "rating": "4.4",
+  "num_reviews": "30",
+  "price_level": null,
+  "address": {
+   "street1": "Cite El Mayamine",
+   "street2": null,
+   "city": "Bou-Saada",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": "28001"
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/14/c6/06/cb/20180923-144342-largejpg.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/14/c6/06/cb/20180923-144342-largejpg.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/14/c6/06/cb/20180923-144342-largejpg.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/14/c6/06/cb/20180923-144342-largejpg.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/14/c6/06/cb/20180923-144342-largejpg.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/14/c6/06/cb/20180923-144342-largejpg.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-12-17"
+ }
+]

@@ -1,0 +1,64 @@
+[
+ {
+  "d_id": "19121204",
+  "geo_id": 18717700,
+  "geo_name": "Es Senia",
+  "name": "Centre Commercial Et De Loisirs",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "market",
+  "subtype": "Shopping",
+  "latitude": 35.638245,
+  "longitude": -0.589335,
+  "rating": "3.6",
+  "num_reviews": "7",
+  "price_level": null,
+  "address": {
+   "street1": null,
+   "street2": null,
+   "city": "Es Senia",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": "31000"
+  },
+  "description": "",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/19/8f/6b/53/l-interieur-du-centre.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/19/8f/6b/53/l-interieur-du-centre.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/19/8f/6b/53/l-interieur-du-centre.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/19/8f/6b/53/l-interieur-du-centre.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/19/8f/6b/53/l-interieur-du-centre.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/19/8f/6b/53/l-interieur-du-centre.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2025-09-12"
+ },
+ {
+  "d_id": "23658549",
+  "geo_id": 18717700,
+  "geo_name": "Es Senia",
+  "name": "Boutique Torino Luxury",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "market",
+  "subtype": "Shopping",
+  "latitude": 35.65517,
+  "longitude": -0.626336,
+  "rating": null,
+  "num_reviews": "0",
+  "price_level": null,
+  "address": {
+   "street1": "3110 Es Senia",
+   "street2": null,
+   "city": "Es Senia",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": "31100"
+  },
+  "description": "",
+  "photo_url": null,
+  "photo_urls": [],
+  "ranking": null,
+  "verified_at": "2025-09-12"
+ }
+]

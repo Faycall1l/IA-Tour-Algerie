@@ -51,3 +51,4 @@ tmp/
 app/data/*.json
 minio_data/
 minio_migration_state.json
+scripts/data/.cdx_cache.json

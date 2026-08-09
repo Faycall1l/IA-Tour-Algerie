@@ -1,0 +1,36 @@
+[
+ {
+  "d_id": "321434",
+  "geo_id": 424903,
+  "geo_name": "M'sila",
+  "name": "Al Qal'a of Beni Hammad",
+  "kind": "attractions",
+  "purpose": "user",
+  "category": "historical",
+  "subtype": "Sights & Landmarks",
+  "latitude": 35.822453,
+  "longitude": 4.790153,
+  "rating": "4.6",
+  "num_reviews": "13",
+  "price_level": null,
+  "address": {
+   "street1": null,
+   "street2": "",
+   "city": "Maadid",
+   "state": null,
+   "country": "Algeria",
+   "postalcode": ""
+  },
+  "description": "A fortified city and the first capitol of the Hammadid dynasty dates back to the 11th century.",
+  "photo_url": "https://media-cdn.tripadvisor.com/media/photo-o/0a/64/c5/8f/la-kalaa-des-banu-hammad.jpg",
+  "photo_urls": [
+   "https://media-cdn.tripadvisor.com/media/photo-l/0a/64/c5/8f/la-kalaa-des-banu-hammad.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-t/0a/64/c5/8f/la-kalaa-des-banu-hammad.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-o/0a/64/c5/8f/la-kalaa-des-banu-hammad.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-s/0a/64/c5/8f/la-kalaa-des-banu-hammad.jpg",
+   "https://media-cdn.tripadvisor.com/media/photo-f/0a/64/c5/8f/la-kalaa-des-banu-hammad.jpg"
+  ],
+  "ranking": null,
+  "verified_at": "2015-11-06"
+ }
+]
