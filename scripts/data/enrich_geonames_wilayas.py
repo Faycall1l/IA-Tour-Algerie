@@ -137,7 +137,8 @@ def parse_geonames(
         if wid not in TARGET_WILAYAS:
             continue
         fclass, fcode = p[6], p[7]
-        if f"{fclass}.{fcode}" not in FEATURE_MAP:
+        feature = f"{fclass}.{fcode}"
+        if feature not in FEATURE_MAP:
             continue
         try:
             elevation = int(float(p[16])) if p[16] else None
@@ -153,7 +154,7 @@ def parse_geonames(
                 "geoname_id": p[0],
                 "name": p[1],
                 "alternates": p[3],
-                "feature_code": fcode,
+                "feature": feature,
                 "lat": lat,
                 "lon": lon,
                 "elevation": elevation,
@@ -261,6 +262,75 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
     log.info("GeoNames wilaya enrichment (dry_run=%s, limit=%d)", args.dry_run, args.limit)
+
+    centers = load_centers()
+    records = parse_geonames(centers)
+    log.info("Parsed %d tourism-relevant records in target wilayas", len(records))
+    if not records:
+        return
+
+    conn = psycopg2.connect(**DB_CONFIG)
+    db_index = fetch_db_pois(conn, TARGET_WILAYAS)
+    log.info("Existing DB POIs in target wilayas: %d", len(db_index))
+
+    candidates: list[dict] = []
+    seen_ids: set[str] = set()
+    for rec in records:
+        if rec["geoname_id"] in seen_ids:
+            continue
+        seen_ids.add(rec["geoname_id"])
+        if is_duplicate(rec, db_index):
+            continue
+        candidates.append(rec)
+    log.info("Net-new after dedup: %d", len(candidates))
+
+    per_wilaya: dict[int, int] = {}
+    for rec in candidates:
+        per_wilaya[rec["wid"]] = per_wilaya.get(rec["wid"], 0) + 1
+    for w in TARGET_WILAYAS:
+        log.info("  w%02d: %d new candidates", w, per_wilaya.get(w, 0))
+
+    if args.dry_run:
+        log.info("[DRY RUN] would insert %d POIs", len(candidates))
+        conn.close()
+        return
+
+    batch = args.limit or len(candidates)
+    inserted = 0
+    cur = conn.cursor()
+    for rec in candidates[:batch]:
+        cat, sub, label = FEATURE_MAP[rec["feature"]]
+        cur.execute(
+            """
+            INSERT INTO pois (
+                id, name, name_en, category, subtype, wilaya_id,
+                latitude, longitude, description, source, source_id,
+                website, verified_at
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, 'geonames', %s, %s, %s)
+            """,
+            (
+                __import__("uuid").uuid4().hex,
+                rec["name"][:200],
+                rec["name"][:200],
+                cat,
+                sub[:100],
+                rec["wid"],
+                rec["lat"],
+                rec["lon"],
+                build_description(rec, label),
+                rec["geoname_id"],
+                f"https://www.geonames.org/{rec['geoname_id']}",
+                "2026-08-10",
+            ),
+        )
+        inserted += 1
+        if inserted % 100 == 0:
+            conn.commit()
+            log.info("Inserted %d/%d", inserted, min(batch, len(candidates)))
+    conn.commit()
+    cur.close()
+    conn.close()
+    log.info("DONE: inserted %d GeoNames POIs", inserted)
 
 
 if __name__ == "__main__":
