@@ -1,0 +1,1 @@
+Test suite after Wikivoyage/Wikipedia POI description enrichment: 298 passed, 9 warnings (229s).
