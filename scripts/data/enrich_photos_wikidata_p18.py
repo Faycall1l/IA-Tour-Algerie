@@ -18,10 +18,33 @@ Usage:
 
 import argparse
 import logging
+import os
 import sys
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
+
+_env_path = Path(__file__).resolve().parent.parent.parent / ".env"
+if _env_path.exists():
+    for line in _env_path.read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith("#") and "=" in line:
+            k, v = line.split("=", 1)
+            os.environ.setdefault(k.strip(), v.strip())
+
+from app.core.config import settings  # noqa: E402
+
+DB_CONFIG = {
+    "host": "localhost",
+    "port": 5434,
+    "dbname": "athar_db",
+    "user": "athar",
+    "password": "athar_pass",
+}
+
+SPARQL_URL = "https://query.wikidata.org/sparql"
+USER_AGENT = "ATHAR-Tourism/1.0 (photo enrichment; faycal@athar.dz)"
 
 
 def parse_args() -> argparse.Namespace:
