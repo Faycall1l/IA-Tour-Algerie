@@ -1,0 +1,6 @@
+QA spot-check (Aug 2026): migrated TripAdvisor photos look sensible —
+  Djamaa el Djazair, Musee National des Arts et Traditions Populaires,
+  Ruines romaines de Madaurus, Erg Chech, Taghit, sushiima (restaurant),
+  Liwan restaurant, Mosquee Bouhennak, zoo Ben Aknoun (park).
+Mixed categories (historical/museum/natural/restaurant/park) all paired with
+plausible real photos. 294 total POIs now carry MinIO photos.
