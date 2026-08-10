@@ -43,6 +43,25 @@ DB_CONFIG = {
     "password": "athar_pass",
 }
 
+REMOTE_HOSTS = ("media-cdn.tripadvisor.com", "dynamic-media-cdn.tripadvisor.com")
+SIZE_TOKENS = ("photo-l", "photo-t", "photo-o", "photo-s", "photo-f")
+
+
+def is_remote_url(url: str | None) -> bool:
+    """True when the URL points off-box at a TripAdvisor CDN."""
+    return bool(url and any(host in url for host in REMOTE_HOSTS))
+
+
+def original_size_url(url: str) -> str:
+    """Return the `photo-o` (original) variant of a TripAdvisor CDN URL.
+
+    Falls back to the given URL when no recognized size token is present.
+    """
+    for token in SIZE_TOKENS:
+        if token in url:
+            return url.replace(token, "photo-o")
+    return url
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
