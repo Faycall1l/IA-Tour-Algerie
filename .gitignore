@@ -52,3 +52,10 @@ app/data/*.json
 minio_data/
 minio_migration_state.json
 scripts/data/.cdx_cache.json
+# Large generated data artifacts (rebuild locally from scripts)
+scripts/data/raw/*.json
+scripts/data/raw/osm/*.pbf
+scripts/data/raw/*.bz2
+scripts/data/pois_v2.json
+scripts/data/stays_v2.json
+scripts/data/.cdx_cache.json

@@ -98,6 +98,10 @@ KNOWN_GEO_IDS = {
     "Hassi Messaoud": (3326190, "city"),
     "M'sila": (424903, "city"),
     "Ghardaia Province": (1536382, "province"),
+    # 2026-08-09 range-scan finds (southern + coastal):
+    "Ain Salah": (3326198, "city"),
+    "Illizi": (424902, "city"),
+    "Tenes": (2601211, "city"),
 }
 
 # TripAdvisor category key → ATHAR poi.category (pois CHECK constraint)

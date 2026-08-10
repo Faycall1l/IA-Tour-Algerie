@@ -311,6 +311,120 @@ def stage_lodging(rows):
     return out
 
 
+def stage_osm_pois(rows):
+    out = []
+    for x in rows:
+        out.append(
+            {
+                "source": "osm",
+                "source_id": x.get("source_id"),
+                "name_fr": x.get("name_fr"),
+                "name_ar": x.get("name_ar"),
+                "name_en": x.get("name_en"),
+                "category": x.get("category"),
+                "subtype": x.get("subtype"),
+                "lat": x.get("lat"),
+                "lng": x.get("lng"),
+                "wilaya_code": x.get("wilaya_code"),
+                "description": x.get("description"),
+                "rating": x.get("rating"),
+                "num_reviews": x.get("num_reviews"),
+                "photo_urls": x.get("photo_urls") or [],
+                "verified_at": x.get("verified_at"),
+                "url": x.get("url"),
+                "refs": x.get("refs") or {},
+                "purpose": x.get("purpose", "user"),
+                "tags": x.get("tags"),
+            }
+        )
+    return out
+
+
+def stage_osm_food(rows):
+    return stage_osm_pois(rows)
+
+
+def stage_osm_stays(rows):
+    out = []
+    for x in rows:
+        out.append(
+            {
+                "source": "osm",
+                "source_id": x.get("source_id"),
+                "name_fr": x.get("name_fr"),
+                "name_ar": x.get("name_ar"),
+                "name_en": x.get("name_en"),
+                "type": x.get("type", "hotel"),
+                "subtype": x.get("subtype"),
+                "lat": x.get("lat"),
+                "lng": x.get("lng"),
+                "wilaya_code": x.get("wilaya_code"),
+                "description": x.get("description"),
+                "rating": x.get("rating"),
+                "num_reviews": x.get("num_reviews"),
+                "photo_urls": x.get("photo_urls") or [],
+                "verified_at": x.get("verified_at"),
+                "url": x.get("url"),
+                "refs": x.get("refs") or {},
+                "purpose": x.get("purpose", "stays"),
+                "tags": x.get("tags"),
+            }
+        )
+    return out
+
+
+def stage_wikivoyage(rows, kind):
+    out = []
+    for x in rows:
+        if kind == "stays":
+            out.append(
+                {
+                    "source": "wikivoyage-fr",
+                    "source_id": x.get("source_id"),
+                    "name_fr": x.get("name_fr"),
+                    "name_ar": x.get("name_ar"),
+                    "name_en": x.get("name_en"),
+                    "type": x.get("type", "hotel"),
+                    "subtype": x.get("subtype"),
+                    "lat": x.get("lat"),
+                    "lng": x.get("lng"),
+                    "wilaya_code": x.get("wilaya_code"),
+                    "description": x.get("description"),
+                    "rating": x.get("rating"),
+                    "num_reviews": x.get("num_reviews"),
+                    "photo_urls": x.get("photo_urls") or [],
+                    "verified_at": x.get("verified_at"),
+                    "url": x.get("url"),
+                    "refs": x.get("refs") or {},
+                    "purpose": x.get("purpose", "stays"),
+                }
+            )
+        else:
+            out.append(
+                {
+                    "source": "wikivoyage-fr",
+                    "source_id": x.get("source_id"),
+                    "name_fr": x.get("name_fr"),
+                    "name_ar": x.get("name_ar"),
+                    "name_en": x.get("name_en"),
+                    "category": x.get("category"),
+                    "subtype": x.get("subtype"),
+                    "lat": x.get("lat"),
+                    "lng": x.get("lng"),
+                    "wilaya_code": x.get("wilaya_code"),
+                    "description": x.get("description"),
+                    "rating": x.get("rating"),
+                    "num_reviews": x.get("num_reviews"),
+                    "photo_urls": x.get("photo_urls") or [],
+                    "verified_at": x.get("verified_at"),
+                    "url": x.get("url"),
+                    "refs": x.get("refs") or {},
+                    "purpose": x.get("purpose", "user"),
+                }
+            )
+    return out
+
+
 def main() -> int:
     pois: list[dict] = []
     stays: list[dict] = []
@@ -340,9 +454,29 @@ def main() -> int:
     qa["geoalgeria_thermal_springs"] = len(springs)
     pois += stage_springs(springs)
 
+    osm_pois = json.loads((RAW / "osm_pois_named.json").read_text(encoding="utf-8"))
+    qa["osm_pois"] = len(osm_pois)
+    pois += stage_osm_pois(osm_pois)
+
+    osm_food = json.loads((RAW / "osm_food_named.json").read_text(encoding="utf-8"))
+    qa["osm_food"] = len(osm_food)
+    pois += stage_osm_food(osm_food)
+
+    wv_pois = json.loads((RAW / "wikivoyage_fr_pois.json").read_text(encoding="utf-8"))
+    qa["wikivoyage_fr_pois"] = len(wv_pois)
+    pois += stage_wikivoyage(wv_pois, "pois")
+
     lodging = json.loads((RAW / "geoalgeria_lodging.json").read_text(encoding="utf-8"))
     qa["geoalgeria_lodging"] = len(lodging)
     stays += stage_lodging(lodging)
+
+    osm_stays = json.loads((RAW / "osm_stays_named.json").read_text(encoding="utf-8"))
+    qa["osm_stays"] = len(osm_stays)
+    stays += stage_osm_stays(osm_stays)
+
+    wv_stays = json.loads((RAW / "wikivoyage_fr_stays.json").read_text(encoding="utf-8"))
+    qa["wikivoyage_fr_stays"] = len(wv_stays)
+    stays += stage_wikivoyage(wv_stays, "stays")
 
     qa["pois_total"] = len(pois)
     qa["stays_total"] = len(stays)
