@@ -16,7 +16,9 @@ Usage:
 """
 
 import argparse
+import json
 import logging
+import math
 import os
 from pathlib import Path
 
@@ -46,6 +48,119 @@ GEONAMES_FILE = RAW_DIR / "geonames" / "DZ.txt"
 CENTERS_FILE = RAW_DIR / "wilayas_centers.json"
 
 TARGET_WILAYAS = (50, 52, 54, 57, 59, 62, 63, 64)
+
+# GeoNames feature code → (ATHAR category, subtype, short French label)
+FEATURE_MAP: dict[str, tuple[str, str, str]] = {
+    "T.PK": ("mountain", "peak", "pic"),
+    "T.MT": ("mountain", "mountain", "montagne"),
+    "T.MTS": ("mountain", "mountain", "massif montagneux"),
+    "T.HLL": ("mountain", "hill", "colline"),
+    "T.HLLS": ("mountain", "hill", "collines"),
+    "T.RDGE": ("mountain", "ridge", "crête"),
+    "T.VOLC": ("mountain", "volcano", "volcan"),
+    "T.DUNE": ("natural", "dune", "dune"),
+    "T.CAVE": ("natural", "cave", "grotte"),
+    "T.PLN": ("natural", "plain", "plaine"),
+    "T.REG": ("natural", "region", "région"),
+    "H.SPNG": ("natural", "spring", "source thermale"),
+    "H.STM": ("natural", "wadi", "oued"),
+    "H.COVE": ("natural", "cove", "crique"),
+    "H.BAY": ("natural", "bay", "baie"),
+    "H.LK": ("natural", "lake", "lac"),
+    "H.LAKE": ("natural", "lake", "lac"),
+    "H.WTRF": ("natural", "waterfall", "cascade"),
+    "H.CHNM": ("natural", "channel", "chenal"),
+    "H.STMH": ("natural", "stream", "cours d'eau"),
+    "L.OAS": ("natural", "oasis", "oasis"),
+    "L.DSRT": ("natural", "desert", "désert"),
+    "L.PRK": ("park", "park", "parc"),
+    "L.RSVT": ("natural", "reserve", "réserve naturelle"),
+    "S.ARCH": ("historical", "archaeological", "site archéologique"),
+    "S.RUIN": ("historical", "ruins", "ruines"),
+    "S.FT": ("historical", "fort", "fort"),
+    "S.ANCH": ("historical", "anchor", "ancien port"),
+    "S.BLDG": ("cultural", "building", "bâtiment remarquable"),
+    "S.MUS": ("museum", "museum", "musée"),
+    "S.MNMT": ("historical", "monument", "monument"),
+    "S.TMB": ("historical", "tomb", "tombeau"),
+    "S.CH": ("religious", "church", "lieu de culte"),
+}
+
+
+# ── Geometry ────────────────────────────────────────────────────────────────
+
+def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    r = 6371.0
+    p1, p2 = math.radians(lat1), math.radians(lat2)
+    dp = math.radians(lat2 - lat1)
+    dl = math.radians(lon2 - lon1)
+    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
+    return 2 * r * math.asin(math.sqrt(a))
+
+
+def load_centers() -> dict[int, tuple[float, float]]:
+    return {
+        int(w["id"]): (float(w["latitude"]), float(w["longitude"]))
+        for w in json.loads(CENTERS_FILE.read_text(encoding="utf-8"))
+    }
+
+
+def nearest_wilaya(lat: float, lon: float, centers: dict[int, tuple[float, float]]) -> int:
+    best, best_d = None, None
+    for wid, (clat, clon) in centers.items():
+        d = haversine_km(lat, lon, clat, clon)
+        if best_d is None or d < best_d:
+            best, best_d = wid, d
+    return best  # type: ignore[return-value]
+
+
+# ── GeoNames dump ───────────────────────────────────────────────────────────
+
+def parse_geonames(
+    centers: dict[int, tuple[float, float]],
+) -> list[dict]:
+    """Parse DZ.txt, keep tourism-relevant features in target wilayas.
+
+    Returns records with keys: wid, geoname_id, name, alternates,
+    feature_code, lat, lon, elevation, population.
+    """
+    records: list[dict] = []
+    for line in GEONAMES_FILE.read_text(encoding="utf-8").splitlines():
+        p = line.rstrip("\n").split("\t")
+        if len(p) < 15:
+            continue
+        try:
+            lat, lon = float(p[4]), float(p[5])
+        except ValueError:
+            continue
+        wid = nearest_wilaya(lat, lon, centers)
+        if wid not in TARGET_WILAYAS:
+            continue
+        fclass, fcode = p[6], p[7]
+        if f"{fclass}.{fcode}" not in FEATURE_MAP:
+            continue
+        try:
+            elevation = int(float(p[16])) if p[16] else None
+        except ValueError:
+            elevation = None
+        try:
+            population = int(p[14]) if p[14].isdigit() else 0
+        except ValueError:
+            population = 0
+        records.append(
+            {
+                "wid": wid,
+                "geoname_id": p[0],
+                "name": p[1],
+                "alternates": p[3],
+                "feature_code": fcode,
+                "lat": lat,
+                "lon": lon,
+                "elevation": elevation,
+                "population": population,
+            }
+        )
+    return records
 
 
 def parse_args() -> argparse.Namespace:
