@@ -136,6 +136,44 @@ def main() -> None:
     log.info("TripAdvisor photo migration (dry_run=%s, limit=%d, batch=%d)",
              args.dry_run, args.limit, args.batch)
 
+    conn = psycopg2.connect(**DB_CONFIG)
+    targets = fetch_targets(conn, args.limit)
+    log.info("Targets: %d POIs with a remote TripAdvisor photo", len(targets))
+    if not targets:
+        conn.close()
+        return
+
+    if args.dry_run:
+        log.info("[DRY RUN] %d/%d targets would be migrated", len(targets), len(targets))
+        for _poi_id, name, url in targets[:10]:
+            log.info("  %s -> %s", name, original_size_url(url)[:80])
+        conn.close()
+        return
+
+    minio_client = get_minio_client()
+    timeout = httpx.Timeout(30.0, connect=15.0, read=30.0)
+    updated = 0
+    failed = 0
+
+    with httpx.Client(follow_redirects=True, timeout=timeout) as http:
+        for poi_id, name, url in targets:
+            if not is_remote_url(url):
+                continue
+            minio_url = download_and_upload_to_minio(minio_client, http, original_size_url(url))
+            if not minio_url:
+                failed += 1
+                log.warning("Download/upload failed: %s [%s]", name, url[:70])
+                continue
+            update_poi_photo(conn, poi_id, minio_url)
+            updated += 1
+            if updated % args.batch == 0:
+                conn.commit()
+                log.info("Progress: %d migrated, %d failed", updated, failed)
+
+    conn.commit()
+    conn.close()
+    log.info("DONE: %d POIs migrated, %d failures (of %d targets)", updated, failed, len(targets))
+
 
 if __name__ == "__main__":
     main()
