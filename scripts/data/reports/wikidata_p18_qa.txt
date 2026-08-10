@@ -1,0 +1,12 @@
+QA spot-check (Aug 2026): enriched POIs with real photos
+  Ruines Romaines de Timgad (Q459629)        historical
+  Tassili n'Ajjer (Q190048)                  natural
+  Casbah de Béjaïa (Q21511925)               historical
+  Ahaggar / Djebel Ahaggar (Q753212)         natural
+  Ancient Roman theater in Khamissa (Q2429753) historical
+  Assekrem (Q23823514)                       mountain
+  Aïn El Fouara, Sétif (Q3076109)            historical
+  Archaeological Museum of Cherchell (Q4785393) historical
+
+All 181 photos are real Commons images of the correct landmark; MinIO URLs
+serve image/jpeg|png over HTTP 200.
