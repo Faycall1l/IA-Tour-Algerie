@@ -1,0 +1,12 @@
+Verify after Wikivoyage/Wikipedia POI description enrichment (Aug 2026):
+  description_source column added to pois (TEXT, nullable)
+  24 POIs enriched: wikipedia-fr 23, wikipedia-en 1 (24 total with source)
+  Featured POIs without description: 151/175 (was 175) — remaining have no
+    FR/EN Wikipedia/Wikivoyage article (local museums, libraries, arabic-only
+    natural features); honest misses, no fabricated text.
+  Quality: all 24 extracts reviewed; each is the POI's own article (or the
+    landmark it hosts). Chott el-Gharsa (Tunisian article) deliberately excluded.
+  Samples: Barrage de Beni Amrane, Barrage de l'oued El hamiz, Palais des Raïs,
+    Erg Chech x3, Musée national Zabana d'Oran, Musée national Cirta,
+    Musée d'Hippone, Tombeau de Tin Hinan, Congrès de la Soummam, Cherchell x3,
+    Parc national de Gouraya x2, Musée de l'Enluminure... , Dinet (en), etc.
