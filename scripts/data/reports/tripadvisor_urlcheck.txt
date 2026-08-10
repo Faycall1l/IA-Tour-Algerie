@@ -1,0 +1,4 @@
+URL check after TripAdvisor photo migration (Aug 2026):
+  Sample 8 MinIO public URLs: 8/8 HTTP 200 image/jpeg.
+  Covered: Timgad, Tipasa, Grande Poste d'Alger, Ketchaoua Mosque,
+  Notre-Dame d'Afrique, Memorial du Martyr, Jardin d'Essai du Hamma.
