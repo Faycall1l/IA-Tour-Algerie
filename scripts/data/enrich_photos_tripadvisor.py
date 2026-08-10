@@ -102,6 +102,16 @@ def download_and_upload_to_minio(minio_client, http: httpx.Client, url: str):
     return minio_url
 
 
+def update_poi_photo(conn, poi_id: str, minio_url: str) -> None:
+    """Replace the remote photo with a MinIO URL in photo_url + photo_urls."""
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE pois SET photo_url = %s, photo_urls = ARRAY[%s]::text[] WHERE id = %s",
+        (minio_url, minio_url, poi_id),
+    )
+    cur.close()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Migrate TripAdvisor media-cdn photos to MinIO"
