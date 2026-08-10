@@ -1,0 +1,4 @@
+Qdrant rebuilt after GeoNames enrichment (Aug 2026):
+  pois collection        19,238 points  (was 17,920; +1,318 geonames)
+  experiences collection  1,161 points
+Collections recreated (delete + create) then bulk re-indexed from DB.
