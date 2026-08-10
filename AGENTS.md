@@ -154,7 +154,8 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
     - `enrich_pricing_events.py` — rewritten **deterministic** (md5-of-id, no `RANDOM()`): **12,761 POIs** with entry fees, stays already priced by seed_v2, **40 events** synced idempotently (DELETE + insert canonical list; dropped legacy duplicate index).
   - **Tour optimizer fixed** (`app/services/poi_graph.py`, commit `66c0040`): start anchor now picks the walkable cluster with the **most category diversity** (3km radius) instead of the first featured POI or densest raw cluster (scattered thermal springs no longer dominate); `_solve_tsp` precomputes a pairwise walking-distance matrix against the wilaya subgraph (exact ≤8, 2-opt >8) — Algiers tour 157s → 0.2s. Verified on the reseeded graph (11,086 nodes): Alger 9 POIs/2.0km, Tlemcen 8/2.8km, Setif 9/1.6km, Constantine 10/1.7km, Tizi Ouzou 5/1.5km, Tipaza 8/2.6km, Oran 6/8.0km, Batna 5/6.3km, Bejaia 6/6.3km, Blida 6/8.9km.
   - **Qdrant rebuilt again** after enrichment (featured/price payloads refreshed): **17,920 POIs + 1,161 experiences**, 344 featured points.
-  - **Tests**: **298 passed** after enrichment + graph fixes.
+  - **Photos v2 — Wikidata P18** (`enrich_photos_wikidata_p18.py`, 7 commits): **181 POIs enriched, 0 failures** from 349 targets carrying an `osm_tags.wikidata` ref (307 unique QIDs; 52% have a P18 claim). Batched VALUES SPARQL → direct upload.wikimedia.org URL → MinIO `athar-uploads/photos/` (146 unique objects — several POIs share the same Commons image). **0 Wikimedia URLs remain**; 168 targets left (no P18); 113 TripAdvisor `media-cdn` URLs still off-box (step 9). Icons covered: Timgad, Tassili, Casbah Béjaïa, Ahaggar, Assekrem, Aïn El Fouara.
+  - **Tests**: **298 passed** after enrichment + graph fixes + photo enrichment.
 
 ### Blocked
 - **Wasly.app REST API** is partner-only (B2B request required) — bus data publicly unavailable
@@ -187,8 +188,8 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 5. ~~⬜ **Seed stays v2 into DB**~~ — **DONE**: 2,426 stays seeded
 6. ~~⬜ **Verify DB counts and per-wilaya distribution**~~ — **DONE**: 298 tests pass, 8 wilayas <50 POIs / 13 wilayas <10 stays flagged
 7. ~~⬜ **Push seeding + migration**~~ — **DONE**
-8. ⬜ **Photos: Wikidata SPARQL exact P18 for named POIs with wikidata refs** (~230 GeoAlgeria refs)
-9. ⬜ **Photos: download TA media-cdn photos → MinIO for 159 TA POIs**
+8. ~~⬜ **Photos: Wikidata SPARQL exact P18 for named POIs with wikidata refs**~~ — **DONE** (`enrich_photos_wikidata_p18.py`, 7 commits): **181 POIs enriched, 0 failures** from the 349 targets carrying an `osm_tags.wikidata` ref (307 unique QIDs, 52% have a P18 claim). Batched VALUES SPARQL via httpx → direct `upload.wikimedia.org` URL (md5 dirs, percent-quoted) → MinIO `athar-uploads/photos/` (146 unique objects) → `photo_url` + `photo_urls`. **0 Wikimedia URLs remain in DB**; idempotent/checkpointed (re-runs only retry the 168 QIDs without P18). Covers icons: Timgad, Tassili n'Ajjer, Casbah de Béjaïa, Ahaggar, Assekrem, Aïn El Fouara. Reports: `scripts/data/reports/wikidata_p18_{dryrun,run,verify,urlcheck,qa,tests}.txt`
+9. ⬜ **Photos: download TA media-cdn photos → MinIO for 113 TA POIs** (113 remote `media-cdn.tripadvisor.com` URLs still point off-box; reuse `enrich_photos_wikidata_p18` + `migrate_photos_minio` patterns)
 10. ⬜ **Photos: Flickr API geotagged Creative Commons for southern POIs** (requires free API key)
 11. ⬜ **Descriptions: Wikivoyage/Wikipedia text for featured POIs and south itineraries**
 12. ⬜ **Targeted enrichment: 7 wilayas still <50 POIs** (50,52,54,57,59,62,63) via Geonames dump + targeted OSM Overpass fallback
