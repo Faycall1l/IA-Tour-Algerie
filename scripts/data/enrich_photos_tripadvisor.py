@@ -63,6 +63,28 @@ def original_size_url(url: str) -> str:
     return url
 
 
+# ── DB ──────────────────────────────────────────────────────────────────────
+
+TARGET_SQL = """
+    SELECT id, name, photo_url
+    FROM pois
+    WHERE photo_url LIKE '%tripadvisor.com%'
+    ORDER BY name
+"""
+
+
+def fetch_targets(conn, limit: int = 0) -> list[tuple[str, str, str]]:
+    """Return (poi_id, name, remote_photo_url) rows needing migration."""
+    cur = conn.cursor()
+    if limit > 0:
+        cur.execute(f"SELECT * FROM ({TARGET_SQL.rstrip(';')}) t LIMIT %s", (limit,))
+    else:
+        cur.execute(TARGET_SQL)
+    rows = cur.fetchall()
+    cur.close()
+    return [(str(r[0]), r[1], r[2]) for r in rows]
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Migrate TripAdvisor media-cdn photos to MinIO"
