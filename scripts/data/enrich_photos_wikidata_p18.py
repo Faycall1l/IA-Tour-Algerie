@@ -20,7 +20,11 @@ import argparse
 import logging
 import os
 import sys
+import time
 from pathlib import Path
+
+import httpx
+import psycopg2
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger(__name__)
@@ -68,6 +72,70 @@ def fetch_targets(conn, limit: int = 0) -> list[tuple[str, str, str]]:
     rows = cur.fetchall()
     cur.close()
     return [(str(r[0]), r[1], r[2]) for r in rows if r[2]]
+
+
+# ── Wikidata SPARQL ──────────────────────────────────────────────────────────
+
+SPARQL_TEMPLATE = """
+SELECT ?item ?itemLabel ?image WHERE {{
+  VALUES ?item {{ {values} }}
+  OPTIONAL {{ ?item wdt:P18 ?image . }}
+  SERVICE wikibase:label {{ bd:serviceParam wikibase:language "fr,en,ar". }}
+}}
+"""
+
+
+def _chunk(seq: list[str], size: int):
+    for i in range(0, len(seq), size):
+        yield seq[i : i + size]
+
+
+def fetch_images(qids: list[str], sparql_batch: int = 100) -> dict[str, str]:
+    """Fetch P18 image URLs for QIDs via batched SPARQL VALUES queries.
+
+    Returns {qid: image_url}; QIDs without a P18 claim are omitted.
+    """
+    results: dict[str, str] = {}
+    headers = {
+        "Accept": "application/sparql-results+json",
+        "User-Agent": USER_AGENT,
+    }
+    for chunk in _chunk(qids, sparql_batch):
+        values = " ".join(f"wd:{q}" for q in chunk)
+        query = SPARQL_TEMPLATE.format(values=values)
+        last_err: Exception | None = None
+        for attempt in range(4):
+            try:
+                resp = httpx.post(
+                    SPARQL_URL,
+                    data={"query": query},
+                    headers=headers,
+                    timeout=httpx.Timeout(60.0, connect=20.0),
+                )
+                if resp.status_code in (429, 500, 502, 503, 504):
+                    wait = min(90, 10 * (attempt + 1))
+                    log.warning("SPARQL HTTP %d (attempt %d), retrying in %ds",
+                                resp.status_code, attempt + 1, wait)
+                    time.sleep(wait)
+                    continue
+                resp.raise_for_status()
+                payload = resp.json()
+                for b in payload["results"]["bindings"]:
+                    qid = b["item"]["value"].rsplit("/", 1)[-1]
+                    img = b.get("image", {}).get("value")
+                    if qid and img:
+                        results[qid] = img
+                break
+            except Exception as exc:  # noqa: BLE001
+                last_err = exc
+                wait = min(90, 5 * (attempt + 1))
+                log.warning("SPARQL error (attempt %d), retrying in %ds: %s",
+                            attempt + 1, wait, exc)
+                time.sleep(wait)
+        else:
+            log.error("SPARQL failed after 4 attempts for chunk of %d QIDs: %s",
+                      len(chunk), last_err)
+    return results
 
 
 def parse_args() -> argparse.Namespace:
