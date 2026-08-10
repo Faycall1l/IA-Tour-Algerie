@@ -1,0 +1,11 @@
+Verification after GeoNames enrichment (Aug 2026):
+  w50 Bordj Badji Mokhtar  118   (was 41)
+  w52 Béni Abbès           304   (was 30)
+  w54 In Guezzam            55   (was 26)
+  w57 El M'Ghair           118   (was 34)
+  w59 Aflou                425   (was 44)
+  w62 Bir El Ater          197   (was 28)
+  w63 El Aricha            123   (was 23)
+  w64 Ksar Chellala        235   (was 31)
+All 8 target wilayas ≥50. DB total POIs: 19,238 (was 17,920). +1,318 geonames.
+Descriptions + elevations real from GeoNames; all rows pass ck_poi_category.
