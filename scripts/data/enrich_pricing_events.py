@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
-"""Add pricing data to stays/POIs and seed events/festivals."""
+"""Add pricing data to stays/POIs and seed events/festivals.
 
-import json
-import uuid
+Deterministic: prices are derived from the record id hash (stable across
+runs), never from RANDOM(). Event seeding is idempotent — the EVENTS list
+is the canonical set and is re-synced on every run.
+"""
+
+import hashlib
 import psycopg2
-from datetime import date
 
 DB_CONFIG = {
     "host": "localhost", "port": 5434,
@@ -79,6 +82,12 @@ EVENTS = [
 ]
 
 
+def _deterministic_value(record_id, low, high):
+    """Deterministic int in [low, high] derived from the record id."""
+    digest = int(hashlib.md5(str(record_id).encode()).hexdigest(), 16)
+    return low + (digest % (high - low + 1))
+
+
 def main():
     conn = psycopg2.connect(**DB_CONFIG)
     cur = conn.cursor()
@@ -88,13 +97,17 @@ def main():
     # ---- 1. Stay pricing ----
     print("--- Stay Pricing ---")
     for ptype, (low, high) in STAY_PRICES.items():
-        cur.execute("""
-            UPDATE stays
-            SET price_per_night_dzd = FLOOR(RANDOM() * (%s - %s) + %s)
-            WHERE property_type = %s AND (price_per_night_dzd IS NULL OR price_per_night_dzd = 0)
-        """, (high, low, low, ptype))
-        rows = cur.rowcount
-        print(f"  {ptype}: {rows} stays priced ({low}-{high} DZD)")
+        cur.execute(
+            "SELECT id FROM stays WHERE property_type = %s AND (price_per_night_dzd IS NULL OR price_per_night_dzd = 0)",
+            (ptype,),
+        )
+        ids = [r[0] for r in cur.fetchall()]
+        for pid in ids:
+            cur.execute(
+                "UPDATE stays SET price_per_night_dzd = %s WHERE id = %s",
+                (_deterministic_value(pid, low, high), pid),
+            )
+        print(f"  {ptype}: {len(ids)} stays priced ({low}-{high} DZD)")
 
     conn.commit()
 
@@ -106,12 +119,19 @@ def main():
                 UPDATE pois SET entry_fee_dzd = 0
                 WHERE category = %s AND (entry_fee_dzd IS NULL)
             """, (cat,))
+            rows = cur.rowcount
         else:
-            cur.execute("""
-                UPDATE pois SET entry_fee_dzd = FLOOR(RANDOM() * (%s - %s + 1) + %s)
-                WHERE category = %s AND (entry_fee_dzd IS NULL OR entry_fee_dzd = 0)
-            """, (high, low, low, cat))
-        rows = cur.rowcount
+            cur.execute(
+                "SELECT id FROM pois WHERE category = %s AND (entry_fee_dzd IS NULL OR entry_fee_dzd = 0)",
+                (cat,),
+            )
+            ids = [r[0] for r in cur.fetchall()]
+            for pid in ids:
+                cur.execute(
+                    "UPDATE pois SET entry_fee_dzd = %s WHERE id = %s",
+                    (_deterministic_value(pid, low, high), pid),
+                )
+            rows = len(ids)
         print(f"  {cat}: {rows} POIs priced ({low}-{high} DZD)")
 
     conn.commit()
@@ -142,19 +162,23 @@ def main():
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             )
         """)
-        cur.execute("CREATE INDEX ix_events_wilaya ON events(wilaya_id)")
         cur.execute("CREATE INDEX ix_events_month ON events(month)")
         print("  Created events table")
         conn.commit()
 
+    # Drop legacy duplicate index (schema model owns ix_events_wilaya_id)
+    cur.execute("DROP INDEX IF EXISTS ix_events_wilaya")
+    conn.commit()
+
+    # Sync: EVENTS is the canonical list — wipe and re-insert for idempotency
+    cur.execute("DELETE FROM events")
     count = 0
     for title, wid, month, category, desc in EVENTS:
         cur.execute(
-            "INSERT INTO events (title, wilaya_id, month, category, description) VALUES (%s, %s, %s, %s, %s) ON CONFLICT DO NOTHING",
-            (title, wid, month, category, desc)
+            "INSERT INTO events (title, wilaya_id, month, category, description) VALUES (%s, %s, %s, %s, %s)",
+            (title, wid, month, category, desc),
         )
-        if cur.rowcount:
-            count += 1
+        count += cur.rowcount
 
     conn.commit()
     print(f"  Inserted {count} events")
