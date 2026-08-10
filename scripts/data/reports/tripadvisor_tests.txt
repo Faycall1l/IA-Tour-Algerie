@@ -1,0 +1,1 @@
+Test suite after TripAdvisor photo migration: 298 passed, 9 warnings (155s).
