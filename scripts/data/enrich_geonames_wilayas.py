@@ -212,6 +212,39 @@ def build_description(record: dict, label: str) -> str:
     return " — ".join(parts) + " (source GeoNames)."
 
 
+# ── Dedup ───────────────────────────────────────────────────────────────────
+
+def fetch_db_pois(conn, wilayas: tuple[int, ...]) -> list[tuple[int, str, float, float]]:
+    """Return (wilaya_id, normalized_name, lat, lon) for existing POIs."""
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT wilaya_id, name, latitude, longitude
+        FROM pois WHERE wilaya_id = ANY(%s) AND name IS NOT NULL
+        """,
+        (list(wilayas),),
+    )
+    rows = cur.fetchall()
+    cur.close()
+    return [(r[0], normalize_name(r[1] or ""), float(r[2]), float(r[3])) for r in rows]
+
+
+def is_duplicate(
+    rec: dict, db_index: list[tuple[int, str, float, float]]
+) -> bool:
+    """True when an existing DB POI matches name (≈5km) or exact cell coords."""
+    name = normalize_name(rec["name"])
+    for wid, db_name, lat, lon in db_index:
+        if wid != rec["wid"]:
+            continue
+        if name and db_name and name == db_name:
+            if haversine_km(lat, lon, rec["lat"], rec["lon"]) < 5.0:
+                return True
+        elif abs(lat - rec["lat"]) < 0.02 and abs(lon - rec["lon"]) < 0.02:
+            return True
+    return False
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Targeted GeoNames POI enrichment for under-covered wilayas"
