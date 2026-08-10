@@ -3,3 +3,6 @@ pytest==8.3.5
 pytest-asyncio==0.25.3
 pytest-cov==7.1.0
 httpx==0.28.1
+
+# Legacy sync DB driver used by some data scripts
+psycopg2-binary==2.9.12

@@ -144,6 +144,8 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
   - **Wilaya mapper** (`scripts/data/map_and_dedupe_v2.py`): coordinate-based assignment with `wilaya_code` fallback, handles new wilayas 59-69; 155 POIs fell back to nearest-center.
   - **Deduplication**: fuzzy dedup by `(wilaya_id, normalized name, rounded coords)` with source priority (TripAdvisor > GeoAlgeria > Wikivoyage > OSM); merged photos/refs/descriptions from dropped duplicates. Result: **18,012 POIs** / **2,452 stays**.
   - **DB reseed** (`scripts/data/seed_v2.py`): wipes `pois`/`stays`/`poi_experiences`, maps categories/property types to allowed enums, sets default stay prices, batches inserts. Seeded **17,920 POIs** / **2,426 stays** (a small drop from prepared rows due to null coordinates / type filtering).
+  - **Experiences restored**: reseeded curated + seasonal experiences; DB now has **1,161 experiences** across all 69 wilayas.
+  - **Qdrant rebuilt**: both collections wiped and re-indexed — **17,920 POIs + 1,161 experiences**.
   - **QA**: all 69 wilayas covered; 8 wilayas still <50 POIs (50,52,54,57,59,62,63,64) and 13 wilayas <10 stays — flagged for targeted enrichment.
   - **Tests**: **298 passed** after reseed.
 
@@ -185,11 +187,11 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 12. ⬜ **Targeted enrichment: 7 wilayas still <50 POIs** (50,52,54,57,59,62,63) via Geonames dump + targeted OSM Overpass fallback
 13. ⬜ **Targeted stays/food for southern cities** (Djanet, Tamanrasset, Ghardaïa, Adrar, Timimoun) from Wikivoyage EN + Geonames
 14. ⬜ **Knowledge base: south itineraries + how to reach/eat/stay agent prompt updates**
-15. ⬜ **Rebuild Qdrant**, run full tests (298+)
+15. ~~⬜ **Rebuild Qdrant**, run full tests (298+)~~ — **DONE**: Qdrant re-indexed 17,920 POIs + 1,161 experiences; **298 tests pass**.
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
-- All tourism tables now populated with real OSM and curated data
+- All tourism tables now populated with real OSM and curated data: **17,920 POIs**, **2,426 stays**, **1,161 experiences**
 - **API routes** (298 passing tests): `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/trips`, `/favorites`, `/collections`, `/artisans`, `/auth`, `/users`, `/admin`, `/providers`, `/agent/sessions`
 - POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls[], subtype, name_ar/name_en, is_featured, average_score, total_reviews, fun_fact
 - Vector search (Qdrant) configured but needs Docker running to work
