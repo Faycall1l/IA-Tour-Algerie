@@ -1,0 +1,5 @@
+Southern stays/food — tests (data-v2 step 13)
+=============================================
+Ran:  /Users/faycalamrouche/Desktop/ATHAR/Athar/.venv/bin/python -m pytest tests/ -q
+Result: 298 passed, 9 warnings (pre-existing AsyncMock resource warnings) in 336.79s
+No test changes required — step 13 only inserts stays/pois rows via psycopg2.

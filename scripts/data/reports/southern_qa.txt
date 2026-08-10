@@ -1,0 +1,53 @@
+Southern stays/food enrichment QA (data-v2 step 13)
+====================================================
+Sources: EN Wikivoyage destination pages ({{sleep}}/{{eat}}/{{drink}} templates)
+         + GeoNames DZ dump (HTL→stays, RSTN→restaurants).
+Target wilayas: 56 Djanet, 11 Tamanrasset, 47 Ghardaïa (M'zab), 49 Timimoun,
+                1 Adrar, 30 Ouargla, 8 Béchar.
+
+Findings
+--------
+- EN Wikivoyage has ONLY 12 southern listings across 6 destination pages
+  (M'zab 4, Tamanrasset 2 sleep + 1 eat, Djanet 1, Timimoun 2, Ouargla 1,
+  Bechar 1). Pages for Adrar, In Salah, Illizi, Béni Abbès, El Meniaa,
+  El Oued, Tindouf do NOT exist. FR Wikivoyage has no sleep/eat for the south.
+- 11 of 12 Wikivoyage listings are ALREADY in DB (GeoAlgeria/OSM sources)
+  — verified by name or ≤0.05 km coordinate match:
+    Hotel Atlandid, Hotel El Kantara, Aghlen Paradise, Hôtel l'Oasis (M'zab);
+    Restaurant Tassili, Gîte Saharien, Hotel Tahat (Tamanrasset);
+    La Grotte des Ambassadeurs (Djanet); Auberge de Jeunesse (Timimoun);
+    Hôtel El Olf (Ouargla); El Djazira Hotel (Bechar).
+- GeoNames: 6 HTL + 5 RSTN in target wilayas. 6 HTL already in DB (step 12
+  imported them as POIs/stays). 1 RSTN already a POI. 1 HTL skipped as junk
+  ("Wyndham Lake Buena Vista Resort", geoname 9850629, lon=0.0 — copy/paste
+  error, not a real Adrar hotel).
+
+Net-new inserted
+----------------
+- 1 stay:  Hotel Djanane Malik (w49 Timimoun), source=wikivoyage-en,
+           6000 DA double / 4500 DA shared, edge of Palmeraie, city coords.
+- 4 food:  Talzaza, Merires, El Haouari, Bou 'Ayech (w08 Béchar),
+           source=geonames, subtype=restaurant.
+
+DB totals now: 19,242 POIs / 2,427 stays / 1,161 experiences
+(19,238 + 4, 2,426 + 1). Qdrant rebuilt: 19,242 POIs + 1,161 experiences.
+
+Per-wilaya coverage after step 13 (stays / restaurant+cafe POIs)
+----------------------------------------------------------------
+  w01 Adrar       35 stays /  3 food
+  w08 Béchar      43 stays / 39 food
+  w11 Tamanrasset 27 stays / 10 food
+  w30 Ouargla     69 stays / 39 food
+  w47 Ghardaïa    40 stays / 14 food
+  w49 Timimoun    20 stays /  6 food
+  w56 Djanet      21 stays /  3 food
+
+Conclusion
+----------
+Wikivoyage EN + GeoNames are now EXHAUSTED for southern stays/food — every
+real listing that exists in those sources is either already in the DB or has
+been added. Remaining southern food gaps (Djanet 3, Adrar 3, Timimoun 6 food)
+reflect genuine data absence in all real sources; no synthetic rows seeded.
+Next levers (not in these sources): official lodging lists or OSM re-survey.
+
+Tests: 298 passed after insert.

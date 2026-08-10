@@ -1,0 +1,16 @@
+=== new rows ===
+  stay: ('Hotel Djanane Malik', 49, 'wikivoyage-en', 'Timimoun/Hotel Djanane Malik', 'hotel', 6000.0, 29.26, -0.24, datetime.date(2026, 8, 10))
+  food: ('Talzaza', 8, 'geonames', 'restaurant', 31.90542, -2.25926)
+  food: ('Merires', 8, 'geonames', 'restaurant', 32.02051, -1.43701)
+  food: ('El Haouari', 8, 'geonames', 'restaurant', 31.79585, -2.06228)
+  food: ('Bou ’Ayech', 8, 'geonames', 'restaurant', 32.01868, -1.60732)
+=== source distribution ===
+  stays: [('geoalgeria-tourisme', 1602), ('osm', 824), ('wikivoyage-en', 1)]
+=== southern stays/food coverage (target wilayas) ===
+  w01 Adrar        rows= 35 stays= 35 food=  3
+  w08 Bechar       rows= 43 stays= 43 food= 39
+  w11 Tamanrasset  rows= 27 stays= 27 food= 10
+  w30 Ouargla      rows= 69 stays= 69 food= 39
+  w47 Ghardaia     rows= 40 stays= 40 food= 14
+  w49 Timimoun     rows= 20 stays= 20 food=  6
+  w56 Djanet       rows= 21 stays= 21 food=  3

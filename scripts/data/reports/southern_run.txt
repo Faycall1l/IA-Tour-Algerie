@@ -1,0 +1,40 @@
+Fetching EN Wikivoyage listings...
+  [wv] M'zab: 4 listings
+  [wv] Tamanrasset: 3 listings
+  [wv] Djanet: 1 listings
+  [wv] Timimoun: 2 listings
+  [wv] Ouargla: 1 listings
+  [wv] Bechar: 1 listings
+Parsing GeoNames hotels/restaurants...
+  [gn] 10 records in target wilayas
+    RSTN 08 Talzaza
+    RSTN 08 Merires
+    RSTN 08 Gueltet Ahmed Ben Salah
+    RSTN 08 El Haouari
+    RSTN 08 Bou ’Ayech
+    HTL 47 Belveder Ghardaia
+    HTL 47 Residence Des Deux Tours
+    HTL 30 Residence Sodexo
+    HTL 30 Club 34 Hotel
+    HTL 30 Eurojapan Residence
+Existing stays in target wilayas: 254, POIs: 1592
+  [dup stay] Hotel Atlandid (M'zab)
+  [dup stay] Hotel El Kantara (M'zab)
+  [dup stay] Aghlen Paradise (M'zab)
+  [dup stay] Hôtel l'Oasis (M'zab)
+  [dup food] Restaurant Tassili (Tamanrasset)
+  [dup stay] Gîte Saharien (Tamanrasset)
+  [dup stay] Hotel Tahat (Tamanrasset)
+  [dup stay] La Grotte des Ambassadeurs (Djanet)
+  [dup stay] Auberge de Jeunesse (Timimoun)
+  [dup stay] Hôtel El Olf (Ouargla)
+  [dup stay] El Djazira Hotel (Bechar)
+  [dup food] Gueltet Ahmed Ben Salah (geonames)
+  [dup stay] Belveder Ghardaia (geonames)
+  [dup stay] Residence Des Deux Tours (geonames)
+  [dup stay] Residence Sodexo (geonames)
+  [dup stay] Club 34 Hotel (geonames)
+  [dup stay] Eurojapan Residence (geonames)
+Candidates: 1 stays, 4 food POIs
+Provider: c8d4c330-e97d-4e73-b19f-432e1c8734c1
+DONE: inserted 1 stays, 4 food POIs
