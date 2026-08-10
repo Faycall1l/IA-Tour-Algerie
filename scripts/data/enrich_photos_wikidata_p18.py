@@ -19,7 +19,6 @@ Usage:
 import argparse
 import logging
 import os
-import sys
 import time
 from pathlib import Path
 
@@ -36,8 +35,6 @@ if _env_path.exists():
         if line and not line.startswith("#") and "=" in line:
             k, v = line.split("=", 1)
             os.environ.setdefault(k.strip(), v.strip())
-
-from app.core.config import settings  # noqa: E402
 
 DB_CONFIG = {
     "host": "localhost",
@@ -218,6 +215,59 @@ def main() -> None:
     args = parse_args()
     log.info("Wikidata P18 photo enrichment (dry_run=%s, limit=%d, batch=%d)",
              args.dry_run, args.limit, args.batch)
+
+    conn = psycopg2.connect(**DB_CONFIG)
+    targets = fetch_targets(conn, args.limit)
+    log.info("Targets: %d POIs with a wikidata ref and no photo", len(targets))
+    if not targets:
+        conn.close()
+        return
+
+    qids = list({qid for _, _, qid in targets})
+    log.info("Unique Wikidata QIDs: %d (fetching in batches of %d)",
+             len(qids), args.sparql_batch)
+
+    images = fetch_images(qids, args.sparql_batch)
+    log.info("Fetched %d P18 images", len(images))
+
+    if args.dry_run:
+        matched = [t for t in targets if t[2] in images]
+        log.info("[DRY RUN] %d/%d targets have a P18 image and would be enriched",
+                 len(matched), len(targets))
+        for _poi_id, name, qid in matched[:10]:
+            log.info("  %s (%s) -> %s", name, qid, images[qid][:80])
+        conn.close()
+        return
+
+    minio_client = get_minio_client()
+    timeout = httpx.Timeout(30.0, connect=15.0, read=30.0)
+    updated = 0
+    failed = 0
+
+    with httpx.Client(follow_redirects=True, timeout=timeout) as http:
+        for poi_id, name, qid in targets:
+            image_url = images.get(qid)
+            if not image_url:
+                continue
+            direct = to_direct_upload_url(image_url)
+            if not direct:
+                failed += 1
+                log.warning("No direct URL for %s (%s)", name, qid)
+                continue
+            minio_url = download_and_upload_to_minio(minio_client, http, direct)
+            if not minio_url:
+                failed += 1
+                log.warning("Download/upload failed: %s (%s) [%s]", name, qid, direct[:70])
+                continue
+            update_poi_photo(conn, poi_id, minio_url)
+            updated += 1
+            if updated % args.batch == 0:
+                conn.commit()
+                log.info("Progress: %d enriched, %d failed", updated, failed)
+
+    conn.commit()
+    conn.close()
+    log.info("DONE: %d POIs enriched, %d failures (of %d targets)", updated, failed, len(targets))
 
 
 if __name__ == "__main__":
