@@ -1,0 +1,24 @@
+GeoNames targeted enrichment recon (Aug 2026, download.geonames.org DZ.zip, 56,016 records)
+Source: real GeoNames gazetteer (verifiable). Wilaya assignment: nearest 69-center.
+
+Candidates (tourism feature codes) in 8 target wilayas: 1374
+  Net-new after DB dedup (name+coords ≤5km, name+coords≤0.02° cell): 1368 (overlap 6)
+
+Per-wilaya:  net_new  db_before -> projected total
+  w50 Bordj Badji Mokhtar   80   41 -> 121
+  w52 Béni Abbès           281   30 -> 311
+  w54 In Guezzam            30   26 -> 56
+  w57 El M'Ghair            89   34 -> 123
+  w59 Aflou                398   44 -> 442
+  w62 Bir El Ater          173   28 -> 201
+  w63 El Aricha            106   23 -> 129
+  w64 Ksar Chellala        211   31 -> 242
+
+Category mix: mountain 1009 (T.HLL 451, T.MT 273, T.RDGE 114, T.HLLS 110,
+  T.PK 34, T.MTS 27), natural 291 (H.SPNG springs 145, T.DUNE 101, H.STM 34,
+  L.OAS 7, H.LK 2), historical 58 (S.RUIN 36, S.TMB 13, S.FT 10), cultural 14,
+  religious 1.
+
+Note: ~9x overshoot vs the 143-POI gap. Adding all real features (not curated
+subset) per the systematic/scripted approach; featured/ranking enrichment
+surfaces the notable ones. Elevation captured from GeoNames `elevation`/`dem`.
