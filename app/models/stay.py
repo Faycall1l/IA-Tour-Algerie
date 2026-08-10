@@ -1,3 +1,4 @@
+from datetime import date
 import uuid
 
 from sqlalchemy import (
@@ -5,6 +6,7 @@ from sqlalchemy import (
     Boolean,
     CheckConstraint,
     Computed,
+    Date,
     Float,
     ForeignKey,
     Integer,
@@ -57,6 +59,9 @@ class Stay(UUIDPkMixin, TimestampMixin, Base):
     check_out_time: Mapped[str | None] = mapped_column(String(5), nullable=True)
     max_guests: Mapped[int | None] = mapped_column(Integer, nullable=True)
     total_rooms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    source: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    source_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    verified_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     search_vector: Mapped[str | None] = mapped_column(
         TSVECTOR,
         Computed(

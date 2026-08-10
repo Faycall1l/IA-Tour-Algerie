@@ -1,9 +1,12 @@
+from datetime import date
+
 from sqlalchemy import (
     ARRAY,
     BigInteger,
     Boolean,
     CheckConstraint,
     Computed,
+    Date,
     Float,
     ForeignKey,
     Index,
@@ -74,6 +77,9 @@ class POI(UUIDPkMixin, TimestampMixin, Base):
     osm_type: Mapped[str | None] = mapped_column(String(20), nullable=True)
     osm_tags: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     thermal_data: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    source: Mapped[str | None] = mapped_column(String(50), nullable=True, index=True)
+    source_id: Mapped[str | None] = mapped_column(String(255), nullable=True, index=True)
+    verified_at: Mapped[date | None] = mapped_column(Date, nullable=True)
     is_featured: Mapped[bool] = mapped_column(Boolean, default=False, server_default=false())
     featured_order: Mapped[int | None] = mapped_column(Integer, nullable=True)
     ranking_position: Mapped[int | None] = mapped_column(Integer, nullable=True)
