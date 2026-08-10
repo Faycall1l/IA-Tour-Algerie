@@ -46,6 +46,29 @@ DB_CONFIG = {
 SPARQL_URL = "https://query.wikidata.org/sparql"
 USER_AGENT = "ATHAR-Tourism/1.0 (photo enrichment; faycal@athar.dz)"
 
+# ── DB ──────────────────────────────────────────────────────────────────────
+
+TARGET_SQL = """
+    SELECT id, name, osm_tags->>'wikidata' AS wd
+    FROM pois
+    WHERE osm_tags ? 'wikidata'
+      AND (photo_url IS NULL OR photo_url = '')
+      AND (photo_urls IS NULL OR array_length(photo_urls, 1) IS NULL OR photo_urls[1] = '')
+    ORDER BY name
+"""
+
+
+def fetch_targets(conn, limit: int = 0) -> list[tuple[str, str, str]]:
+    """Return (poi_id, name, wikidata_qid) rows needing a photo."""
+    cur = conn.cursor()
+    if limit > 0:
+        cur.execute(f"SELECT * FROM ({TARGET_SQL.rstrip(';')}) t LIMIT %s", (limit,))
+    else:
+        cur.execute(TARGET_SQL)
+    rows = cur.fetchall()
+    cur.close()
+    return [(str(r[0]), r[1], r[2]) for r in rows if r[2]]
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Enrich POIs with Wikidata P18 photos via MinIO")
