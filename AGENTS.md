@@ -137,6 +137,15 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
     - **UP037 ignored for `app/models/*`** (pyproject per-file-ignore): SQLAlchemy relationships need string forward-refs (`Mapped[list["LineStop"]]`) at runtime; ruff's quote-removal broke mapper config (`InvalidRequestError: relationship('list[LineStop]')`). Files without future-imports (`collection.py`, `station.py`) keep quotes; `deps.py`/`prompts.py` got `from __future__ import annotations` for non-SQLAlchemy forward-refs.
     - **ruff 0.16.1 formatter bug**: `ruff format` rewrites `except (A, B):` into invalid `except A, B:` (SyntaxError). Worked around in `poi_graph.py` by catching the shared base `nx.NetworkXException` (both `NetworkXNoPath`/`NodeNotFound` subclass it) — 4 clauses.
     - **114 `# noqa: E501`** on long prompt/docstring lines (line-length=100). **UP042**: `(str, Enum)` → `StrEnum` in `harness.py`/`security.py`. E712 `is_`, B905 `strict=True`, N806/E741 renames, ARG00x underscore-prefixed unused args across tests + endpoints. **297 backend tests pass.**
+- **Data acquisition v2 + reseed** (Aug 2026):
+  - **Sources acquired**: TripAdvisor (159 POIs, 22 pages), GeoAlgeria (culture 1,083 + tourisme 2,464 + ASAL springs 282), robust local OSM PBF extraction from Geofabrik Algeria extract (9,900 POIs + 5,101 food + 1,677 stays), FR Wikivoyage dump parser (92 POIs + 26 stays).
+  - **Unified corpus v2**: 19,081 raw POIs / 3,305 raw stays, 52/69 wilayas ≥100 POIs.
+  - **Schema migration** (`a47e86ebeb34`): added `source`/`source_id`/`verified_at` to `pois` + `stays`; models updated; DB already has all 69 wilayas.
+  - **Wilaya mapper** (`scripts/data/map_and_dedupe_v2.py`): coordinate-based assignment with `wilaya_code` fallback, handles new wilayas 59-69; 155 POIs fell back to nearest-center.
+  - **Deduplication**: fuzzy dedup by `(wilaya_id, normalized name, rounded coords)` with source priority (TripAdvisor > GeoAlgeria > Wikivoyage > OSM); merged photos/refs/descriptions from dropped duplicates. Result: **18,012 POIs** / **2,452 stays**.
+  - **DB reseed** (`scripts/data/seed_v2.py`): wipes `pois`/`stays`/`poi_experiences`, maps categories/property types to allowed enums, sets default stay prices, batches inserts. Seeded **17,920 POIs** / **2,426 stays** (a small drop from prepared rows due to null coordinates / type filtering).
+  - **QA**: all 69 wilayas covered; 8 wilayas still <50 POIs (50,52,54,57,59,62,63,64) and 13 wilayas <10 stays — flagged for targeted enrichment.
+  - **Tests**: **298 passed** after reseed.
 
 ### Blocked
 - **Wasly.app REST API** is partner-only (B2B request required) — bus data publicly unavailable
@@ -161,10 +170,27 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 5. ~~⬜ **More fun facts via GenAI**~~ — **DONE**: **3,796/52,997 POIs** have fun facts (22 Wikidata/Wikipedia + 3,774 GenAI via vLLM Gemma 4). Second pass enriched +1,030 with 0 errors.
 6. ⬜ **Frontend** — the API is complete with ~125+ routes, 5 agent endpoints with multi-turn memory; needs a mobile/web frontend to be actually usable
 
+### Data v2 next steps
+1. ~~⬜ **Schema migration: source/source_id/verified_at columns for pois + stays**~~ — **DONE**
+2. ~~⬜ **Wilaya mapper: assign staged records to correct 69 wilaya_id**~~ — **DONE**
+3. ~~⬜ **Deduplicate unified corpus by coordinate+name within wilaya**~~ — **DONE**
+4. ~~⬜ **Seed POIs v2 into DB**~~ — **DONE**: 17,920 POIs seeded
+5. ~~⬜ **Seed stays v2 into DB**~~ — **DONE**: 2,426 stays seeded
+6. ~~⬜ **Verify DB counts and per-wilaya distribution**~~ — **DONE**: 298 tests pass, 8 wilayas <50 POIs / 13 wilayas <10 stays flagged
+7. ~~⬜ **Push seeding + migration**~~ — **DONE**
+8. ⬜ **Photos: Wikidata SPARQL exact P18 for named POIs with wikidata refs** (~230 GeoAlgeria refs)
+9. ⬜ **Photos: download TA media-cdn photos → MinIO for 159 TA POIs**
+10. ⬜ **Photos: Flickr API geotagged Creative Commons for southern POIs** (requires free API key)
+11. ⬜ **Descriptions: Wikivoyage/Wikipedia text for featured POIs and south itineraries**
+12. ⬜ **Targeted enrichment: 7 wilayas still <50 POIs** (50,52,54,57,59,62,63) via Geonames dump + targeted OSM Overpass fallback
+13. ⬜ **Targeted stays/food for southern cities** (Djanet, Tamanrasset, Ghardaïa, Adrar, Timimoun) from Wikivoyage EN + Geonames
+14. ⬜ **Knowledge base: south itineraries + how to reach/eat/stay agent prompt updates**
+15. ⬜ **Rebuild Qdrant**, run full tests (298+)
+
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
 - All tourism tables now populated with real OSM and curated data
-- **API routes** (291 passing tests): `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/trips`, `/favorites`, `/collections`, `/artisans`, `/auth`, `/users`, `/admin`, `/providers`, `/agent/sessions`
+- **API routes** (298 passing tests): `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/trips`, `/favorites`, `/collections`, `/artisans`, `/auth`, `/users`, `/admin`, `/providers`, `/agent/sessions`
 - POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls[], subtype, name_ar/name_en, is_featured, average_score, total_reviews, fun_fact
 - Vector search (Qdrant) configured but needs Docker running to work
 - App has trip optimizer combining POIs + transport + stays + restaurants + experiences, now wired to POI graph for walking times
@@ -207,3 +233,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 - `scripts/data/enrich_photos_more.py`: Enhanced photo enrichment (SPARQL + Commons API)
 - `scripts/data/enrich_fun_facts.py`: Fun facts from Wikidata + OSM tags + category templates
 - `scripts/data/migrate_photos_minio.py`: Wikimedia photo → MinIO migration
+- `scripts/data/stage_sources.py`: Stage all raw sources into unified `pois_v2.json`/`stays_v2.json`
+- `scripts/data/map_and_dedupe_v2.py`: Map records to 69 wilayas and deduplicate by coordinate+name
+- `scripts/data/seed_v2.py`: Wipe + seed `pois`/`stays` from the deduped v2 corpus
+- `scripts/data/dedup_qa.json`: Per-wilaya counts and source breakdown after dedup
