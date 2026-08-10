@@ -1,0 +1,19 @@
+2026-08-10 18:40:03,535 INFO Wikidata P18 photo enrichment (dry_run=True, limit=0, batch=50)
+2026-08-10 18:40:04,711 INFO Targets: 349 POIs with a wikidata ref and no photo
+2026-08-10 18:40:04,716 INFO Unique Wikidata QIDs: 307 (fetching in batches of 100)
+2026-08-10 18:40:11,411 INFO HTTP Request: POST https://query.wikidata.org/sparql "HTTP/1.1 200 OK"
+2026-08-10 18:40:12,999 INFO HTTP Request: POST https://query.wikidata.org/sparql "HTTP/1.1 200 OK"
+2026-08-10 18:40:14,120 INFO HTTP Request: POST https://query.wikidata.org/sparql "HTTP/1.1 200 OK"
+2026-08-10 18:40:15,147 INFO HTTP Request: POST https://query.wikidata.org/sparql "HTTP/1.1 200 OK"
+2026-08-10 18:40:15,149 INFO Fetched 147 P18 images
+2026-08-10 18:40:15,149 INFO [DRY RUN] 181/349 targets have a P18 image and would be enriched
+2026-08-10 18:40:15,149 INFO   Abbaye Notre-Dame de l'Atlas (Q1775739) -> http://commons.wikimedia.org/wiki/Special:FilePath/Monast%C3%A8re%20de%20Tibhiri
+2026-08-10 18:40:15,149 INFO   Agelmim Aberkan (Q28499165) -> http://commons.wikimedia.org/wiki/Special:FilePath/Agwelmim%20Aberkan.jpg
+2026-08-10 18:40:15,150 INFO   Ahaggar جبال هقار (Q753212) -> http://commons.wikimedia.org/wiki/Special:FilePath/Le%20Mont%20Tahat.jpeg
+2026-08-10 18:40:15,150 INFO   Amphithéâtre Romain (Q28969520) -> http://commons.wikimedia.org/wiki/Special:FilePath/Tipasa.jpg
+2026-08-10 18:40:15,150 INFO   Amphithéâtre المدرج (Q28969516) -> http://commons.wikimedia.org/wiki/Special:FilePath/Une%20ar%C3%A8ne%20pr%C3%A8s%
+2026-08-10 18:40:15,151 INFO   Ancient Roman theater in Khamissa (Q2429753) -> http://commons.wikimedia.org/wiki/Special:FilePath/GM%20Khamissa%20Roman%20Theat
+2026-08-10 18:40:15,151 INFO   Anu n uswel (Q2852383) -> http://commons.wikimedia.org/wiki/Special:FilePath/1983-08%20LHFage%20Anou%20Bou
+2026-08-10 18:40:15,151 INFO   Arc de Caracalla (Q1952148) -> http://commons.wikimedia.org/wiki/Special:FilePath/Arch%20of%20Caracalla%20%28Dj
+2026-08-10 18:40:15,151 INFO   Archaeological Museum of Cherchell (Q4785393) -> http://commons.wikimedia.org/wiki/Special:FilePath/Cherchell%20Mus%C3%A9e.jpg
+2026-08-10 18:40:15,151 INFO   Assekrem (Q23823514) -> http://commons.wikimedia.org/wiki/Special:FilePath/GLecoquierre-Hoggar2009-Assek
