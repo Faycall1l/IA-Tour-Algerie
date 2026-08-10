@@ -58,4 +58,8 @@ scripts/data/raw/osm/*.pbf
 scripts/data/raw/*.bz2
 scripts/data/pois_v2.json
 scripts/data/stays_v2.json
+scripts/data/pois_v2_mapped.json
+scripts/data/stays_v2_mapped.json
+scripts/data/pois_v2_deduped.json
+scripts/data/stays_v2_deduped.json
 scripts/data/.cdx_cache.json
