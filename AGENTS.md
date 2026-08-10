@@ -146,7 +146,7 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
   - **DB reseed** (`scripts/data/seed_v2.py`): wipes `pois`/`stays`/`poi_experiences`, maps categories/property types to allowed enums, sets default stay prices, batches inserts. Seeded **17,920 POIs** / **2,426 stays** (a small drop from prepared rows due to null coordinates / type filtering).
   - **Experiences restored**: reseeded curated + seasonal experiences; DB now has **1,161 experiences** across all 69 wilayas.
   - **Qdrant rebuilt**: both collections wiped and re-indexed — **17,920 POIs + 1,161 experiences**.
-  - **QA**: all 69 wilayas covered; 8 wilayas still <50 POIs (50,52,54,57,59,62,63,64) and 13 wilayas <10 stays — flagged for targeted enrichment.
+  - **QA**: all 69 wilayas covered; after GeoNames enrichment (step 12) every wilaya has ≥50 POIs; 13 wilayas still <10 stays — flagged for targeted enrichment.
   - **Tests**: **298 passed** after reseed.
   - **Enrichment layer restored on reseeded corpus** (Aug 2026): the reseed dropped durations/featured/rankings/prices (tours returned only 3 POIs). Re-run the DB-driven scripts against the new data:
     - `enrich_featured_attractions.py` — **344 featured POIs** across all 69 wilayas.
@@ -193,20 +193,19 @@ Build ATHAR — the definitive agentic travel guide for Algeria. Not a social me
 9. ~~⬜ **Photos: download TA media-cdn photos → MinIO for 113 TA POIs**~~ — **DONE** (`enrich_photos_tripadvisor.py`): **113/113 migrated, 0 failures** — downloads `photo-o` (original) from media-cdn.tripadvisor.com → MinIO `athar-uploads/photos/`, replaces `photo_url` + `photo_urls`. **0 TripAdvisor URLs remain in DB**. Combined with step 8: **294 POIs / 259 unique MinIO objects** (146 P18 + 113 TA; reconciles the earlier 146-vs-181 dedup). Reports: `scripts/data/reports/tripadvisor_{dryrun,run,verify,urlcheck,qa,tests}.txt`
 10. ⬜ **Photos: Flickr API geotagged Creative Commons for southern POIs** (requires free API key)
 11. ⬜ **Descriptions: Wikivoyage/Wikipedia text for featured POIs and south itineraries**
-12. ⬜ **Targeted enrichment: 7 wilayas still <50 POIs** (50,52,54,57,59,62,63) via Geonames dump + targeted OSM Overpass fallback
+12. ~~⬜ **Targeted enrichment: 7 wilayas still <50 POIs** (50,52,54,57,59,62,63) via Geonames dump + targeted OSM Overpass fallback~~ — **DONE** (`enrich_geonames_wilayas.py`): downloaded the real **GeoNames Algeria dump** (56,016 records, download.geonames.org) and inserted **1,318 tourism-relevant features** (peaks, dunes, springs, wadis, oases, ruins, tombs, forts, parks) into the 8 under-covered wilayas — all now ≥50 (w50=118, w52=304, w54=55, w57=118, w59=425, w62=197, w63=123, w64=235). Coordinate-based wilaya assignment (nearest 69-center), dedup vs DB by name≈5km + coord cell, `source='geonames'` + geonames.org links, auto-descriptions with real elevation. **DB 19,238 POIs**; Qdrant rebuilt (19,238 + 1,161). Reports: `scripts/data/reports/geonames_{recon,dryrun,run,verify,enrich,qdrant,tests}.txt`
 13. ⬜ **Targeted stays/food for southern cities** (Djanet, Tamanrasset, Ghardaïa, Adrar, Timimoun) from Wikivoyage EN + Geonames
 14. ⬜ **Knowledge base: south itineraries + how to reach/eat/stay agent prompt updates**
-15. ~~⬜ **Rebuild Qdrant**, run full tests (298+)~~ — **DONE**: Qdrant re-indexed 17,920 POIs + 1,161 experiences; **298 tests pass**.
+15. ~~⬜ **Rebuild Qdrant**, run full tests (298+)~~ — **DONE**: Qdrant re-indexed 19,238 POIs + 1,161 experiences (after GeoNames step 12); **298 tests pass**.
 
 ## Critical Context
 - Project is a full-stack FastAPI app (`athar-os-prototype/`) with PostgreSQL + Qdrant + MinIO + Redis
-- All tourism tables now populated with real OSM and curated data: **17,920 POIs**, **2,426 stays**, **1,161 experiences**
+- All tourism tables now populated with real OSM, curated, and GeoNames data: **19,238 POIs**, **2,426 stays**, **1,161 experiences**
 - **API routes** (298 passing tests): `/api/v1/pois`, `/stays`, `/experiences`, `/discover`, `/trips`, `/favorites`, `/collections`, `/artisans`, `/auth`, `/users`, `/admin`, `/providers`, `/agent/sessions`
 - POI responses include TripAdvisor-style fields: ranking, price_level, suggested_duration_min, photo_urls[], subtype, name_ar/name_en, is_featured, average_score, total_reviews, fun_fact
 - Vector search (Qdrant) configured but needs Docker running to work
 - App has trip optimizer combining POIs + transport + stays + restaurants + experiences, now wired to POI graph for walking times
-- **POI graph service**: 11,086 tourism POIs (from the reseeded corpus, tourism categories + featured), walks within 5km via wilaya subgraphs. Tour optimization works: Alger 9 POIs/2.0km, Tlemcen 8/2.8km, Setif 9/1.6km, Constantine 10/1.7km, Tizi Ouzou 5/1.5km, Tipaza 8/2.6km
-- MultiModalRouter loads 444 multi-wilaya transport lines with 3,918 adjacency edges
+- **POI graph service**: 11,086 tourism POIs (from the reseeded corpus, tourism categories + featured), walks within 5km via wilaya subgraphs. Tour optimization works: Alger 9 POIs/2.0km, Tlemcen 8/2.8km, Setif 9/1.6km, Constantine 10/1.7km, Tizi Ouzou 5/1.5km, Tipaza 8/2.6km- MultiModalRouter loads 444 multi-wilaya transport lines with 3,918 adjacency edges
 - **Fun facts enrichment**: **3,796 POIs** with real fun facts — 22 from Wikidata/Wikipedia (Timgad, Casbah, Fort Santa Cruz, etc.) + 3,774 generated via vLLM Gemma 4 (97.9% success rate)
 - **Operator contacts**: **152 transport operators, 86 with real phones**. All 12 SETRAM units have verified operational phones (from setram.dz). Covers all modes: flight (22 Air Algérie agencies + Contact Center 3302), train (11 SNTF + Oran station phone 041 40 15 02), bus (6 SOGRAL + ETUSA + ETO + NEDJMA), taxi (95 syndicates/companies/agencies, 29 with phones — 15 from gobytaxi.com, all verified on live pages), tram (12 SETRAM units + line entries), ferry (5 ENTMV), cablecar (1). Key verified numbers: SOGRAL +213 21 77 00 66, SNTF +213 21 71 15 10, Air Algérie Contact Center +213 21 98 63 63 (3302), ETUSA +213 21 66 74 14 / Call Center 0770 10 10 68, TaxiAlger +213 772 15 87 94, SETRAM Oran +213 659 56 20 05 / +213 561 66 93 19, SETRAM Mostaganem +213 551 24 24 24.
 - Seed scripts live in `scripts/data/`: `seed_pois_db.py`, `seed_providers.py`, `seed_stays_db.py`, `seed_experiences_db.py`, `seed_more_experiences.py`, `enrich_poi_descriptions.py`, `enrich_fun_facts.py`, `enrich_fun_facts_genai.py`, `migrate_photos_minio.py`, `extract_osm_artisans.py`, `seed_taxi_contacts.py`
