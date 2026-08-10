@@ -1,0 +1,13 @@
+2026-08-10 20:21:24,325 INFO GeoNames wilaya enrichment (dry_run=True, limit=0)
+2026-08-10 20:21:26,795 INFO Parsed 1374 tourism-relevant records in target wilayas
+2026-08-10 20:21:27,058 INFO Existing DB POIs in target wilayas: 257
+2026-08-10 20:21:27,077 INFO Net-new after dedup: 1318
+2026-08-10 20:21:27,078 INFO   w50: 77 new candidates
+2026-08-10 20:21:27,078 INFO   w52: 274 new candidates
+2026-08-10 20:21:27,078 INFO   w54: 29 new candidates
+2026-08-10 20:21:27,078 INFO   w57: 84 new candidates
+2026-08-10 20:21:27,078 INFO   w59: 381 new candidates
+2026-08-10 20:21:27,078 INFO   w62: 169 new candidates
+2026-08-10 20:21:27,078 INFO   w63: 100 new candidates
+2026-08-10 20:21:27,078 INFO   w64: 204 new candidates
+2026-08-10 20:21:27,078 INFO [DRY RUN] would insert 1318 POIs
