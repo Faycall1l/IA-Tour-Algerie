@@ -1,0 +1,13 @@
+2026-08-10 19:32:19,734 INFO TripAdvisor photo migration (dry_run=True, limit=0, batch=50)
+2026-08-10 19:32:20,136 INFO Targets: 113 POIs with a remote TripAdvisor photo
+2026-08-10 19:32:20,136 INFO [DRY RUN] 113/113 targets would be migrated
+2026-08-10 19:32:20,136 INFO   8 May 1945 Stadium -> https://media-cdn.tripadvisor.com/media/photo-o/05/3b/7f/07/setif.jpg
+2026-08-10 19:32:20,136 INFO   AUTO GO LLC -> https://media-cdn.tripadvisor.com/media/photo-o/31/3e/a4/94/caption.jpg
+2026-08-10 19:32:20,136 INFO   Abaraka Explore -> https://media-cdn.tripadvisor.com/media/photo-o/31/ee/ec/20/caption.jpg
+2026-08-10 19:32:20,136 INFO   Agence Essendilene Voyages -> https://media-cdn.tripadvisor.com/media/photo-o/2d/1e/b0/50/rupestre.jpg
+2026-08-10 19:32:20,136 INFO   Ain El Fouara -> https://media-cdn.tripadvisor.com/media/photo-o/10/ad/ab/33/photo-of-ein-alfoura
+2026-08-10 19:32:20,136 INFO   Akar-Akar -> https://media-cdn.tripadvisor.com/media/photo-o/2f/cf/e6/03/caption.jpg
+2026-08-10 19:32:20,136 INFO   Al Qal'a of Beni Hammad -> https://media-cdn.tripadvisor.com/media/photo-o/0a/64/c5/8f/la-kalaa-des-banu-ha
+2026-08-10 19:32:20,136 INFO   Algeria Tours16 -> https://media-cdn.tripadvisor.com/media/photo-o/14/da/55/ae/caption.jpg
+2026-08-10 19:32:20,136 INFO   Algerian maze -> https://media-cdn.tripadvisor.com/media/photo-o/15/f2/f1/d9/caption.jpg
+2026-08-10 19:32:20,136 INFO   Amelie Dream -> https://media-cdn.tripadvisor.com/media/photo-o/30/35/34/55/bateau-de-plaisance-
