@@ -210,8 +210,12 @@ class POIGraphService:
         self, db: AsyncSession, from_poi_id: str, to_poi_id: str
     ) -> list[str] | None:
         await self.load(db)
+        graph = self._graph
+        node = self._pois.get(from_poi_id)
+        if node and node.wilaya_id in self._wilaya_graphs:
+            graph = self._wilaya_graphs[node.wilaya_id]
         try:
-            return nx.shortest_path(self._graph, from_poi_id, to_poi_id, weight="weight")
+            return nx.shortest_path(graph, from_poi_id, to_poi_id, weight="weight")
         except nx.NetworkXException:
             return None
 
@@ -219,8 +223,12 @@ class POIGraphService:
         self, db: AsyncSession, from_poi_id: str, to_poi_id: str
     ) -> float | None:
         await self.load(db)
+        graph = self._graph
+        node = self._pois.get(from_poi_id)
+        if node and node.wilaya_id in self._wilaya_graphs:
+            graph = self._wilaya_graphs[node.wilaya_id]
         try:
-            return nx.shortest_path_length(self._graph, from_poi_id, to_poi_id, weight="weight")
+            return nx.shortest_path_length(graph, from_poi_id, to_poi_id, weight="weight")
         except nx.NetworkXException:
             return None
 
@@ -249,43 +257,46 @@ class POIGraphService:
         if start_poi_id and start_poi_id in candidates:
             start_node = self._pois[start_poi_id]
         else:
-            featured = [p for p in candidates if self._pois[p].is_featured]
-            if featured:
-                test_node = self._pois[featured[0]]
-                nearest_dist = (
-                    min(
-                        _haversine_km(
-                            test_node.lat, test_node.lon, self._pois[p].lat, self._pois[p].lon
-                        )
-                        for p in candidates
-                        if p != featured[0]
+            def _local_pois(pid: str) -> list[str]:
+                node = self._pois[pid]
+                dists = sorted(
+                    (
+                        _haversine_km(node.lat, node.lon, self._pois[p].lat, self._pois[p].lon),
+                        p,
                     )
-                    if len(candidates) > 1
-                    else 999
+                    for p in candidates
+                    if p != pid
                 )
-                if nearest_dist <= 5.0:
-                    start_node = test_node
-                else:
-                    best_center = None
-                    best_density = -1
-                    for pid in candidates[:100]:
-                        dists = sorted(
-                            _haversine_km(
-                                self._pois[pid].lat,
-                                self._pois[pid].lon,
-                                self._pois[p].lat,
-                                self._pois[p].lon,
-                            )
-                            for p in candidates
-                            if p != pid
-                        )
-                        nearby = sum(1 for d in dists[:20] if d < 2.0)
-                        if nearby > best_density:
-                            best_density = nearby
-                            best_center = pid
-                    start_node = self._pois[best_center] if best_center else test_node
+                return [p for d, p in dists[:20] if d < 3.0]
+
+            featured = [p for p in candidates if self._pois[p].is_featured]
+            test_node = self._pois[featured[0]] if featured else self._pois[candidates[0]]
+            if len(candidates) > 1:
+                test_near = _local_pois(test_node.id)
+                test_score = (
+                    len({self._pois[p].category for p in test_near}),
+                    len(test_near),
+                )
             else:
-                start_node = self._pois[candidates[0]]
+                test_score = (0, 0)
+
+            # Find the center with the most category-diverse walkable cluster
+            # (strided sample for big wilayas).
+            best_center: str | None = None
+            best_score = test_score
+            step = max(1, len(candidates) // 150)
+            for pid in candidates[::step][:150]:
+                near = _local_pois(pid)
+                score = (len({self._pois[p].category for p in near}), len(near))
+                if score > best_score:
+                    best_score = score
+                    best_center = pid
+
+            # Anchor on the diverse cluster unless the featured POI is already central
+            if best_center and (best_score > test_score or test_score[0] < 1):
+                start_node = self._pois[best_center]
+            else:
+                start_node = test_node
 
         def _dist(pid: str) -> float:
             n = self._pois[pid]
@@ -358,9 +369,10 @@ class POIGraphService:
             node = self._pois[pid]
             walk_min = 0.0
             if prev_node:
+                graph = self._wilaya_graphs.get(prev_node.wilaya_id) or self._graph
                 try:
                     walk_min = nx.shortest_path_length(
-                        self._graph, prev_node.id, pid, weight="weight"
+                        graph, prev_node.id, pid, weight="weight"
                     )
                 except nx.NetworkXException:
                     walk_min = _walking_min(
@@ -410,66 +422,78 @@ class POIGraphService:
         )
 
     def _solve_tsp(self, poi_ids: list[str]) -> list[str]:
-        if len(poi_ids) <= 1:
+        """Order POIs to minimize total walking time.
+
+        Pairwise walk times are computed once against the wilaya subgraph,
+        then the TSP runs on the precomputed distance matrix (no repeated
+        shortest-path calls).
+        """
+        n = len(poi_ids)
+        if n <= 1:
             return poi_ids
 
-        if len(poi_ids) <= 8:
-            return self._exact_tsp(poi_ids)
+        graph = self._graph
+        first = self._pois.get(poi_ids[0])
+        if first and first.wilaya_id in self._wilaya_graphs:
+            graph = self._wilaya_graphs[first.wilaya_id]
 
-        return self._two_opt_tsp(poi_ids)
+        dist: list[list[float]] = [[0.0] * n for _ in range(n)]
+        for i in range(n):
+            for j in range(i + 1, n):
+                try:
+                    d = nx.shortest_path_length(graph, poi_ids[i], poi_ids[j], weight="weight")
+                except nx.NetworkXException:
+                    n1 = self._pois.get(poi_ids[i])
+                    n2 = self._pois.get(poi_ids[j])
+                    d = (
+                        _haversine_km(n1.lat, n1.lon, n2.lat, n2.lon) * 12 + 10
+                        if n1 and n2
+                        else 999.0
+                    )
+                dist[i][j] = dist[j][i] = d
 
-    def _exact_tsp(self, poi_ids: list[str]) -> list[str]:
-        best_order = poi_ids[:]
-        best_cost = self._tour_cost(poi_ids)
+        if n <= 8:
+            return self._exact_tsp(list(range(n)), dist, poi_ids)
+        return self._two_opt_tsp(list(range(n)), dist, poi_ids)
 
-        def _permute(arr, idx):
+    def _exact_tsp(
+        self, idx: list[int], dist: list[list[float]], poi_ids: list[str]
+    ) -> list[str]:
+        best_order = idx[:]
+        best_cost = sum(dist[best_order[k]][best_order[k + 1]] for k in range(len(idx) - 1))
+
+        def _permute(arr, pos):
             nonlocal best_order, best_cost
-            if idx == len(arr):
-                cost = self._tour_cost(arr)
+            if pos == len(arr):
+                cost = sum(dist[arr[k]][arr[k + 1]] for k in range(len(arr) - 1))
                 if cost < best_cost:
                     best_cost = cost
                     best_order = arr[:]
                 return
-            for i in range(idx, len(arr)):
-                arr[idx], arr[i] = arr[i], arr[idx]
-                _permute(arr, idx + 1)
-                arr[idx], arr[i] = arr[i], arr[idx]
+            for i in range(pos, len(arr)):
+                arr[pos], arr[i] = arr[i], arr[pos]
+                _permute(arr, pos + 1)
+                arr[pos], arr[i] = arr[i], arr[pos]
 
-        arr = poi_ids[:]
-        _permute(arr, 1)
-        return best_order
+        _permute(idx, 1)
+        return [poi_ids[i] for i in best_order]
 
-    def _two_opt_tsp(self, poi_ids: list[str]) -> list[str]:
-        order = poi_ids[:]
+    def _two_opt_tsp(
+        self, idx: list[int], dist: list[list[float]], poi_ids: list[str]
+    ) -> list[str]:
+        order = idx[:]
+        n = len(order)
         improved = True
         while improved:
             improved = False
-            for i in range(1, len(order) - 1):
-                for j in range(i + 1, len(order)):
-                    new_order = order[:i] + order[i : j + 1][::-1] + order[j + 1 :]
-                    if self._tour_cost(new_order) < self._tour_cost(order):
-                        order = new_order
+            for i in range(n - 1):
+                for j in range(i + 2, n):
+                    a, b, c, d = order[i], order[i + 1], order[j], order[(j + 1) % n]
+                    gain = dist[a][b] + dist[c][d] - (dist[a][c] + dist[b][d])
+                    if gain > 0:
+                        order[i + 1 : j + 1] = reversed(order[i + 1 : j + 1])
                         improved = True
-        return order
-
-    def _tour_cost(self, order: list[str]) -> float:
-        if len(order) <= 1:
-            return 0.0
-        cost = 0.0
-        for i in range(len(order) - 1):
-            try:
-                cost += nx.shortest_path_length(
-                    self._graph, order[i], order[i + 1], weight="weight"
-                )
-            except nx.NetworkXException:
-                n1 = self._pois.get(order[i])
-                n2 = self._pois.get(order[i + 1])
-                if n1 and n2:
-                    km = _haversine_km(n1.lat, n1.lon, n2.lat, n2.lon)
-                    cost += km * 12 + 10
-                else:
-                    cost += 999
-        return cost
+        return [poi_ids[i] for i in order]
 
     async def cluster_pois(
         self, db: AsyncSession, wilaya_id: int, radius_m: float = 1000.0
