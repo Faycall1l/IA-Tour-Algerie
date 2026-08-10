@@ -138,6 +138,26 @@ def fetch_images(qids: list[str], sparql_batch: int = 100) -> dict[str, str]:
     return results
 
 
+# ── URL normalization ────────────────────────────────────────────────────────
+
+def to_direct_upload_url(image_url: str) -> str | None:
+    """Normalize a Wikidata P18 value to a direct upload.wikimedia.org URL.
+
+    P18 values are `http://commons.wikimedia.org/wiki/Special:FilePath/<file>`;
+    the md5-direct URL avoids the slow Commons redirect server. Falls back to
+    the normalized URL when direct conversion is not possible.
+    """
+    from scripts.data.migrate_photos_minio import (
+        _direct_upload_url,
+        _normalize_wikimedia_url,
+    )
+
+    direct = _direct_upload_url(image_url)
+    if direct:
+        return direct
+    return _normalize_wikimedia_url(image_url)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Enrich POIs with Wikidata P18 photos via MinIO")
     parser.add_argument(
