@@ -1,0 +1,6 @@
+Verification after TripAdvisor photo migration (Aug 2026):
+  POIs with tripadvisor photo_url:   0  (was 113)
+  POIs with tripadvisor in photo_urls: 0
+  POIs with MinIO photo_url:        294  (181 Wikidata P18 + 113 TripAdvisor)
+  MinIO objects under photos/:      259  (146 P18 + 113 TA — reconciles dedup)
+All remote TripAdvisor media-cdn URLs are off-box.
