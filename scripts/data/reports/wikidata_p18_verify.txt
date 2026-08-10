@@ -1,0 +1,18 @@
+Wikidata P18 photo enrichment — verification (Aug 2026)
+=======================================================
+
+Targets: 349 POIs with a wikidata ref in osm_tags and no photo (307 unique QIDs).
+
+Dry run:      181/349 (52%) matched a P18 image on Wikidata.
+Enrichment:   181 POIs enriched, 0 failures (100% download/upload success).
+
+DB state after run:
+  total POIs with photo_url           : 294
+  wikidata-ref POIs now with photo    : 181
+  wikidata-ref POIs still without     : 168 (QIDs with no P18 claim on Wikidata)
+  Wikimedia/Commons URLs remaining    : 0
+  MinIO URLs (localhost:19000)        : 181
+  remote TripAdvisor URLs             : 113 (not yet migrated to MinIO — next step)
+
+Idempotency: re-running only considers POIs without a photo, so the 181
+enriched are skipped and the remaining 168 are retried.
