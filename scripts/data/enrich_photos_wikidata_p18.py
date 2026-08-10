@@ -145,17 +145,40 @@ def to_direct_upload_url(image_url: str) -> str | None:
 
     P18 values are `http://commons.wikimedia.org/wiki/Special:FilePath/<file>`;
     the md5-direct URL avoids the slow Commons redirect server. Falls back to
-    the normalized URL when direct conversion is not possible.
+    the normalized URL when direct conversion is not possible. The path is
+    percent-encoded so unicode/space/apostrophe filenames download cleanly.
     """
+    import urllib.parse
+
     from scripts.data.migrate_photos_minio import (
         _direct_upload_url,
         _normalize_wikimedia_url,
     )
 
-    direct = _direct_upload_url(image_url)
-    if direct:
-        return direct
-    return _normalize_wikimedia_url(image_url)
+    url = _direct_upload_url(image_url) or _normalize_wikimedia_url(image_url)
+    if not url:
+        return None
+    prefix = "https://upload.wikimedia.org/wikipedia/commons/"
+    if url.startswith(prefix):
+        return prefix + urllib.parse.quote(url[len(prefix):], safe="/_")
+    return url
+
+
+# ── MinIO ────────────────────────────────────────────────────────────────────
+
+def get_minio_client():
+    """Reuse the migrate script's MinIO client (bucket + public-read policy)."""
+    from scripts.data.migrate_photos_minio import get_minio_client as _get
+
+    return _get()
+
+
+def download_and_upload_to_minio(minio_client, http: httpx.Client, url: str):
+    """Download a Wikimedia image and upload to MinIO. Returns minio_url or None."""
+    from scripts.data.migrate_photos_minio import download_and_upload
+
+    minio_url, _ext = download_and_upload(minio_client, http, url)
+    return minio_url
 
 
 def parse_args() -> argparse.Namespace:
