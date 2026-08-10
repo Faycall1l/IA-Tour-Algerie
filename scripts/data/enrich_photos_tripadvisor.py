@@ -85,6 +85,23 @@ def fetch_targets(conn, limit: int = 0) -> list[tuple[str, str, str]]:
     return [(str(r[0]), r[1], r[2]) for r in rows]
 
 
+# ── MinIO ────────────────────────────────────────────────────────────────────
+
+def get_minio_client():
+    """Reuse the migrate script's MinIO client (bucket + public-read policy)."""
+    from scripts.data.migrate_photos_minio import get_minio_client as _get
+
+    return _get()
+
+
+def download_and_upload_to_minio(minio_client, http: httpx.Client, url: str):
+    """Download an image and upload to MinIO. Returns minio_url or None."""
+    from scripts.data.migrate_photos_minio import download_and_upload
+
+    minio_url, _ext = download_and_upload(minio_client, http, url)
+    return minio_url
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Migrate TripAdvisor media-cdn photos to MinIO"
