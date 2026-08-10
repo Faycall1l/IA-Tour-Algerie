@@ -63,3 +63,4 @@ scripts/data/stays_v2_mapped.json
 scripts/data/pois_v2_deduped.json
 scripts/data/stays_v2_deduped.json
 scripts/data/.cdx_cache.json
+scripts/data/raw/geonames/
