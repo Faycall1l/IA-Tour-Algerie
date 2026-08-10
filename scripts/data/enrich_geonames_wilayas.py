@@ -163,6 +163,55 @@ def parse_geonames(
     return records
 
 
+# GeoNames feature code → (category, subtype, label_fr)
+FEATURE_MAP: dict[str, tuple[str, str, str]] = {
+    "T.PK": ("mountain", "peak", "pic"),
+    "T.MT": ("mountain", "mountain", "montagne"),
+    "T.MTS": ("mountain", "mountain", "massif"),
+    "T.HLL": ("mountain", "hill", "colline"),
+    "T.HLLS": ("mountain", "hill", "collines"),
+    "T.RDGE": ("mountain", "ridge", "crête"),
+    "T.VOLC": ("mountain", "volcano", "volcan"),
+    "T.DUNE": ("natural", "dune", "dune"),
+    "T.CAVE": ("natural", "cave", "grotte"),
+    "H.SPNG": ("natural", "spring", "source"),
+    "H.STM": ("natural", "wadi", "oued"),
+    "H.COVE": ("natural", "cove", "crique"),
+    "H.BAY": ("natural", "bay", "baie"),
+    "H.LK": ("natural", "lake", "lac"),
+    "H.LAKE": ("natural", "lake", "lac"),
+    "H.WTRF": ("natural", "waterfall", "cascade"),
+    "H.CHNM": ("natural", "channel", "chenal"),
+    "H.STMH": ("natural", "stream", "cours d'eau"),
+    "L.OAS": ("natural", "oasis", "oasis"),
+    "L.DSRT": ("natural", "desert", "désert"),
+    "T.REG": ("natural", "region", "région"),
+    "T.PLN": ("natural", "plain", "plaine"),
+    "L.PRK": ("park", "park", "parc"),
+    "L.RSVT": ("natural", "reserve", "réserve"),
+    "S.ARCH": ("historical", "archaeological", "site archéologique"),
+    "S.RUIN": ("historical", "ruins", "ruines"),
+    "S.FT": ("historical", "fort", "fort"),
+    "S.ANCH": ("historical", "anchor", "ancien port"),
+    "S.BLDG": ("cultural", "building", "bâtiment"),
+    "S.MUS": ("museum", "museum", "musée"),
+    "S.MNMT": ("historical", "monument", "monument"),
+    "S.TMB": ("historical", "tomb", "tombeau"),
+    "S.CH": ("religious", "church", "lieu de culte"),
+}
+
+
+def normalize_name(name: str) -> str:
+    return "".join(c.lower() for c in name if c.isalnum())
+
+
+def build_description(record: dict, label: str) -> str:
+    parts = [f"{record['name']}, {label}"]
+    if record["elevation"]:
+        parts.append(f"à environ {record['elevation']} m d'altitude")
+    return " — ".join(parts) + " (source GeoNames)."
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description="Targeted GeoNames POI enrichment for under-covered wilayas"
