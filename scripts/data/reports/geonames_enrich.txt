@@ -1,0 +1,5 @@
+Enrichment after GeoNames insert (Aug 2026):
+  1318 geonames rows — 0 missing descriptions (auto-generated with elevation),
+  name_en 1318/1318, name_ar 5/1318 (only 7 GeoNames alternates carried Arabic
+  script; the rest are Latin-transliterated real names — left as-is, no fake
+  Arabic names).
