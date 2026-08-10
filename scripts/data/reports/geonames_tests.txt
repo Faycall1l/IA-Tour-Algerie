@@ -1,0 +1,1 @@
+Test suite after GeoNames enrichment + Qdrant rebuild: 298 passed, 9 warnings (272s).
