@@ -450,6 +450,7 @@ def main():
     if args.dry_run:
         return
 
+    conn = psycopg2.connect(**DB_CONFIG)
     n_written = 0
     for pid, r in results.items():
         if not r.get("source") or not r.get("extract"):
