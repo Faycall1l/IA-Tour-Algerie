@@ -21,13 +21,13 @@ DB_CONFIG = {
 }
 
 DURATION_BY_CATEGORY = {
-    "museum": 120,
-    "historical": 90,
+    "museum": 45,
+    "historical": 30,
     "cultural": 90,
     "religious": 45,
-    "natural": 180,
+    "natural": 45,
     "beach": 120,
-    "mountain": 240,
+    "mountain": 90,
     "park": 90,
     "market": 60,
     "restaurant": 90,
