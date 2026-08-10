@@ -1,0 +1,1 @@
+Test suite after Wikidata P18 photo enrichment: 298 passed, 9 warnings (553s).
