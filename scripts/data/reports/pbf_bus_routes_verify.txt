@@ -1,0 +1,35 @@
+T4 verification (2026-08-11) - OSM urban bus routes via local Geofabrik PBF
+==========================================================================
+Goal: scrape route=bus relations for Constantine, Annaba, Blida, Tlemcen,
+Batna, Djelfa. Live Overpass API was unreachable (connection refused /
+timeouts on all mirrors), so the authoritative local Geofabrik Algeria
+extract (scripts/data/raw/osm/algeria-latest.osm.pbf) was parsed offline
+with pyosmium instead - strictly more complete than Overpass.
+
+Finding (definitive, from the full 242-relation PBF inventory):
+  Constantine, Annaba, Blida, Djelfa have ZERO route=bus relations on OSM
+  (Annaba has 2 empty route_master shells; Blida only shares an Algiers-
+  suburb ETUSA line "Zeralda -> Ain Tagourait"). Tlemcen was already
+  ingested (A42/B42/Chetouane). Honest gap, no synthetic routes.
+  Batna has 1 real route: "03", 17 stops, 4.91 km - was missing.
+
+Bonus - high-detail Sétif ETUS routes present in the PBF but absent from
+the DB (77-109 stops each, real stop names + name_ar from PBF node tags):
+  Bus ETUS SETIF 104 (79 stops, 34.72 km, operator ETUS SETIF)
+  Bus ETUS SETIF 101 (109 stops, 20.77 km)
+  Bus ETUS SETIF 106 aller / 106 retour (20 stops each, 7.4 km)
+  Bus Ligne 03 Batna (17 stops, 4.91 km)
+
+Method: single append-only insert (insert_pbf_bus_routes.py, no TRUNCATE).
+Stops matched to existing bus stations by rounded coords else created with
+real OSM names (11 unnamed stops get honest "Arret <line> <n>" placeholders).
+wilaya assigned by nearest of 69 centers. line_stops carry stop_order +
+cumulative distance/travel time. Idempotent: skips lines whose name already
+exists. Fixed: line_stops.id has no server default (provide UUID), and
+Postgres round() != Python round() (match stations in Python).
+
+Result: 724 transport lines (was 719), 4,257 stations (was 4,254).
+Batna (w5) now has 267 line_stops (bus + intercity taxi), Sétif (w19)
+4,117. Verified TransitRoutingService finds a route across Ligne 03
+(walking + bus segments). connect_orphan_stations unchanged (309) - the
+new stations are served by their lines.
