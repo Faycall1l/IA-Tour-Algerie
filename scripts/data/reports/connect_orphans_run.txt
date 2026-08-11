@@ -1,17 +1,17 @@
 {
   "served_stations": 3904,
-  "orphan_stations": 231,
-  "transfers_created": 222,
-  "unmatched": 9,
+  "orphan_stations": 350,
+  "transfers_created": 309,
+  "unmatched": 41,
   "by_orphan_type": {
     "ferry": 1,
-    "taxi": 2,
+    "taxi": 14,
     "train": 13,
     "tram": 6,
-    "bus": 199,
+    "bus": 274,
     "virtual_hub": 1
   },
-  "avg_walking_min": 12.2,
+  "avg_walking_min": 12.0,
   "sample": [
     {
       "orphan": "Port de Mostaganem (Ferry)",

@@ -1,0 +1,30 @@
+T3 verification (2026-08-11)
+============================
+Goal: 4 wilayas had 0 stations (59 Aflou, 62 Bir El Ater, 66 Messaad,
+69 El Abiodh Sidi Cheikh) - routing could not start/end there.
+
+Method: OSM Overpass queries around each wilaya center (bus stations,
+bus stops, railway stations/halts, taxi stands, tram platforms), deduped
+against existing DB stations by rounded coords, wilaya assigned by NEAREST
+of the 69 wilaya centers with a 40 km cap (correctly rejects spill).
+
+Lesson: a fixed +/-1 deg box around a border wilaya (Bir El Ater) captured
+~90 Tunisian nodes (Gafsa, Tozeur, Kasserine, Redeyef, Metlaoui...). First
+pass force-assigned all of them to w62 - 133 bogus stations - reverted.
+Final assignment by nearest-center + cap: 63 nodes dropped as >40 km.
+
+Result (net-new real OSM stations, correctly assigned):
+  Aflou (59)................ 3
+  Bir El Ater (62).......... 7
+  Messaad (66).............. 6
+  + spill correctly reassigned: Khenchela (40) 67, Tebessa (12) 13,
+    Djelfa (17) 10, Laghouat (3) 11, El Bayadh region (68) 2
+  Total inserted: 117  | dropped: 63 (Tunisia / >40km)
+
+El Abiodh Sidi Cheikh (69): 0 - OSM has NO mapped transport infrastructure
+there (probed wider box, only 1 bus stop ~47 km west near Boussemghoun,
+which belongs to another wilaya). Honest gap, no synthetic rows.
+
+Graph wiring: connect_orphan_stations.py re-run -> 309 walking transfers
+(was 222). 15 new stations remain totally isolated (sparse areas, no served
+station within 5 km) - honest. Final: 4,254 stations, 68/69 wilayas covered.

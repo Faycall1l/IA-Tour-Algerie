@@ -1,0 +1,1139 @@
+{
+  "added": [
+    {
+      "wilaya": "Aflou",
+      "name": "Transport vers Ain Oussara",
+      "type": "bus",
+      "lat": 35.0798626,
+      "lon": 3.025529
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "(unnamed)",
+      "type": "taxi",
+      "lat": 33.8154311,
+      "lon": 2.8704793
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "محطة نقل المسافرين حاسي العش",
+      "type": "bus",
+      "lat": 35.0763314,
+      "lon": 3.0277199
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "نقل مسافرين سيدي بوزيد",
+      "type": "bus",
+      "lat": 34.11544,
+      "lon": 2.1023272
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "توقف حافلات عين ماضي",
+      "type": "bus",
+      "lat": 33.881348,
+      "lon": 2.528768
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "محطة توقف حافلات عين ماضي",
+      "type": "bus",
+      "lat": 33.8793865,
+      "lon": 2.5223946
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "محطة النقل",
+      "type": "bus",
+      "lat": 34.450829,
+      "lon": 2.5291525
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "المحطة الجديدة",
+      "type": "bus",
+      "lat": 34.0978756,
+      "lon": 2.08342
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "محطة المسافرين مابين الولايات",
+      "type": "bus",
+      "lat": 33.816111,
+      "lon": 2.8714152
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "Brachma Zaafran",
+      "type": "bus",
+      "lat": 34.8946019,
+      "lon": 3.0655435
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 33.8000796,
+      "lon": 2.8556678
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "taxis vers djelfa",
+      "type": "taxi",
+      "lat": 34.6207187,
+      "lon": 2.8073918
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "محطة الحافلة 17 - حي 330 سكن - الاتجاه نحو محطة المسافرين",
+      "type": "bus",
+      "lat": 33.8100269,
+      "lon": 2.8604152
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "لحافلة رقم 4 - محطة حي 450 سكن ( الاتجاه نحو الوحات الشمالية)",
+      "type": "bus",
+      "lat": 33.8119419,
+      "lon": 2.8575773
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 33.5068126,
+      "lon": 2.1059991
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "محطة القطار القديمة تأسست سنة 1912",
+      "type": "bus",
+      "lat": 35.0639805,
+      "lon": 3.0344278
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "محطة المسافرين ما بين الولايات",
+      "type": "bus",
+      "lat": 33.7816953,
+      "lon": 2.8932296
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 33.7818518,
+      "lon": 2.8932106
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 33.6459484,
+      "lon": 2.4473456
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "محطة القطار عين كرمس",
+      "type": "bus",
+      "lat": 34.8977734,
+      "lon": 1.1070842
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "حافلات مدريسة تيارت",
+      "type": "bus",
+      "lat": 34.8941555,
+      "lon": 1.2429694
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "سكنات عدل",
+      "type": "bus",
+      "lat": 33.7696719,
+      "lon": 2.8232524
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "Hassi Bahbah",
+      "type": "bus",
+      "lat": 35.0538352,
+      "lon": 3.0526127
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "Laghouat ⵍⴰⴴⵡⴰⵟ الأغواط",
+      "type": "bus",
+      "lat": 33.7986637,
+      "lon": 2.8197607
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "Sidi Makhlouf",
+      "type": "bus",
+      "lat": 34.169518,
+      "lon": 3.0384694
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "(unnamed)",
+      "type": "taxi",
+      "lat": 34.801911,
+      "lon": 1.1286601
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "محطة النقل",
+      "type": "bus",
+      "lat": 34.2979465,
+      "lon": 1.946294
+    },
+    {
+      "wilaya": "Aflou",
+      "name": "موقف حافلات البيضاء",
+      "type": "bus",
+      "lat": 34.4736724,
+      "lon": 2.1688087
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "مقرون",
+      "type": "train",
+      "lat": 34.3330797,
+      "lon": 8.3949018
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Fériana",
+      "type": "bus",
+      "lat": 34.9488803,
+      "lon": 8.5691778
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "ماجل بلعباس",
+      "type": "bus",
+      "lat": 34.7499437,
+      "lon": 8.5195591
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة دقاش",
+      "type": "bus",
+      "lat": 33.9867924,
+      "lon": 8.2134097
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "فطناسة",
+      "type": "bus",
+      "lat": 33.7953088,
+      "lon": 8.7549571
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "الخامس عشر",
+      "type": "bus",
+      "lat": 35.4677843,
+      "lon": 7.9733571
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.2954219,
+      "lon": 7.3527901
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4405245,
+      "lon": 7.0852469
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "حيدرة",
+      "type": "bus",
+      "lat": 35.5644855,
+      "lon": 8.4477562
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Voie Ballastiere- El hrich",
+      "type": "bus",
+      "lat": 35.2391687,
+      "lon": 8.7472434
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "ماجل بلعباس",
+      "type": "bus",
+      "lat": 34.7483328,
+      "lon": 8.5189327
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "تلابت",
+      "type": "bus",
+      "lat": 34.9750351,
+      "lon": 8.5957161
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "العقيلة",
+      "type": "bus",
+      "lat": 34.3780466,
+      "lon": 8.7679111
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Cheria",
+      "type": "bus",
+      "lat": 34.3391983,
+      "lon": 8.605602
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "زانوش",
+      "type": "bus",
+      "lat": 34.4681937,
+      "lon": 9.0525129
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Sehib",
+      "type": "bus",
+      "lat": 34.2353583,
+      "lon": 8.6463376
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "دقاش",
+      "type": "bus",
+      "lat": 33.9852495,
+      "lon": 8.2128112
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Mg 28/29",
+      "type": "bus",
+      "lat": 34.3187814,
+      "lon": 8.5089779
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "taxi",
+      "lat": 35.4141087,
+      "lon": 8.1094239
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "سيارات النقل الحضاري أولاد رشاش",
+      "type": "taxi",
+      "lat": 35.4287569,
+      "lon": 7.1511801
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "ⵜⵉⴽⴻⵔⵢⴰⵙ ⵏ ⵓⵙⵙⴻⴳⵀⴻⵍ ⵏ ⵜⴻⵎⴷⵉⵏⵜسيارات النقل الحضري",
+      "type": "taxi",
+      "lat": 35.4378354,
+      "lon": 7.1404649
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "سيارات أجرة",
+      "type": "taxi",
+      "lat": 35.4302281,
+      "lon": 8.0506289
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.3034136,
+      "lon": 7.3472655
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4298285,
+      "lon": 7.1445355
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "ⴰⵎⴻⵙⵏⵉ ⵏ ⵜⴻⵙⴷⴰⵡⵉⵜالنقل الجامعي",
+      "type": "bus",
+      "lat": 35.4292951,
+      "lon": 7.1422048
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة النقل الحضري ⴰⵍⵙⴰⵙ ⵏ ⵓⵙⴰⵡⴰⴹ ⵏ ⵜⴻⵎⴷⵉⵏⵜ",
+      "type": "bus",
+      "lat": 35.4270956,
+      "lon": 7.1447902
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "هنشير السويطير",
+      "type": "bus",
+      "lat": 34.5333735,
+      "lon": 8.3722176
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 34.7648018,
+      "lon": 8.047217
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Gare Routière",
+      "type": "bus",
+      "lat": 35.1779414,
+      "lon": 8.8477151
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Voie Ballastiere- El hrich",
+      "type": "bus",
+      "lat": 35.2407172,
+      "lon": 8.7477377
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "العقيلة",
+      "type": "bus",
+      "lat": 34.3796334,
+      "lon": 8.7684013
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "وادي القصب",
+      "type": "bus",
+      "lat": 34.4505467,
+      "lon": 8.9567806
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Cheria",
+      "type": "bus",
+      "lat": 34.3407875,
+      "lon": 8.6060841
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Mg 28/29",
+      "type": "bus",
+      "lat": 34.3203719,
+      "lon": 8.5094551
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Feriana",
+      "type": "bus",
+      "lat": 34.9486744,
+      "lon": 8.568871
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Megdoudech",
+      "type": "bus",
+      "lat": 35.0824063,
+      "lon": 8.7248079
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "العيون",
+      "type": "bus",
+      "lat": 34.4280017,
+      "lon": 8.2892621
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة الحفلات أولاد رشاش",
+      "type": "bus",
+      "lat": 35.4296804,
+      "lon": 7.1497013
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4292304,
+      "lon": 7.1578677
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.43107,
+      "lon": 7.1519383
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4185805,
+      "lon": 7.1613429
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4234241,
+      "lon": 7.1570947
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.421332,
+      "lon": 7.1419013
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4095837,
+      "lon": 7.132217
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4072334,
+      "lon": 7.1363878
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة حفلات طريق العزار",
+      "type": "bus",
+      "lat": 35.4299897,
+      "lon": 7.1463302
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4288571,
+      "lon": 7.1634522
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4289852,
+      "lon": 7.1597399
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4203746,
+      "lon": 7.1382838
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.416573,
+      "lon": 7.1358759
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4077085,
+      "lon": 7.1313347
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4049466,
+      "lon": 7.1303005
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.3943071,
+      "lon": 7.143966
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4147055,
+      "lon": 7.141343
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4157832,
+      "lon": 7.1413224
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "ⵍⵃⴰⵎⵎⴰ-\tⵇⴰⵢⴻⵙ-ⵃⴻⵎⵎⴰⵎ ⵍⴻⴽⵏⵉⴼ محطة الحفلات الحامة - قايس - حمام لكنيف",
+      "type": "bus",
+      "lat": 35.4379125,
+      "lon": 7.1408786
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4301438,
+      "lon": 7.1546841
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4324889,
+      "lon": 7.1459502
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة الحفلات حي موسى رداح ⴰⵍⵙⴰⵙ ⵏ ⵢⵉⵃⴰⴼⵉⵍⴻⵏ ⵏ ⵍⵃⴰⵢ ⵎⵓⵙⵙⴰ ⵔⴻⴷⴷⴰⵃ",
+      "type": "bus",
+      "lat": 35.4321069,
+      "lon": 7.1435952
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4198537,
+      "lon": 7.1602967
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4271688,
+      "lon": 7.1361576
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4211836,
+      "lon": 7.1417829
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4214604,
+      "lon": 7.139558
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.418353,
+      "lon": 7.1369486
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4134526,
+      "lon": 7.1340749
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4110245,
+      "lon": 7.1328973
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4064787,
+      "lon": 7.1410059
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.3996621,
+      "lon": 7.1428183
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.3967141,
+      "lon": 7.1436438
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4123671,
+      "lon": 7.141425
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4270141,
+      "lon": 7.1533044
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4202131,
+      "lon": 7.1415159
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة المسافرين",
+      "type": "bus",
+      "lat": 35.2573188,
+      "lon": 7.7628567
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "station de taxi Redeyef",
+      "type": "taxi",
+      "lat": 34.3808492,
+      "lon": 8.150675
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.3756535,
+      "lon": 8.2362567
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "taxi",
+      "lat": 35.4041769,
+      "lon": 8.1242889
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "القطار",
+      "type": "bus",
+      "lat": 34.3303068,
+      "lon": 8.9488392
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Mg N1",
+      "type": "bus",
+      "lat": 34.270524,
+      "lon": 9.0496037
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "القصرين",
+      "type": "bus",
+      "lat": 35.1672794,
+      "lon": 8.8347916
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Redeyef",
+      "type": "bus",
+      "lat": 34.3882036,
+      "lon": 8.1529023
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Tabeddit",
+      "type": "bus",
+      "lat": 34.4364752,
+      "lon": 8.2593068
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Sehib",
+      "type": "bus",
+      "lat": 34.2370276,
+      "lon": 8.6467126
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "فوسانة",
+      "type": "bus",
+      "lat": 35.3492711,
+      "lon": 8.6250111
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "حيدرة",
+      "type": "bus",
+      "lat": 35.5660212,
+      "lon": 8.4482377
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "القلعة الخصبة",
+      "type": "bus",
+      "lat": 35.6603146,
+      "lon": 8.5910133
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "تلابت",
+      "type": "bus",
+      "lat": 34.975496,
+      "lon": 8.5952565
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Om El Arais",
+      "type": "bus",
+      "lat": 34.4870626,
+      "lon": 8.2773565
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Metlaoui",
+      "type": "bus",
+      "lat": 34.3157766,
+      "lon": 8.4164253
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "قفصة",
+      "type": "bus",
+      "lat": 34.3946062,
+      "lon": 8.8039342
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Tozeur",
+      "type": "bus",
+      "lat": 33.9264136,
+      "lon": 8.1357666
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Oued El Ksab (23/24)",
+      "type": "bus",
+      "lat": 34.4505774,
+      "lon": 8.9566927
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Zannouch",
+      "type": "bus",
+      "lat": 34.4686276,
+      "lon": 9.0522272
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Selja",
+      "type": "bus",
+      "lat": 34.3851344,
+      "lon": 8.3400746
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Mdhilla",
+      "type": "bus",
+      "lat": 34.2920513,
+      "lon": 8.7251778
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Sidi Boubaker",
+      "type": "bus",
+      "lat": 34.6675169,
+      "lon": 8.4619053
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 34.4113958,
+      "lon": 8.7946186
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Morsott",
+      "type": "bus",
+      "lat": 35.6680585,
+      "lon": 8.0060723
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Station Louages",
+      "type": "taxi",
+      "lat": 35.5737371,
+      "lon": 8.6705728
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 33.9225558,
+      "lon": 8.1304202
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Louage à Tozeur",
+      "type": "bus",
+      "lat": 33.8726192,
+      "lon": 7.8862065
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "GAFSA",
+      "type": "bus",
+      "lat": 34.422916,
+      "lon": 8.76315
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Kasserine",
+      "type": "bus",
+      "lat": 35.1671982,
+      "lon": 8.8299904
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.1780155,
+      "lon": 8.8477945
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "KHENCHELA",
+      "type": "bus",
+      "lat": 35.4748413,
+      "lon": 7.0805524
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "Baghaï",
+      "type": "bus",
+      "lat": 35.5272937,
+      "lon": 7.1149161
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "M'Toussa",
+      "type": "bus",
+      "lat": 35.5995814,
+      "lon": 7.2332988
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "F'Kirina",
+      "type": "bus",
+      "lat": 35.6591452,
+      "lon": 7.3072569
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة الحافلات بابار",
+      "type": "bus",
+      "lat": 35.4268818,
+      "lon": 7.147269
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة الحافلات تمايورت أنسيغة",
+      "type": "bus",
+      "lat": 35.4266513,
+      "lon": 7.1473139
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "ⵍⵄⵉⵣⴰⵔ (ⵟⴰⵎⵣⴰ) محطة حافلات العيزار (طامزة)",
+      "type": "bus",
+      "lat": 35.4259083,
+      "lon": 7.1472054
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "النقل الجامعي القطب - حي السعادة",
+      "type": "bus",
+      "lat": 35.445061,
+      "lon": 7.15755
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "النقل الجامعي القطب - الحامة",
+      "type": "bus",
+      "lat": 35.4449154,
+      "lon": 7.1575377
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "النقل الجامعي القطب - الإقامة",
+      "type": "bus",
+      "lat": 35.4447673,
+      "lon": 7.15751
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة توقف النقل الجامعي",
+      "type": "bus",
+      "lat": 35.428901,
+      "lon": 7.157028
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة توقف النقل الجامعي ⴰⵍⵙⴰⵙ ⵏ ⵓⵙⴰⵡⴰⴹ ⵏ ⵜⴻⵙⴷⴰⵡⵉⵜ",
+      "type": "bus",
+      "lat": 35.4271942,
+      "lon": 7.1480889
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة توقف النقل الجامعي",
+      "type": "bus",
+      "lat": 35.427014,
+      "lon": 7.1477792
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة توقف النقل الجامعي",
+      "type": "bus",
+      "lat": 35.4383054,
+      "lon": 7.1331293
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة توقف النقل الجامعي ⴰⵍⵙⴰⵙ ⵏ ⵓⵙⴰⵡⴰⴹ ⵏ ⵜⴻⵙⴷⴰⵡⵉⵜ",
+      "type": "bus",
+      "lat": 35.4385314,
+      "lon": 7.1333758
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4182039,
+      "lon": 7.1484535
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4230842,
+      "lon": 7.1479647
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4264781,
+      "lon": 7.1475432
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4282737,
+      "lon": 7.1454028
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4229138,
+      "lon": 7.1477898
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4205947,
+      "lon": 7.1480032
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4178813,
+      "lon": 7.1484545
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4166008,
+      "lon": 7.1489688
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4148249,
+      "lon": 7.1501254
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4153268,
+      "lon": 7.1521317
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "محطة الحافلات تالة",
+      "type": "bus",
+      "lat": 35.5725897,
+      "lon": 8.6703322
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "taxi",
+      "lat": 35.4042541,
+      "lon": 8.1198978
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4047136,
+      "lon": 8.1196092
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "taxi",
+      "lat": 35.4048908,
+      "lon": 8.1192458
+    },
+    {
+      "wilaya": "Bir El Ater",
+      "name": "(unnamed)",
+      "type": "bus",
+      "lat": 35.4221726,
+      "lon": 8.0748654
+    }
+  ],
+  "skipped": {
+    "no_type": 0,
+    "dup": 68
+  },
+  "per_wilaya": {
+    "Aflou": 28,
+    "Bir El Ater": 133
+  }
+}
