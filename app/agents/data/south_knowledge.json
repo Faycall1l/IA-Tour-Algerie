@@ -1,0 +1,554 @@
+{
+  "generated_at": "2026-08-11T11:24:11",
+  "intro": "Deep-south wilayas have NO train access — SNTF stops in the north. Reach them by Air Algérie flight from Alger, or by long-distance shared taxi (most lines run 05:00–23:00 every 30 min). Desert travel is seasonal (Oct–Apr best); stays skew to auberges de jeunesse (≈2 500 DZD/night) and small hotels (4 000–6 000 DZD).",
+  "operator_notes": {
+    "air_algerie": "Contact Center +213 21 98 63 63 (short code 3302); wilaya agencies in Adrar, Tamanrasset, Ouargla, Ghardaïa, Béchar, Djanet, In Salah.",
+    "taxis": "Shared taxis leave when full; confirm price before boarding. Most southern inter-city taxi lines run 05:00–23:00, every 30 min."
+  },
+  "wilayas": {
+    "1": {
+      "id": 1,
+      "name": "Adrar",
+      "flights": [
+        "Adrar → Tamanrasset",
+        "Illizi → Adrar",
+        "Tiaret → Adrar"
+      ],
+      "buses": [],
+      "taxis": [
+        "Taxi Adrar → Aïn Salah",
+        "Taxi Adrar → Béchar",
+        "Taxi Adrar → El Meniaa",
+        "Taxi Adrar → Naâma",
+        "Taxi Adrar → Tamanrasset",
+        "Taxi Adrar → Tindouf",
+        "Taxi Aïn Salah → Adrar",
+        "Taxi Béchar → Adrar",
+        "Taxi El Meniaa → Adrar",
+        "Taxi Naâma → Adrar",
+        "Taxi Tamanrasset → Adrar",
+        "Taxi Tindouf → Adrar"
+      ],
+      "stays": [
+        {
+          "name": "Maison de Jeunes",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Maison des Jeunes Houari Boumedien",
+          "price_dzd": 2500.0
+        }
+      ],
+      "restaurants": [
+        "البيتزا الحقيقية"
+      ],
+      "featured": [
+        "BAKHLA",
+        "Draa El Guerb دراع القرب",
+        "Erg Chech عرق شاش"
+      ],
+      "poi_count": 158
+    },
+    "8": {
+      "id": 8,
+      "name": "Béchar",
+      "flights": [
+        "Alger → Aéroport de Béchar (Boudghene)"
+      ],
+      "buses": [
+        "Bus Kenadsa → Bechar",
+        "Bus بشار → القنادسة"
+      ],
+      "taxis": [
+        "Taxi Adrar → Béchar",
+        "Taxi Béchar → Adrar",
+        "Taxi Béchar → Naâma",
+        "Taxi Béchar → Tindouf",
+        "Taxi Béchar → Tlemcen",
+        "Taxi Béchar → W61",
+        "Taxi Naâma → Béchar",
+        "Taxi Tindouf → Béchar",
+        "Taxi Tlemcen → Béchar",
+        "Taxi W61 → Béchar"
+      ],
+      "stays": [
+        {
+          "name": "دار الشباب تاغيت",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "tamasent",
+          "price_dzd": 4000.0
+        },
+        {
+          "name": "تبلبالة",
+          "price_dzd": 5000.0
+        }
+      ],
+      "restaurants": [
+        "Bou ’Ayech",
+        "El Haouari",
+        "Habibou"
+      ],
+      "featured": [
+        "Musée de Béchar",
+        "Musée de Kenadsa"
+      ],
+      "poi_count": 164
+    },
+    "11": {
+      "id": 11,
+      "name": "Tamanrasset",
+      "flights": [
+        "Adrar → Tamanrasset",
+        "Alger → Aéroport de Tamanrasset (Aguenar)",
+        "Tamanrasset → Djanet"
+      ],
+      "buses": [],
+      "taxis": [
+        "Taxi Adrar → Tamanrasset",
+        "Taxi Aïn Salah → Tamanrasset",
+        "Taxi Djanet → Tamanrasset",
+        "Taxi El Meniaa → Tamanrasset",
+        "Taxi Illizi → Tamanrasset",
+        "Taxi Tamanrasset → Adrar",
+        "Taxi Tamanrasset → Aïn Salah",
+        "Taxi Tamanrasset → Djanet",
+        "Taxi Tamanrasset → El Meniaa",
+        "Taxi Tamanrasset → Illizi"
+      ],
+      "stays": [
+        {
+          "name": "Auberge de jeunesse;بيت الشباب",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Résidence El Hana;مسكن الهنا",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Funduk",
+          "price_dzd": 4000.0
+        }
+      ],
+      "restaurants": [
+        "Groupe restauration",
+        "Mainama",
+        "Oum derman 2"
+      ],
+      "featured": [
+        "Dar El Imzad;دار الإمزاد",
+        "IN TAHABORT",
+        "Musée du Tombeau de Tin Hinan"
+      ],
+      "poi_count": 278
+    },
+    "30": {
+      "id": 30,
+      "name": "Ouargla",
+      "flights": [
+        "AH Alger → Ouargla",
+        "Alger → Aéroport d'Ouargla (Aïn Beida)",
+        "Alger → Aéroport de Hassi Messaoud (Oued Irara)"
+      ],
+      "buses": [],
+      "taxis": [
+        "Taxi Aïn Salah → Ouargla",
+        "Taxi Djanet → Ouargla",
+        "Taxi El M'Ghair → Ouargla",
+        "Taxi El Meniaa → Ouargla",
+        "Taxi El Oued → Ouargla",
+        "Taxi Ghardaïa → Ouargla",
+        "Taxi Illizi → Ouargla",
+        "Taxi Ouargla → Aïn Salah",
+        "Taxi Ouargla → Djanet",
+        "Taxi Ouargla → El M'Ghair",
+        "Taxi Ouargla → El Meniaa",
+        "Taxi Ouargla → El Oued",
+        "Taxi Ouargla → Ghardaïa",
+        "Taxi Ouargla → Illizi",
+        "Taxi Ouargla → Ouargla",
+        "Taxi Ouargla → Touggourt",
+        "Taxi Touggourt → Ouargla"
+      ],
+      "stays": [
+        {
+          "name": "Hotel Nazl EL-AMIR",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Maison",
+          "price_dzd": 2500.0
+        }
+      ],
+      "restaurants": [
+        "Bourek Annabi",
+        "Complexe Restauration"
+      ],
+      "featured": [
+        "AIN MOUDJAHIDINE",
+        "GOUIRET CHOHEB",
+        "HASSI BEN ADELLAH"
+      ],
+      "poi_count": 281
+    },
+    "33": {
+      "id": 33,
+      "name": "Illizi",
+      "flights": [
+        "Alger → Aéroport d'Illizi (Takhamalt)",
+        "Alger → Aéroport d'In Amenas",
+        "Djanet → Illizi",
+        "Illizi → Adrar"
+      ],
+      "buses": [],
+      "taxis": [
+        "Taxi Aïn Salah → Illizi",
+        "Taxi Djanet → Illizi",
+        "Taxi Illizi → Aïn Salah",
+        "Taxi Illizi → Djanet",
+        "Taxi Illizi → Ouargla",
+        "Taxi Illizi → Tamanrasset",
+        "Taxi Ouargla → Illizi",
+        "Taxi Tamanrasset → Illizi"
+      ],
+      "stays": [
+        {
+          "name": "Auberge de Jeunesse d'Illizi;نزل الشباب",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Villa d'hôte Tassili",
+          "price_dzd": 4000.0
+        }
+      ],
+      "restaurants": [
+        "Mainama;ميناما",
+        "Pizza Pizza",
+        "Restaurant El Ihsan;مطعم الإحسان"
+      ],
+      "featured": [
+        "ADJANDO",
+        "BELQUEBOR",
+        "ISKEIFAF"
+      ],
+      "poi_count": 228
+    },
+    "37": {
+      "id": 37,
+      "name": "Tindouf",
+      "flights": [],
+      "buses": [],
+      "taxis": [
+        "Taxi Adrar → Tindouf",
+        "Taxi Béchar → Tindouf",
+        "Taxi Naâma → Tindouf",
+        "Taxi Tindouf → Adrar",
+        "Taxi Tindouf → Béchar",
+        "Taxi Tindouf → Naâma"
+      ],
+      "stays": [
+        {
+          "name": "Maison Ami Dahan",
+          "price_dzd": 4000.0
+        },
+        {
+          "name": "أهل محمد ولد بداد يرحب بكم",
+          "price_dzd": 4000.0
+        },
+        {
+          "name": "الحضانة",
+          "price_dzd": 4000.0
+        }
+      ],
+      "restaurants": [
+        "Café et Restaurant Diplomate",
+        "سينما وشاورما",
+        "مطعم البيظان بنافا"
+      ],
+      "featured": [
+        "Direction de la protection civile",
+        "Musée National Sahraoui 27 Février",
+        "People's Liberation Army Museum"
+      ],
+      "poi_count": 79
+    },
+    "47": {
+      "id": 47,
+      "name": "Ghardaïa",
+      "flights": [
+        "Alger → Aéroport de Ghardaïa (Noumérat)"
+      ],
+      "buses": [
+        "Bus موقف حافلة 1 - الأقواس → موقف حافلة 1 - مركز المدينة والسوق",
+        "Bus موقف حافلة 1 - مركز المدينة والسوق → موقف حافلة 1 - الأقواس"
+      ],
+      "taxis": [
+        "Taxi Aïn Salah → Ghardaïa",
+        "Taxi El Meniaa → Ghardaïa",
+        "Taxi Ghardaïa → Aïn Salah",
+        "Taxi Ghardaïa → El Meniaa",
+        "Taxi Ghardaïa → Laghouat",
+        "Taxi Ghardaïa → Ouargla",
+        "Taxi Ghardaïa → Touggourt",
+        "Taxi Laghouat → Ghardaïa",
+        "Taxi Ouargla → Ghardaïa",
+        "Taxi Touggourt → Ghardaïa"
+      ],
+      "stays": [
+        {
+          "name": "Centre Familial de Zelfana SONELGAZ",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Centre de repos des anciens moudjahidines",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Hotel Benkhlifa",
+          "price_dzd": 2500.0
+        }
+      ],
+      "restaurants": [
+        "Djurdjura",
+        "Ghani - Doubara",
+        "Lilo karantika & maakoud"
+      ],
+      "featured": [
+        "FOUSSA",
+        "Planétarium de Ghardaia"
+      ],
+      "poi_count": 181
+    },
+    "49": {
+      "id": 49,
+      "name": "Timimoun",
+      "flights": [
+        "Alger → Aéroport de Timimoun"
+      ],
+      "buses": [],
+      "taxis": [],
+      "stays": [
+        {
+          "name": "Auberge de jeunesse de Timimoun;نزل الشباب تيميمون",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Ben-Kadi Abd El-Krim",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Hôtel Trail;نزل تريل",
+          "price_dzd": 2500.0
+        }
+      ],
+      "restaurants": [
+        "La Rose des Sables d'Or;وردة الرمال الذهبية",
+        "مطعم الشروق",
+        "مطعم القوسطو باحمود"
+      ],
+      "featured": [
+        "CAPTERRE ;المركز الجزائري للتراث الثقافي",
+        "Centre Algerien du Patrimoine Culturel",
+        "ركنة البيوض"
+      ],
+      "poi_count": 71
+    },
+    "50": {
+      "id": 50,
+      "name": "Bordj Badji Mokhtar",
+      "flights": [],
+      "buses": [],
+      "taxis": [],
+      "stays": [
+        {
+          "name": "إن كرت",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "قرية عبان رمضان",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Maison d'hôtes;دار الضيافة",
+          "price_dzd": 4000.0
+        }
+      ],
+      "restaurants": [
+        "Abibbqi;اببقيي",
+        "El Salam Ouakeni;محل السلام وكني",
+        "Fabibis;فببييس"
+      ],
+      "featured": [
+        "Hay El-Wassat;حي الوسط",
+        "In Ziza",
+        "عين تيرباغ"
+      ],
+      "poi_count": 118
+    },
+    "52": {
+      "id": 52,
+      "name": "Béni Abbès",
+      "flights": [],
+      "buses": [],
+      "taxis": [],
+      "stays": [
+        {
+          "name": "Auberge De Jenesse Oasis Blanche",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Auberge de Jeunesse Oasis Blanche",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "Auberge de jeunes",
+          "price_dzd": 2500.0
+        }
+      ],
+      "restaurants": [
+        "Restaurant"
+      ],
+      "featured": [
+        "Maitigat Daknane",
+        "Musée de Béni-Abbés",
+        "Nba mta el Kbar"
+      ],
+      "poi_count": 304
+    },
+    "53": {
+      "id": 53,
+      "name": "In Salah",
+      "flights": [
+        "AH Alger → In Salah"
+      ],
+      "buses": [],
+      "taxis": [
+        "Taxi Adrar → Aïn Salah",
+        "Taxi Aïn Salah → Adrar",
+        "Taxi Aïn Salah → Djanet",
+        "Taxi Aïn Salah → El Meniaa",
+        "Taxi Aïn Salah → Ghardaïa",
+        "Taxi Aïn Salah → Illizi",
+        "Taxi Aïn Salah → Ouargla",
+        "Taxi Aïn Salah → Tamanrasset",
+        "Taxi Djanet → Aïn Salah",
+        "Taxi El Meniaa → Aïn Salah",
+        "Taxi Ghardaïa → Aïn Salah",
+        "Taxi Illizi → Aïn Salah",
+        "Taxi Ouargla → Aïn Salah",
+        "Taxi Tamanrasset → Aïn Salah"
+      ],
+      "stays": [
+        {
+          "name": "بلعالم",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "بيت الشباب",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "بيت الشباب باخمد عبد الله",
+          "price_dzd": 2500.0
+        }
+      ],
+      "restaurants": [
+        "Mahmoud",
+        "المطعم المدرسي أنس ابن مالك",
+        "قاعة متعددة الخدمات قصبة بلال"
+      ],
+      "featured": [
+        "AIN KEHLA",
+        "TAMESGUIDA",
+        "manzel"
+      ],
+      "poi_count": 128
+    },
+    "56": {
+      "id": 56,
+      "name": "Djanet",
+      "flights": [
+        "Alger → Aéroport de Djanet (Tiska)",
+        "Djanet → Illizi",
+        "Tamanrasset → Djanet"
+      ],
+      "buses": [],
+      "taxis": [
+        "Taxi Aïn Salah → Djanet",
+        "Taxi Djanet → Aïn Salah",
+        "Taxi Djanet → Illizi",
+        "Taxi Djanet → Ouargla",
+        "Taxi Djanet → Tamanrasset",
+        "Taxi Illizi → Djanet",
+        "Taxi Ouargla → Djanet",
+        "Taxi Tamanrasset → Djanet"
+      ],
+      "stays": [
+        {
+          "name": "دار الضيافة",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "نزل الشباب L'auberge de jeunesse",
+          "price_dzd": 2500.0
+        }
+      ],
+      "restaurants": [
+        "Tofrakt Restaurant",
+        "معجنات"
+      ],
+      "featured": [
+        "ADJAHIL",
+        "INDABIRAN",
+        "Musée Tassili"
+      ],
+      "poi_count": 463
+    },
+    "58": {
+      "id": 58,
+      "name": "El Meniaa",
+      "flights": [],
+      "buses": [],
+      "taxis": [
+        "Taxi Adrar → El Meniaa",
+        "Taxi Aïn Salah → El Meniaa",
+        "Taxi El Meniaa → Adrar",
+        "Taxi El Meniaa → Aïn Salah",
+        "Taxi El Meniaa → Ghardaïa",
+        "Taxi El Meniaa → Laghouat",
+        "Taxi El Meniaa → Ouargla",
+        "Taxi El Meniaa → Tamanrasset",
+        "Taxi Ghardaïa → El Meniaa",
+        "Taxi Laghouat → El Meniaa",
+        "Taxi Ouargla → El Meniaa",
+        "Taxi Tamanrasset → El Meniaa"
+      ],
+      "stays": [
+        {
+          "name": "بيت الشباب المنيعة",
+          "price_dzd": 2500.0
+        },
+        {
+          "name": "حذب باني",
+          "price_dzd": 5000.0
+        },
+        {
+          "name": "CTCO WORK SHOP",
+          "price_dzd": 6000.0
+        }
+      ],
+      "restaurants": [
+        "El menea",
+        "Restaurant EL Golea",
+        "Restauration rapide chez Bakraoui Cheikh"
+      ],
+      "featured": [
+        "Mosquée",
+        "Musée",
+        "Musée Public National d’El Meniâa"
+      ],
+      "poi_count": 155
+    }
+  }
+}
