@@ -7,6 +7,59 @@ from app.agents.south_knowledge import (
     south_briefing,
 )
 
+_SOUTH_HISTORY = (
+    "\n\n--- PREVIOUS CONVERSATION ---\n"
+    "[User]: Plan a 4-day trip to Djanet and the Tassili n'Ajjer\n"
+    "[Assistant]: ...\n"
+    "--- END PREVIOUS CONVERSATION ---\n"
+)
+
+_NORTH_HISTORY = (
+    "\n\n--- PREVIOUS CONVERSATION ---\n"
+    "[User]: Beaches in Oran for the weekend?\n"
+    "--- END PREVIOUS CONVERSATION ---\n"
+)
+
+
+class TestRendererIntegration:
+    """The south briefing must reach every rendered agent prompt."""
+
+    def _render(self, prompt_name: str, history: str) -> str:
+        from app.agents.deps import TravelAgentDeps
+        from app.agents.travel_agent import _dynamic_instructions
+
+        class FakeUser:
+            full_name = "Tester"
+            phone = "+213600000000"
+            role = "traveler"
+
+        class FakeCtx:
+            def __init__(self, deps):
+                self.deps = deps
+
+        deps = TravelAgentDeps(
+            user=FakeUser(), db=None, message_history=history
+        )
+        return _dynamic_instructions(prompt_name)(FakeCtx(deps))
+
+    def test_all_five_agents_inject_south_briefing(self):
+        for name in (
+            "travel_agent.main",
+            "travel_agent.itinerary",
+            "travel_agent.search",
+            "travel_agent.transport",
+            "travel_agent.events",
+        ):
+            south_prompt = self._render(name, _SOUTH_HISTORY)
+            north_prompt = self._render(name, _NORTH_HISTORY)
+            assert "SOUTH ALGERIA BRIEFING" in south_prompt
+            assert "SOUTH ALGERIA BRIEFING" not in north_prompt
+
+    def test_briefing_content_present_in_rendered_prompt(self):
+        main_prompt = self._render("travel_agent.main", _SOUTH_HISTORY)
+        for needle in ("Djanet", "Air Algérie", "no train", "wilaya 56"):
+            assert needle.lower() in main_prompt.lower(), needle
+
 
 class TestSouthKnowledge:
     def test_load_knowledge_covers_all_southern_wilayas(self):
