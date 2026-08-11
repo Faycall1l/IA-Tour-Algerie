@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from app.api.deps import get_poi_transit_router
+from app.main import app
 from app.models.artisan import Artisan, ArtisanTransitAccess
 from app.models.station import Station
 from app.services.poi_transit_router import RoutePlan, StepCoordinate, WalkingStep
@@ -125,14 +126,14 @@ async def test_route_to_artisan_returns_plan_and_transit(
 
     fake_router = AsyncMock()
     fake_router.route_to = AsyncMock(side_effect=lambda **kw: make_plan())
-    client.app.dependency_overrides[get_poi_transit_router] = lambda: fake_router
+    app.dependency_overrides[get_poi_transit_router] = lambda: fake_router
     try:
         resp = await client.get(
             f"/api/v1/transport/route-to-artisan/{artisan_id}",
             params={"from_lat": 36.77, "from_lng": 3.05},
         )
     finally:
-        client.app.dependency_overrides.pop(get_poi_transit_router, None)
+        app.dependency_overrides.pop(get_poi_transit_router, None)
     assert resp.status_code == 200
     data = resp.json()
     assert data["artisan_name"] == "Atelier Bijoux Kabyles"
