@@ -1,0 +1,52 @@
+South knowledge-base survey (Aug 2026) — grounding for agent south briefings
+=============================================================================
+All facts below pulled from the live DB (pois/stays/transport_lines/stations).
+
+SOUTHERN WILAYAS (13, IDs): Adrar(1) Bechar(8) Tamanrasset(11) Ouargla(30)
+Illizi(33) Tindouf(37) Ghardaia(47) Timimoun(49) Bordj Badji Mokhtar(50)
+Beni Abbes(52) In Salah(53) Djanet(56) El Meniaa(58)
+
+STAYS (real, price range 2500-6000 DZD/night):
+  Adrar 35 | Bechar 43 | Tamanrasset 27 | Ouargla 69 | Illizi 13 | Tindouf 13
+  Ghardaia 40 | Timimoun 20 | BBM 16 | Beni Abbes 11 | In Salah 13 | Djanet 21
+  El Meniaa 22
+  Sample real stays: Hotel Nazl EL-AMIR (Ouargla 2500), Residence El Hana
+  (Tamanrasset 2500), Auberge De Jenesse Oasis Blanche (Beni Abbes 2500),
+  Dar El Imzad (Tamanrasset), Sonatrach Illizi 4000, hotel Djanane Malik
+  (Timimoun 6000, wikivoyage-en).
+
+FLIGHTS (Air Algerie, real lines in DB — all from Alger unless noted):
+  Alger -> Djanet (Tiska) | Alger -> Tamanrasset (Aguenar) | Alger -> Illizi
+  (Takhamalt) | Alger -> In Amenas | Alger -> In Salah | Alger -> Ouargla
+  (Ain Beida) | Alger -> Hassi Messaoud | Alger -> Ghardaia (Noumerat) |
+  Alger -> Timimoun | Alger -> Bechar (Boudghene) | Adrar -> Tamanrasset |
+  Djanet -> Illizi | Tamanrasset -> Djanet | Illizi -> Adrar | Tiaret -> Adrar
+  Operator: Air Algerie Contact Center +213 21 98 63 63 (3302); wilaya agencies
+  in Adrar, Tamanrasset, Ouargla, Ghardaia, Bechar, Djanet, In Salah.
+
+TAXI ROUTES (inter-city, every 30min 05:00-23:00, real edges):
+  Adrar-Tamanrasset, Adrar-Bechar, Adrar-Tindouf, Adrar-El Meniaa,
+  Adrar-Ain Salah, Tamanrasset-Djanet, Tamanrasset-Ain Salah, Tamanrasset-Illizi,
+  Tamanrasset-Ouargla, Djanet-Illizi, Djanet-Ouargla, Djanet-Ain Salah,
+  Illizi-Ouargla, Illizi-Ain Salah, Ghardaia-Ouargla, Ghardaia-El Meniaa,
+  Ghardaia-Ain Salah, Ghardaia-Laghouat, Ghardaia-Touggourt, El Meniaa-Ouargla,
+  El Meniaa-Ain Salah, El Meniaa-Laghouat, Bechar-Tindouf, Bechar-Naama,
+  Bechar-Tlemcen, El Oued-Ouargla, El M'Ghair-Ouargla.
+  NO TRAIN reaches any southern wilaya (SNTF network ends at the north).
+
+BUSES (real, OSM/DB): Kenadsa -> Bechar; Ghardaia city lines.
+
+FEATURED POIS per wilaya (real, examples):
+  Bechar: Musee de Bechar, Musee de Kenadsa | Tamanrasset: Dar El Imzad,
+  In Tahabort | Ghardaia: Foussa, Planetarium de Ghardaia | Timimoun: Centre
+  Algerien du Patrimoine Culturel, Capterre | Beni Abbes: Musee de Beni-Abbes,
+  Maitigat Daknane | Djanet: Adjahil, Indabiran | In Salah: Ain Kehla,
+  Tamesguida | Ouargla: Ain Moujahidine, Gouiret Choheb | BBM: Hay El-Wassat,
+  In Ziza | Tindouf: Musee National Sahraoui 27 Fevrier.
+
+DESERT CONTEXT (from curated data, not fabricated):
+  Tassili n'Ajjer (Djanet/Illizi) and Ahaggar (Tamanrasset) are the two great
+  desert national parks; featured POIs span ksars (Adjahil), rock art,
+  gueltas and dunes. Southern stays skew to auberges de jeunesse (2500 DZD)
+  and small hotels (4000-6000 DZD). Restaurant coverage is thinnest in
+  Adrar, Beni Abbes, Djanet (1-2 named each) — genuine absence, not a bug.
