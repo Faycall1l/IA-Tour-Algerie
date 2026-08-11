@@ -139,6 +139,7 @@ def _dynamic_instructions(prompt_name: str):
     """
     from app.agents.prompts import AgentContext
     from app.agents.prompts import registry as reg
+    from app.agents.south_knowledge import last_user_turn, south_briefing
 
     def _render(ctx: RunContext[TravelAgentDeps]) -> str:
         prompt = reg.get(prompt_name)
@@ -146,6 +147,9 @@ def _dynamic_instructions(prompt_name: str):
         base = prompt.render(context=agent_ctx.render())
         if ctx.deps.message_history:
             base += "\n" + ctx.deps.message_history
+        briefing = south_briefing(last_user_turn(ctx.deps.message_history))
+        if briefing:
+            base += "\n\n" + briefing
         return base
 
     return _render
