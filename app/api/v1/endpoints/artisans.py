@@ -9,12 +9,49 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_current_user, get_db
 from app.core.exceptions import ConflictException, ForbiddenException, NotFoundException
-from app.models.artisan import Artisan
+from app.models.artisan import Artisan, ArtisanTransitAccess
+from app.models.station import Station
 from app.models.user import User
-from app.schemas.artisan import ArtisanCreate, ArtisanFeed, ArtisanRead, ArtisanUpdate
+from app.schemas.artisan import (
+    ArtisanCreate,
+    ArtisanFeed,
+    ArtisanRead,
+    ArtisanTransitAccessRead,
+    ArtisanUpdate,
+)
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/artisans", tags=["Artisans"])
+
+
+async def _load_nearest_transit(
+    db: AsyncSession, artisan_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[ArtisanTransitAccessRead]]:
+    """Load nearest-transit walking edges for a batch of artisans (one query)."""
+    if not artisan_ids:
+        return {}
+    rows = (
+        await db.execute(
+            select(ArtisanTransitAccess, Station)
+            .join(Station, Station.id == ArtisanTransitAccess.station_id)
+            .where(ArtisanTransitAccess.artisan_id.in_(artisan_ids))
+            .order_by(ArtisanTransitAccess.artisan_id, ArtisanTransitAccess.rank)
+        )
+    ).all()
+    result: dict[uuid.UUID, list[ArtisanTransitAccessRead]] = {}
+    for access, station in rows:
+        result.setdefault(access.artisan_id, []).append(
+            ArtisanTransitAccessRead(
+                station_id=station.id,
+                station_name=station.name,
+                station_type=station.station_type,
+                operator=station.operator,
+                distance_m=access.distance_m,
+                walking_time_min=access.walking_time_min,
+                rank=access.rank,
+            )
+        )
+    return result
 
 
 @router.post(
@@ -93,7 +130,11 @@ async def list_artisans(
 
     offset = (page - 1) * page_size
     result = await db.execute(q.offset(offset).limit(page_size))
-    items = [ArtisanRead.model_validate(a) for a in result.scalars().all()]
+    artisans = result.scalars().all()
+    items = [ArtisanRead.model_validate(a) for a in artisans]
+    nearest = await _load_nearest_transit(db, [a.id for a in artisans])
+    for item in items:
+        item.nearest_transit = nearest.get(item.id, [])
 
     total_pages = (total + page_size - 1) // page_size if total > 0 else 0
     return ArtisanFeed(
@@ -121,7 +162,9 @@ async def get_artisan(artisan_id: uuid.UUID, db: AsyncSession = Depends(get_db))
     artisan = await db.get(Artisan, artisan_id)
     if not artisan:
         raise NotFoundException(message="Artisan not found")
-    return ArtisanRead.model_validate(artisan)
+    result = ArtisanRead.model_validate(artisan)
+    result.nearest_transit = (await _load_nearest_transit(db, [artisan.id])).get(artisan.id, [])
+    return result
 
 
 @router.put(

@@ -9,8 +9,6 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
 
 logger = logging.getLogger(__name__)
 
@@ -71,6 +69,10 @@ def create_verification_agent(
     if not api_key:
         logger.info("No API key set — verification agent runs in dry-run mode")
         return None
+    # Imported lazily to keep module import light (see travel_agent._make_model).
+    from pydantic_ai.models.openai import OpenAIChatModel
+    from pydantic_ai.providers.openai import OpenAIProvider
+
     openai_model = OpenAIChatModel(
         model_name,
         provider=OpenAIProvider(base_url=base_url, api_key=api_key),

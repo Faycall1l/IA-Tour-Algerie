@@ -12,6 +12,11 @@ import pytest_asyncio
 # uses host "test" for requests.
 os.environ.setdefault("ATHAR_ALLOWED_HOSTS", '["test", "localhost", "127.0.0.1"]')
 
+# Skip pydantic's plugin entry-point scan (importlib.metadata walks the whole
+# site-packages tree) — no pydantic plugins are used and it's very slow on
+# iCloud-backed filesystems.
+os.environ.setdefault("PYDANTIC_DISABLE_PLUGINS", "1")
+
 from app.core.config import settings  # noqa: E402
 from app.core.security import create_access_token
 from app.db.base import Base

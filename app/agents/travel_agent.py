@@ -13,10 +13,10 @@ canonical prompt text. The instructions below are fallback defaults;
 in production, use build_prompt() to inject user context.
 """
 
+from __future__ import annotations
+
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
-from pydantic_ai.models.openai import OpenAIChatModel
-from pydantic_ai.providers.openai import OpenAIProvider
 
 from app.agents.deps import TravelAgentDeps
 from app.agents.memory_tools import recall, remember
@@ -108,6 +108,12 @@ def _register_all_tools(agent: Agent) -> None:
 
 
 def _make_model(base_url: str, api_key: str, model_name: str) -> OpenAIChatModel:
+    # Imported lazily: pydantic_ai.models.openai pulls the entire openai SDK
+    # (thousands of type modules) at import time, which stalls app/test boot on
+    # slow filesystems. Only needed when an agent is actually created.
+    from pydantic_ai.models.openai import OpenAIChatModel
+    from pydantic_ai.providers.openai import OpenAIProvider
+
     return OpenAIChatModel(
         model_name,
         provider=OpenAIProvider(

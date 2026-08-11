@@ -50,6 +50,18 @@ class ArtisanUpdate(BaseModel):
     accepts_visitors: bool | None = None
 
 
+class ArtisanTransitAccessRead(BaseModel):
+    """A walking edge from an artisan to one nearby transit station."""
+
+    station_id: uuid.UUID
+    station_name: str
+    station_type: str
+    operator: str
+    distance_m: float
+    walking_time_min: float
+    rank: int
+
+
 class ArtisanRead(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -77,6 +89,7 @@ class ArtisanRead(BaseModel):
     accepts_visitors: bool | None = None
     is_verified: bool | None = None
     created_at: datetime | None = None
+    nearest_transit: list[ArtisanTransitAccessRead] = Field(default_factory=list)
 
 
 class ArtisanFeed(BaseModel):

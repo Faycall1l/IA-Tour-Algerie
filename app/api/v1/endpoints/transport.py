@@ -5,7 +5,10 @@ from sqlalchemy import or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_db, get_poi_transit_router, get_transit_routing
+from app.models.artisan import Artisan, ArtisanTransitAccess
+from app.models.station import Station
 from app.models.wilaya_distance import WilayaDistance
+from app.schemas.artisan import ArtisanTransitAccessRead
 from app.services.multimodal_router import MultiModalRouter
 from app.services.poi_transit_router import PoiTransitRouter
 from app.services.transit_routing import TransitRoutingService
@@ -14,6 +17,32 @@ from app.services.transport import TransportService
 router = APIRouter(prefix="/transport", tags=["transport"])
 
 _transport_service = TransportService()
+
+
+async def _artisan_nearest_transit(
+    db: AsyncSession, artisan_id: uuid.UUID
+) -> list[ArtisanTransitAccessRead]:
+    """Nearest-transit walking edges for one artisan, ordered by rank."""
+    rows = (
+        await db.execute(
+            select(ArtisanTransitAccess, Station)
+            .join(Station, Station.id == ArtisanTransitAccess.station_id)
+            .where(ArtisanTransitAccess.artisan_id == artisan_id)
+            .order_by(ArtisanTransitAccess.rank)
+        )
+    ).all()
+    return [
+        ArtisanTransitAccessRead(
+            station_id=station.id,
+            station_name=station.name,
+            station_type=station.station_type,
+            operator=station.operator,
+            distance_m=access.distance_m,
+            walking_time_min=access.walking_time_min,
+            rank=access.rank,
+        )
+        for access, station in rows
+    ]
 
 
 # ── Legacy inter-wilaya route endpoints ─────────────────────────────
@@ -315,6 +344,60 @@ async def route_to_poi(
             "from": {"lat": plan.from_lat, "lng": plan.from_lng, "name": plan.from_name},
             "plan": plan.as_dict(),
             "poi_access": access_info,
+        }
+    except ValueError as e:
+        return {"error": str(e)}
+
+
+@router.get(
+    "/route-to-artisan/{artisan_id}",
+    summary="Directions to an artisan workshop",
+    description=(
+        "Turn-by-turn transit directions from a GPS point to a specific artisan "
+        "workshop. Returns the plan plus the nearest-transit walking edges. Falls "
+        "back to an error object when no route exists or the artisan has no "
+        "coordinates."
+    ),
+    responses={
+        200: {"description": "Route plan + nearest transit access"},
+        404: {"description": "Artisan not found"},
+        422: {"description": "Invalid UUID or coordinates"},
+    },
+)
+async def route_to_artisan(
+    artisan_id: uuid.UUID,
+    from_lat: float = Query(...),
+    from_lng: float = Query(...),
+    from_name: str = Query("Your location"),
+    db: AsyncSession = Depends(get_db),
+    router: PoiTransitRouter = Depends(get_poi_transit_router),
+) -> dict:
+    """Compute turn-by-turn transit directions from a GPS point to an artisan."""
+    try:
+        artisan = await db.get(Artisan, artisan_id)
+        if artisan is None:
+            return {"error": f"Artisan {artisan_id} not found"}
+        if artisan.latitude is None or artisan.longitude is None:
+            return {"error": "Artisan has no coordinates to route to"}
+        plan = await router.route_to(
+            db=db,
+            from_lat=from_lat,
+            from_lng=from_lng,
+            from_name=from_name,
+            to_lat=artisan.latitude,
+            to_lng=artisan.longitude,
+            to_name=artisan.name,
+        )
+        nearest = await _artisan_nearest_transit(db, artisan_id)
+        return {
+            "artisan_id": str(artisan_id),
+            "artisan_name": artisan.name,
+            "craft_type": artisan.craft_type,
+            "artisan_lat": artisan.latitude,
+            "artisan_lng": artisan.longitude,
+            "from": {"lat": plan.from_lat, "lng": plan.from_lng, "name": plan.from_name},
+            "plan": plan.as_dict(),
+            "nearest_transit": [n.model_dump(mode="json") for n in nearest],
         }
     except ValueError as e:
         return {"error": str(e)}
