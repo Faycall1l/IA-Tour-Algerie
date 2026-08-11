@@ -1,0 +1,34 @@
+Backfill verification (2026-08-11)
+===================================
+Source: app/data/transit_edges_enriched.json (34,921 edges, 100% schedule/pricing)
+Method: grouped edges by line_id -> candidate name "{mode.title()} {line_name}"
+        -> matched transport_lines by normalized name (627/627, stop-overlap fallback unused)
+Writes: transport_lines.schedule_info + pricing_info (JSONB)
+
+Result:
+  - transport_lines total: 719
+  - schedule_info populated: 616/719 (86%)
+  - pricing_info populated: 577/719 (80%)
+  - both: 336
+  - name-matched: 627 (100% of matched)
+
+By mode (pricing/schedule coverage):
+  taxi    336/337 (per_km -> estimated_total)
+  tram     14/14  (single fare -> per_person)
+  cablecar  7/7
+  metro     1/1
+  bus     115/187
+  train   102/130
+  flight    2/35  (only 4 flight edge-lines exist in JSON; 31 DB flight lines have no edge data)
+  ferry     0/6   (ferry edges absent from JSON)
+  walking   0/1
+  intercity 0/1
+
+Spot checks:
+  Tram Tramway de Sétif    05:30-21:00, freq 6 min, single 40 DZD
+  Bus (B42) Tlemcen        06:00, freq 15 min
+  Train Constantine-Annab 06:00, freq 480 min
+  Taxi Adrar-Bechar        05:00-23:00, freq 30 min, 8900 DZD
+
+Remaining gaps are honest: edges for those lines do not exist in the enriched
+graph (31 flight, 85 bus/train). No synthetic values written.

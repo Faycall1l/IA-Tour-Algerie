@@ -1,0 +1,88 @@
+{
+  "edge_lines": 627,
+  "matched": 627,
+  "by_method": {
+    "name": 627,
+    "stops": 0
+  },
+  "sample": [
+    {
+      "line_name": "Taxi Adrar → Béchar",
+      "schedule": {
+        "first_departure": "05:00",
+        "last_departure": "23:00",
+        "frequency_min": 30,
+        "has_schedule": true
+      },
+      "pricing": {
+        "per_person": 8900.0,
+        "min_dzd": 8900.0,
+        "max_dzd": 8900.0,
+        "currency": "DZD"
+      }
+    },
+    {
+      "line_name": "Taxi Adrar → Tamanrasset",
+      "schedule": {
+        "first_departure": "05:00",
+        "last_departure": "23:00",
+        "frequency_min": 30,
+        "has_schedule": true
+      },
+      "pricing": {
+        "per_person": 15845.0,
+        "min_dzd": 15845.0,
+        "max_dzd": 15845.0,
+        "currency": "DZD"
+      }
+    },
+    {
+      "line_name": "Taxi Adrar → Tindouf",
+      "schedule": {
+        "first_departure": "05:00",
+        "last_departure": "23:00",
+        "frequency_min": 30,
+        "has_schedule": true
+      },
+      "pricing": {
+        "per_person": 15057.0,
+        "min_dzd": 15057.0,
+        "max_dzd": 15057.0,
+        "currency": "DZD"
+      }
+    },
+    {
+      "line_name": "Taxi Adrar → Naâma",
+      "schedule": {
+        "first_departure": "05:00",
+        "last_departure": "23:00",
+        "frequency_min": {
+          "min": 30,
+          "max": 30
+        },
+        "has_schedule": true
+      },
+      "pricing": {
+        "per_person": 10603.0,
+        "min_dzd": 10603.0,
+        "max_dzd": 11726.0,
+        "currency": "DZD"
+      }
+    },
+    {
+      "line_name": "Taxi Adrar → Aïn Salah",
+      "schedule": {
+        "first_departure": "05:00",
+        "last_departure": "23:00",
+        "frequency_min": 30,
+        "has_schedule": true
+      },
+      "pricing": {
+        "per_person": 5542.0,
+        "min_dzd": 5542.0,
+        "max_dzd": 5542.0,
+        "currency": "DZD"
+      }
+    }
+  ]
+}
