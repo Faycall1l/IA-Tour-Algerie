@@ -1,0 +1,65 @@
+{
+  "served_stations": 3904,
+  "orphan_stations": 231,
+  "transfers_created": 231,
+  "unmatched": 0,
+  "by_orphan_type": {
+    "bus": 202,
+    "ferry": 1,
+    "taxi": 2,
+    "train": 19,
+    "tram": 6,
+    "virtual_hub": 1
+  },
+  "avg_walking_min": 27.1,
+  "sample": [
+    {
+      "orphan": "Gare Routière de Illizi",
+      "to": "Aéroport d'In Amenas",
+      "walk_km": 214.3,
+      "walk_min": 2678.8
+    },
+    {
+      "orphan": "Port de Mostaganem (Ferry)",
+      "to": "Place de la Mairie",
+      "walk_km": 0.36,
+      "walk_min": 4.5
+    },
+    {
+      "orphan": "Rouiba (Taxi Station)",
+      "to": "Gare Routière de Rouiba",
+      "walk_km": 0.0,
+      "walk_min": 0.0
+    },
+    {
+      "orphan": "Sidi Aissa (Taxi Station)",
+      "to": "Gare Routière de Sidi Aissa",
+      "walk_km": 0.0,
+      "walk_min": 0.0
+    },
+    {
+      "orphan": "Akbou",
+      "to": "Terminus Chemini (Lycée)",
+      "walk_km": 16.51,
+      "walk_min": 206.4
+    },
+    {
+      "orphan": "Baba Ali",
+      "to": "Baba Ali",
+      "walk_km": 0.65,
+      "walk_min": 8.2
+    },
+    {
+      "orphan": "Bejaia",
+      "to": "Terminus Chemini (Lycée)",
+      "walk_km": 16.37,
+      "walk_min": 204.6
+    },
+    {
+      "orphan": "Boukhadra",
+      "to": "حي 606 سكن ترقوي ميديبات",
+      "walk_km": 0.58,
+      "walk_min": 7.3
+    }
+  ]
+}

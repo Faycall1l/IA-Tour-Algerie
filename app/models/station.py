@@ -6,8 +6,6 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPkMixin
-
-
 class Station(UUIDPkMixin, TimestampMixin, Base):
     __tablename__ = "stations"
     __allow_unmapped__ = True
@@ -69,3 +67,35 @@ class LineStop(UUIDPkMixin, TimestampMixin, Base):
 
     line: TransportLine = relationship(back_populates="stops", lazy="joined")
     station: Station = relationship(lazy="joined")
+
+
+class StationTransfer(UUIDPkMixin, TimestampMixin, Base):
+    """A walking transfer edge between two stations.
+
+    Connects stations that are physically close but not served by the same
+    line (e.g. a bus stop 300m from a train station). Lets routing reach
+    stations that no line serves directly by walking to the nearest served
+    stop. Always stored/read symmetrically (both directions).
+    """
+
+    __tablename__ = "transfers"
+    __allow_unmapped__ = True
+
+    from_station_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("stations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    to_station_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("stations.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    distance_m: Mapped[float] = mapped_column(Float, nullable=False)
+    walking_time_min: Mapped[float] = mapped_column(Float, nullable=False)
+    source: Mapped[str] = mapped_column(String(30), nullable=False, default="spatial")
+
+    from_station: Station = relationship(foreign_keys=[from_station_id], lazy="joined")
+    to_station: Station = relationship(foreign_keys=[to_station_id], lazy="joined")

@@ -1,0 +1,30 @@
+T2 verification (2026-08-11)
+============================
+Goal: 231 stations with no line_stops were unreachable in the DB-based
+routing graph (TransitGraph.load builds edges only between consecutive
+stops of a line).
+
+Fix:
+  - New `transfers` table (migration b3a9c1d2e4f5): undirected walking edges
+    with distance_m + walking_time_min + source; unique index on the
+    unordered station pair (idempotent re-runs).
+  - TransitGraph.load now loads StationTransfer rows and adds bidirectional
+    walking edges (mode=walking, operator=Walking, weight=walking_time_min);
+    route builder emits a distinct "Marche à pied" segment for them.
+  - scripts/data/connect_orphan_stations.py: grid spatial index (1 km cells,
+    ring expansion with best-distance early exit) maps each orphan to its
+    nearest *served* station (one on >=1 line); walking time at 80 m/min;
+    edges capped at 5 km (longer walks are not useful transfers).
+
+Result:
+  - transfers inserted: 222 (avg 957 m, max 3,854 m; 0 edges > 5 km)
+  - unmatched: 9 (honest gaps - nearest served station > 5 km):
+    Gare Routiere de Illizi (214 km), Gare Routiere de In Salah (8.2 km),
+    Akbou/Bejaia/El Kseur/Issers/Oued Ghir/Tazmalt train stations
+    (5.3-16.5 km - these are real SNTF stops absent from DB line_stops;
+    follow-up: add them to their SNTF line), Oued Ghir, unnamed bus stop.
+  - Recoverable orphans: 222/231 (96%).
+
+Tests: tests/services/test_transit_routing_walking.py (2 new) - orphan gets
+a bidirectional walking edge; route from orphan includes walking segment.
+17/17 transport API tests still pass.

@@ -14,7 +14,7 @@ from heapq import heappop, heappush
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.station import LineStop, Station, TransportLine
+from app.models.station import LineStop, Station, StationTransfer, TransportLine
 from app.schemas.transport import (
     NearestStation,
     POIAccess,
@@ -115,6 +115,27 @@ class TransitGraph:
                 self._adj[b.station_id].append(rev)
 
         self._add_transfers(stops_by_line, line_map)
+        await self._add_walking_edges(db)
+
+    async def _add_walking_edges(self, db: AsyncSession) -> None:
+        """Add walking transfer edges (the `transfers` table) to the graph."""
+        walking = (await db.execute(select(StationTransfer))).scalars().all()
+        for t in walking:
+            for src, dst in (
+                (t.from_station_id, t.to_station_id),
+                (t.to_station_id, t.from_station_id),
+            ):
+                self._adj[src].append(
+                    GraphEdge(
+                        to_station_id=dst,
+                        line_id=uuid.uuid4(),
+                        line_name="Marche à pied",
+                        mode="walking",
+                        operator="Walking",
+                        color=None,
+                        weight=max(t.walking_time_min, 0.1),
+                    )
+                )
 
     def _add_transfers(
         self,
@@ -234,6 +255,33 @@ class TransitGraph:
                         to_station_id=from_sid,
                         stop_count=0,
                         estimated_minutes=0,
+                        departure_time=None,
+                        arrival_time=None,
+                        pricing=None,
+                        schedule=None,
+                    )
+                )
+                i += 1
+                continue
+
+            if cur_edge.operator == "Walking":
+                from_sid = from_station_id if i == 0 else path[i - 1][0]
+                to_sid = cur_edge.to_station_id
+                est = max(1, int(round(cur_edge.weight)))
+                total_min += est
+                segments.append(
+                    RouteSegment(
+                        mode="walking",
+                        operator="Walking",
+                        line_name="Marche à pied",
+                        line_id=cur_edge.line_id,
+                        line_color=None,
+                        from_station=self._stations[from_sid].name,
+                        to_station=self._stations[to_sid].name,
+                        from_station_id=from_sid,
+                        to_station_id=to_sid,
+                        stop_count=0,
+                        estimated_minutes=est,
                         departure_time=None,
                         arrival_time=None,
                         pricing=None,

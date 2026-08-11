@@ -7,7 +7,7 @@ from app.models.poi import POI
 from app.models.provider_profile import ProviderProfile
 from app.models.recommendation import Recommendation, UserPreference
 from app.models.refresh_token import RefreshToken
-from app.models.station import LineStop, Station, TransportLine
+from app.models.station import LineStop, Station, StationTransfer, TransportLine
 from app.models.stay import Stay
 from app.models.transport_operator import TransportOperator
 from app.models.trip import Trip, TripItem
@@ -31,6 +31,7 @@ __all__ = [
     "RefreshToken",
     "UserPreference",
     "Station",
+    "StationTransfer",
     "TransportLine",
     "TransportOperator",
     "LineStop",
