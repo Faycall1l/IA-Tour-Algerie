@@ -1,0 +1,208 @@
+QA spot-check (Aug 2026): diverse Wikidata name-match enrichment (pass 1)
+  1,283 POIs enriched via cached SPARQL index (2,858 items): 499 exact + 784 containment
+  Containment guards: >=2 name tokens, item geolocated <=100km from POI.
+  Thumbnails (640px via Special:FilePath?width=640) hosted on ATHAR MinIO 127.0.0.1:19000.
+
+First 200 enriched POIs (name | category | featured | attribution):
+  (Ain Fezza) | restaurant | - | Wikidata Q2876331 (ain fezza) exact, image A%C3%AFn%20Fezzaa%20%D8%B9%D9%8A%D9%86%20%D9%81%D8%B2%D8%A9.jpg
+  ADJAHIL | natural | Y | Wikidata Q13374888 (adjahil) exact, image Porte%20du%20ksar%20Adjahil%201.jpg
+  AIN EL HAMMAM | natural | - | Wikidata Q276935 (ain el hammam) exact, image Mairie%20de%20Ain%20El%20Hammam.JPG
+  AIN FEZZA | natural | - | Wikidata Q2876331 (ain fezza) exact, image A%C3%AFn%20Fezzaa%20%D8%B9%D9%8A%D9%86%20%D9%81%D8%B2%D8%A9.jpg
+  AIN KERMA | natural | - | Wikidata Q23829933 (ain kerma) exact, image The%20Source%20by%20the%20Fig%20Tree%20at%20A%C3%AFn%20Kerma%20-%20Gustave%20Achille%20Guillaumet%20-%20Paris%201863%20%E2%80%93%201874-%20Revolution%20in%20der%20Kunst-4630.jpg
+  AIN MADAGH | natural | Y | Wikidata Q3275202 (madagh) containment, image Madegh%202007%20005.jpg
+  AIN SIDI AISSA | natural | - | Wikidata Q2214999 (sidi aissa) containment, image Sidi%20aissa.JPG
+  AIN SKHOUNA | natural | - | Wikidata Q2876370 (ain skhouna) exact, image %D8%B9%D9%8A%D9%86%20%D8%A7%D9%84%D8%B3%D8%AE%D9%88%D9%86%D8%A9.jpg
+  APC el harrach | historical | - | Wikidata Q105748702 (el harrach) containment, image Photo%20el%20harrach%2026112016.jpg
+  Aarch Mouzaïa ⵄⴻⵕⵛ ⵎⵓⵣⴰⵢⴰ عرش موزاية | natural | - | Wikidata Q1649746 (mouzaia) containment, image Mouzaia.JPG
+  Achir | historical | - | Wikidata Q2401317 (achir) exact, image ARachir.JPG
+  Adjahil أجاهيل | mountain | - | Wikidata Q13374888 (adjahil) exact, image Porte%20du%20ksar%20Adjahil%201.jpg
+  Adrar | natural | - | Wikidata Q188166 (adrar) exact, image GrandErgOccidental%20STS059-238-88.jpg
+  Adrar Babor | mountain | - | Wikidata Q2877944 (babor) containment, image EL%20BABOR%20Mountains.jpg
+  Adrar Tamgut | mountain | - | Wikidata Q3216533 (tamgut) containment, image Tamgutar.JPG
+  Aghlad | historical | - | Wikidata Q2826836 (aghlad) exact, image Ksar%20Aghlad%2001.jpg
+  Albulae | historical | - | Wikidata Q2831972 (albulae) exact, image Chapiteau%20Albulae.JPG
+  Alger Plage Café | cafe | - | Wikidata Q141026 (alger) containment, image I%20love%20Algiers.jpg
+  Alma | cafe | - | Wikidata Q311984 (alma) exact, image Photo%20marche%20boudouaou%2003062016.jpg
+  Altava | historical | - | Wikidata Q434703 (altava) exact, image Karte%20R%C3%B6mische%20St%C3%A4dte%20in%20Nordafrika.svg
+  Amal;العمل | natural | - | Wikidata Q2223551 (amal) exact, image Ammal%20-%20Boumerdes%20%D8%B9%D9%85%D8%A7%D9%84%20-%20%D8%A8%D9%88%D9%85%D8%B1%D8%AF%D8%A7%D8%B3%20-%20panoramio.jpg
+  Amalou | mountain | - | Wikidata Q1657281 (amalou) exact, image Amalou.jpg
+  Ancien bordj de Sidi Makhlouf | historical | - | Wikidata Q1649921 (sidi makhlouf) containment, image Sidi%20Makhlouf%20%D8%B3%D9%8A%D8%AF%D9%8A%20%D9%85%D8%AE%D9%84%D9%88%D9%81%20-%20panoramio%20%281%29.jpg
+  Ancien hôpital d'Adrar | historical | - | Wikidata Q18785599 (hopital dadrar) containment, image Covid-19%20Adrar%20City%20Hospital.jpg
+  Ancienne Eglise El Attaf | religious | - | Wikidata Q1029528 (el attaf) containment, image El%20Attaf%20-%20Bonne%20route%20%D8%A7%D9%84%D8%B9%D8%B7%D8%A7%D9%81%20-%20panoramio.jpg
+  Ancienne synagogue de Blida | religious | - | Wikidata Q216990 (blida) containment, image Blida%20centre.jpg
+  Ancient Roman theater in Khamissa | historical | - | Wikidata Q3426859 (khamissa) containment, image Thubursicum%20Numidarum%20%28Khamissa%29%2C%20Algeria%20-%2052570015687.jpg
+  Andalous Berrouaghia | restaurant | - | Wikidata Q2379121 (berrouaghia) containment, image Berrouaghia-03.JPG
+  Annaba Theater | historical | - | Wikidata Q213944 (annaba) containment, image Hippone.JPG
+  Annexe de la bibliothèque Cheikh El Bachir El Ibrahimi – Ksar Chellala, wilaya de Tiaret | cultural | - | Wikidata Q1648944 (ksar chellala) containment, image Ksar%20Chellala%20%D9%82%D8%B5%D8%B1%20%D8%A7%D9%84%D8%B4%D9%84%D8%A7%D9%84%D8%A9%202.jpg
+  Annexe de la bibliothèque de lecture publique Abdli Benali – Mellakou | cultural | - | Wikidata Q3305160 (mellakou) containment, image %D8%A8%D8%A7%D8%A8%D9%8A%D9%86%D9%8A%D8%A7%D8%B1.jpg
+  Annexe de la bibliothèque de lecture publique Jacques Berque – Frenda | cultural | - | Wikidata Q2215495 (frenda) containment, image Jedars.jpg
+  Annexe de la bibliothèque de lecture publique Moudjahid Demmouche Mohamed – Frenda | cultural | - | Wikidata Q2215495 (frenda) containment, image Jedars.jpg
+  Annexe de la bibliothèque de lecture publique de Chorfa, Chlef – martyr Habibi Abed | cultural | - | Wikidata Q231752 (chlef) containment, image Pont%20Baarge%20de%20Oued%20Fooda.jpg
+  Annexe de la bibliothèque de lecture publique martyr Ali El Hammami – Medroussa | cultural | - | Wikidata Q1649268 (medroussa) containment, image Jedars.jpg
+  Aokas | beach | - | Wikidata Q3019434 (aokas) exact, image Si%C3%A8ge%20de%20la%20da%C3%AFra%20dAokas.jpg
+  Aokas | beach | - | Wikidata Q3019434 (aokas) exact, image Si%C3%A8ge%20de%20la%20da%C3%AFra%20dAokas.jpg
+  Aqueduc Maurétanien de Cherchell | historical | - | Wikidata Q1617666 (cherchell) containment, image Cherchell%27s%20fountain%20place.jpg
+  Aqueduc Maurétanien de Cherchell | historical | - | Wikidata Q1617666 (cherchell) containment, image Cherchell%27s%20fountain%20place.jpg
+  Aqueduc romain d'Oued Rouina | historical | - | Wikidata Q1885134 (rouina) containment, image Rouina%20%D8%A7%D9%84%D8%B1%D9%88%D9%8A%D9%86%D8%A9%20-%20panoramio%20%281%29.jpg
+  Aqueduc romain de Bouzizi – commune de Séraïdi | historical | - | Wikidata Q2215851 (seraidi) containment, image Hotel%20el%20Mountazah%2CSera%C3%AFdi%20%28Alg%C3%A9rie%29.jpg
+  Aqueduc romain de Sour El Ghozlane | historical | - | Wikidata Q312000 (sour el ghozlane) containment, image Sour%20El-Ghozlane.Ville.jpg
+  Arc de Caracalla | historical | - | Wikidata Q1952148 (arc de caracalla) exact, image Arch%20of%20Caracalla%20%28Djemila%29%2001.jpg
+  Arc de Trajan | historical | - | Wikidata Q1393557 (arc de trajan) exact, image Arch%20of%20Trajan%20%28Timgad%29.jpg
+  Ardis | restaurant | - | Wikidata Q16528429 (ardis) exact, image Ardis%2001%2C%20centre%20commercial%20%C3%A0%20Mohammadia%2C%20Alger%2C%20Algerie.jpg
+  Arsenaria | historical | - | Wikidata Q125375915 (arsenaria) exact, image Arsenaria.jpg
+  Arsenaria | historical | - | Wikidata Q125375915 (arsenaria) exact, image Arsenaria.jpg
+  Asečču Ḥesnawa Restaurant Hasnaoua | restaurant | - | Wikidata Q3128105 (hasnaoua) containment, image Bouchref%200250.JPG
+  Assekrem | natural | - | Wikidata Q23823514 (assekrem) exact, image %D8%A7%D8%B3%D9%83%D8%B1%D8%A7%D9%85%202%20-%20%D8%AA%D9%85%D9%86%D8%B1%D8%A7%D8%B3%D8%AA.jpg
+  Atlas | cafe | - | Wikidata Q130135 (atlas) exact, image Atlas%20mountains.jpg
+  Azaghar | beach | - | Wikidata Q2876399 (azaghar) exact, image Ain%20zaouia%20algerie.jpg
+  Aziz | historical | - | Wikidata Q2875145 (aziz) exact, image APC%20de%20Aziz%20%D9%85%D9%82%D8%B1%20%D8%A8%D9%84%D8%AF%D9%8A%D8%A9%20%D8%B9%D8%B2%D9%8A%D8%B2%20-%20panoramio.jpg
+  Azrou Idjer | mountain | - | Wikidata Q3147876 (idjer) containment, image Commune%20d%27Idjeur%20%28Tizi%20Ouzou%2C%20Algeria%29.jpg
+  Azrou Ou Babor | natural | - | Wikidata Q2877944 (babor) containment, image EL%20BABOR%20Mountains.jpg
+  Aïn Zitoun | natural | - | Wikidata Q2876402 (ain zitoun) exact, image Ain%20Zitoune%20vu%20du%20ciel.jpg
+  Aït Aïssa Mimoun | mountain | - | Wikidata Q3032817 (ait aissa mimoun) exact, image Montaignes%20Akaoudj.jpg
+  BAB EL BOUNOUD – BAB EL FOUKA (PORTE DES ETANDARDS) | historical | - | Wikidata Q124427580 (bab el fouka) containment, image B%C3%A9ja%C3%AFa%20-%20restes%20de%20l%20enceinte%20fortifi%C3%A9e%20de%20la%20Porte%20Fouka.jpg
+  BESBES | natural | - | Wikidata Q2899849 (besbes) exact, image Commune%20de%20Besbes%20%D8%A8%D9%84%D8%AF%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A8%D8%B3%D8%A8%D8%A7%D8%B3.jpg
+  BORDJ MOUSSA | historical | - | Wikidata Q124425851 (bordj moussa museum) containment, image Bordj%20Moussa.jpeg
+  BOSQUET | natural | - | Wikidata Q3125557 (bosquet) exact, image Hadjadj.JPG
+  Bab El Khemis | historical | - | Wikidata Q134481545 (bab el khemis) exact, image Bab%20El%20Khemis%2C%20Tlemcen%201857%2C%20F%C3%A9lix-Jacques-Antoine%20Moulin.jpg
+  Bab El Khemis | historical | - | Wikidata Q134481545 (bab el khemis) exact, image Bab%20El%20Khemis%2C%20Tlemcen%201857%2C%20F%C3%A9lix-Jacques-Antoine%20Moulin.jpg
+  Bab El Khemis | historical | - | Wikidata Q134481545 (bab el khemis) exact, image Bab%20El%20Khemis%2C%20Tlemcen%201857%2C%20F%C3%A9lix-Jacques-Antoine%20Moulin.jpg
+  Bab El Oued | historical | - | Wikidata Q312019 (bab el oued) exact, image Bab%20El%20Oued%20Algiers%202008.jpg
+  Bab el Fouka | cultural | - | Wikidata Q124427580 (bab el fouka) exact, image B%C3%A9ja%C3%AFa%20-%20restes%20de%20l%20enceinte%20fortifi%C3%A9e%20de%20la%20Porte%20Fouka.jpg
+  Badji Mokhtar | cultural | - | Wikidata Q4118237 (universite badji mokhtar dannaba) containment, image %D8%AC%D8%A7%D9%85%D8%B9%D8%A9%20%D8%A8%D8%A7%D8%AC%D9%8A%20%D9%85%D8%AE%D8%AA%D8%A7%D8%B1%20%D8%A7%D9%84%D8%A8%D9%88%D9%86%D9%8A.jpg
+  Baie de Ziama | natural | - | Wikidata Q3575466 (ziama) containment, image Vue%20sur%20ziama%20mansouria%20port%20et%20village.jpg
+  Barage Beni Bahdel | natural | - | Wikidata Q2895867 (beni bahdel) containment, image Paysage%20%C3%A0%20l%27entr%C3%A9e%20de%20la%20commune%20de%20Beni%20Bahdel%2C%20r%C3%A9gion%20de%20Tlemcen.jpg
+  Barragde de Zerdaza | natural | - | Wikidata Q8069381 (zerdaza) containment, image %D8%AC%D8%A8%D9%84%20%27%D8%B3%D8%A8%D8%B9%D8%A9%20%D8%B1%DA%A8%D9%88%D8%AF%27%20%D8%A8%D8%A8%D9%84%D8%AF%D9%8A%D8%A9%20%D8%B2%D8%B1%D8%AF%D8%A7%D8%B2%D8%A9%20%D8%A7%D9%84%D8%AC%D8%B2%D8%A7%D8%A6%D8%B1.jpg
+  Barrage d'Ighil Emda | natural | - | Wikidata Q105712160 (barrage dighil emda) exact, image %D8%B3%D9%80%D8%AF%D9%91.jpg
+  Barrage d'eau Sidi naamane | natural | - | Wikidata Q3483276 (sidi naamane) containment, image Sidi%20Naamane%20-%20Nord%20%D8%B3%D9%8A%D8%AF%D9%8A%20%D9%86%D8%B9%D9%85%D8%A7%D9%86%20-%20panoramio.jpg
+  Barrage de Achaacha | natural | - | Wikidata Q2822975 (achaacha) containment, image Achaacha%20barrage.jpg
+  Barrage de Aïn Chorfa | natural | - | Wikidata Q375670 (chorfa) containment, image Environnement%20de%20Chorfa.jpg
+  Barrage de Bekkouche Lakhdar | natural | - | Wikidata Q1649315 (bekkouche lakhdar) containment, image Villagegastucopyjanv07.jpg
+  Barrage de Beni Chaib | natural | - | Wikidata Q2895873 (beni chaib) containment, image %D8%A8%D8%AD%D9%8A%D8%B1%D8%A9%20%D8%A8%D9%86%D9%8A%20%D8%B4%D8%B9%D9%8A%D8%A8.jpg
+  Barrage de Boughezoul | natural | - | Wikidata Q116024999 (boughezoul) containment, image Gare%20de%20Boughezoul%20-%2053023011646.png
+  Barrage de Bouhamdane | natural | - | Wikidata Q2921596 (bouhamdane) containment, image Taya%20guelma.jpg
+  Barrage de Brezina | natural | Y | Wikidata Q2924791 (brezina) containment, image La%20mairie%20Brezina%20%D8%A8%D9%84%D8%AF%D9%8A%D8%A9%20%D8%A8%D8%B1%D9%8A%D8%B2%D9%8A%D9%86%D8%A9.jpg
+  Barrage de Medjana | natural | - | Wikidata Q1649448 (medjana) containment, image Medjana%20ville.jpg
+  Barrage de Oued Fodda | natural | - | Wikidata Q3358021 (oued fodda) containment, image Pont%20Baarge%20de%20Oued%20Fooda.jpg
+  Barrage de l'Oued Chlef | natural | - | Wikidata Q231752 (chlef) containment, image Pont%20Baarge%20de%20Oued%20Fooda.jpg
+  Barrage du Ksob | natural | - | Wikidata Q2885412 (barrage du ksob) exact, image Ksob.jpg
+  Basilique de Theveste | historical | - | Wikidata Q984575 (theveste) containment, image T%C3%A9bessa%20Province.jpg
+  Basé vie - Pénétrante Batna PK 0 | cultural | - | Wikidata Q215452 (batna) containment, image The%20headquarters%20of%20the%20wilaya%20of%20Batna.jpg
+  Bataille de Staoueli | historical | - | Wikidata Q2890049 (bataille de staoueli) exact, image Battle%20of%20Staoueli%2C%201830%20-%20engraving.jpg
+  Beb Annaba | historical | - | Wikidata Q213944 (annaba) containment, image Hippone.JPG
+  Belcourt | restaurant | - | Wikidata Q634748 (belcourt) exact, image Belouizdad-vue-generale-1.jpg
+  Benian ntaa Soumâa Citadel | historical | - | Wikidata Q1649886 (soumaa) containment, image Vers%20Ecole%20de%20police%20%D9%85%D8%AF%D8%B1%D8%B3%D8%A9%20%D8%A7%D9%84%D8%B4%D8%B1%D8%B7%D8%A9%20-%20panoramio.jpg
+  Benian ntaa Soumâa Citadel | historical | - | Wikidata Q1649886 (soumaa) containment, image Vers%20Ecole%20de%20police%20%D9%85%D8%AF%D8%B1%D8%B3%D8%A9%20%D8%A7%D9%84%D8%B4%D8%B1%D8%B7%D8%A9%20-%20panoramio.jpg
+  Berber | mountain | - | Wikidata Q45315 (berber) exact, image COLLECTIE%20TROPENMUSEUM%20Portret%20van%20een%20Berber%20TMnr%2010028642.jpg
+  Bibliotheque Centrale, Tiaret | cultural | - | Wikidata Q233258 (tiaret) containment, image Retenue%20collinaire%20tawghazout%20frenda%20tiaret.JPG
+  Bibliothèque Centrale de Annaba | cultural | - | Wikidata Q213944 (annaba) containment, image Hippone.JPG
+  Bibliothèque Cheikh El Bachir El Ibrahimi – commune de Saneg | cultural | - | Wikidata Q338820 (saneg) containment, image Entr%C3%A9e%20de%20Saneg%20%D8%B3%D8%A7%D9%86%D9%82.jpg
+  Bibliothèque Malek Bennabi, Aïn Témouchent | cultural | - | Wikidata Q770504 (ain temouchent) containment, image A%C3%AFn%20Temouchent.JPG
+  Bibliothèque Moudjahid El Arbi Mohamed – commune de Djouab | cultural | - | Wikidata Q596382 (djouab) containment, image Djouab%20%D8%AC%D9%88%D8%A7%D8%A8%20-%20panoramio.jpg
+  Bibliothèque Moudjahid Hamidi Mohamed – commune de Boughezoul | cultural | - | Wikidata Q116024999 (boughezoul) containment, image Gare%20de%20Boughezoul%20-%2053023011646.png
+  Bibliothèque Moudjahid Loucif Ammar – El Mfatha | cultural | - | Wikidata Q3304190 (mfatha) containment, image Bienvenue%20a%20Mfatha%20%D8%A7%D9%84%D9%85%D9%81%D8%A7%D8%AA%D8%AD%D8%A9%20-%20panoramio.jpg
+  Bibliothèque Principal de lecture Publique "Assia Djebar"de la Wilaya de Tipasa | cultural | - | Wikidata Q214843 (tipasa) containment, image Mzafran%20%D9%85%D8%B2%D9%81%D8%B1%D8%A7%D9%86%20-%20panoramio.jpg
+  Bibliothèque Principal de lecture Publique "Assia Djebar"de la Wilaya de Tipasa. | cultural | - | Wikidata Q214843 (tipasa) containment, image Mzafran%20%D9%85%D8%B2%D9%81%D8%B1%D8%A7%D9%86%20-%20panoramio.jpg
+  Bibliothèque Principale de Lecture Publique - Chlef | cultural | - | Wikidata Q231752 (chlef) containment, image Pont%20Baarge%20de%20Oued%20Fooda.jpg
+  Bibliothèque Principale de Mascara | cultural | - | Wikidata Q236776 (mascara) containment, image Les%20Monts%20Beni-Chougrane.jpg
+  Bibliothèque communale de Ksar El Boukhari | cultural | - | Wikidata Q3200144 (ksar el boukhari) containment, image Ksar%20el%20Boukhari%20%D9%82%D8%B5%D8%B1%20%D8%A7%D9%84%D8%A8%D8%AE%D8%A7%D8%B1%D9%8A.jpg
+  Bibliothèque de Béchar | cultural | - | Wikidata Q638704 (bechar) containment, image Gourai.jpg
+  Bibliothèque de lecture publique Abou El Kacem Saâdallah – Touggourt | cultural | - | Wikidata Q852515 (touggourt) containment, image Les%20environs%20de%20Touggourt%20-%20Tamelaht%20%28SNED%29%20%28cropped%29.jpg
+  Bibliothèque de lecture publique Frères Abdeldjelil – Sfissifa | cultural | - | Wikidata Q3324726 (sfissifa) containment, image Sfissifa%20%D8%B5%D9%81%D9%8A%D8%B5%D9%8A%D9%81%D8%A9%202.jpg
+  Bibliothèque de lecture publique Frères martyrs Amghchouch – Bouzina | cultural | - | Wikidata Q1649021 (bouzina) containment, image %D8%A8%D9%88%D8%B2%D9%8A%D9%86%D8%A9%20%D8%A7%D9%84%D9%82%D8%AF%D9%8A%D9%85%D8%A9.jpg
+  Bibliothèque de lecture publique Hadj Bilal Mohamed – In Salah | cultural | - | Wikidata Q255251 (in salah) containment, image InSalah%281991%29.jpg
+  Bibliothèque de lecture publique Hama Boudjemaa – commune de Meskiana | cultural | - | Wikidata Q3306857 (meskiana) containment, image Meskiana%20%D9%85%D8%B3%D9%83%D9%8A%D8%A7%D9%86%D8%A9.jpg
+  Bibliothèque de lecture publique Malek Bennabi – commune de Sidi Boubekeur | cultural | - | Wikidata Q3483205 (sidi boubekeur) containment, image Sidi%20Boubkeur%20%D8%B3%D9%8A%D8%AF%D9%8A%20%D8%A8%D9%88%D8%A8%D9%83%D8%B1%20-%20panoramio.jpg
+  Bibliothèque de lecture publique Moudjahid Lakbir Ettounsi – commune de Souk Naâmane | cultural | - | Wikidata Q3491587 (souk naamane) containment, image Souk%20naamane%201.jpg
+  Bibliothèque de lecture publique Moudjahid Mekki Boualem – Moghrar | cultural | - | Wikidata Q3318248 (moghrar) containment, image Moghrar.JPG
+  Bibliothèque de lecture publique Rabii El Amraoui – commune de Berriche | cultural | - | Wikidata Q2899127 (berriche) containment, image Commune%20de%20Berriche%20%D8%A8%D9%84%D8%AF%D9%8A%D8%A9%20%D8%A8%D8%B1%D9%8A%D8%B4.jpg
+  Bibliothèque de lecture publique d'El Djezzar | cultural | Y | Wikidata Q3032929 (djezzar) containment, image APC%20de%20Djezar.jpg
+  Bibliothèque de lecture publique d'El Khoubana – wilaya de M'Sila | cultural | - | Wikidata Q240870 (wilaya de msila) containment, image La%20porte%20du%20d%C3%A9sert%20%C2%AB%20Bou%20ssada%20%C2%BB.jpg
+  Bibliothèque de lecture publique d'El Mouilha – commune de M'Sila | cultural | - | Wikidata Q240870 (msila) containment, image La%20porte%20du%20d%C3%A9sert%20%C2%AB%20Bou%20ssada%20%C2%BB.jpg
+  Bibliothèque de lecture publique d'El Ouenza | cultural | - | Wikidata Q2215410 (ouenza) containment, image Ouenza%20Station.jpg
+  Bibliothèque de lecture publique de Boukhmissa – commune de M'Sila | cultural | - | Wikidata Q240870 (msila) containment, image La%20porte%20du%20d%C3%A9sert%20%C2%AB%20Bou%20ssada%20%C2%BB.jpg
+  Bibliothèque de lecture publique de Brézina | cultural | - | Wikidata Q2924791 (brezina) containment, image La%20mairie%20Brezina%20%D8%A8%D9%84%D8%AF%D9%8A%D8%A9%20%D8%A8%D8%B1%D9%8A%D8%B2%D9%8A%D9%86%D8%A9.jpg
+  Bibliothèque de lecture publique de Chemora | cultural | - | Wikidata Q2215192 (chemora) containment, image Chemorar.jpg
+  Bibliothèque de lecture publique de Kenadsa | cultural | - | Wikidata Q390925 (kenadsa) containment, image Ksar%20Kenadsa.jpg
+  Bibliothèque de lecture publique de Mécheria | historical | - | Wikidata Q2606114 (mecheria) containment, image Lyc%C3%A9e%20Azouzi%20%5EAssoun%20-%20panoramio.jpg
+  Bibliothèque de lecture publique de N'Gaous | cultural | - | Wikidata Q3178467 (ngaous) containment, image RAS%20el-Ain%20N%27gaous.jpg
+  Bibliothèque de lecture publique de Reggane | cultural | - | Wikidata Q582905 (reggane) containment, image Tanezrouft-Reggane%281990%29.jpg
+  Bibliothèque de lecture publique de Seriana | cultural | - | Wikidata Q2214722 (seriana) containment, image Taga%20-%20Seriana%20%D8%A7%D9%84%D8%B7%D8%A7%D9%82%D8%A9%20-%20%D8%B3%D8%B1%D9%8A%D8%A7%D9%86%D8%A9%20-%20panoramio.jpg
+  Bibliothèque de lecture publique de Tabelbala | cultural | - | Wikidata Q2302870 (tabelbala) containment, image %D8%AA%D8%A8%D9%84%D8%A8%D8%A7%D9%84%D8%A9%202025.jpg
+  Bibliothèque de lecture publique de Taghit | cultural | - | Wikidata Q3052604 (taghit) containment, image Vue%20de%20Taghit.jpg
+  Bibliothèque de lecture publique de Tkout | cultural | - | Wikidata Q3511821 (tkout) containment, image APC%20de%20T%27Kout.jpg
+  Bibliothèque de lecture publique martyr Bouamama Benyahia – Aïn Sefra | cultural | - | Wikidata Q2745712 (ain sefra) containment, image Vue%20d%20Ain%20Sefra%2C%20Alg%C3%A9rie.jpg
+  Bibliothèque de lecture publique martyr Djedid Djedid – Djeniene Bourezg | cultural | - | Wikidata Q3032892 (djeniene bourezg) containment, image 134%20Djeniene%20Bourezg.JPG
+  Bibliothèque de lecture publique – annexe de Charouine | cultural | - | Wikidata Q2642041 (charouine) containment, image Charouine%20Adrar.jpg
+  Bibliothèque de lecture publique – annexe de Timimoun | cultural | - | Wikidata Q1021173 (timimoun) containment, image Entr%C3%A9e%20de%20Timimoun%20%D8%AA%D9%8A%D9%85%D9%8A%D9%85%D9%88%D9%86.jpg
+  Bibliothèque de lecture publique – commune d'El Maâdid | cultural | - | Wikidata Q2585679 (maadid) containment, image Qal%27at%20Bani%20Hammad%2C%20Maadid%2C%20M%27Sila%20Province%2C%20Algeria%202008.jpg
+  Bibliothèque de lecture publique – commune d'Ez Zaâfrane | cultural | - | Wikidata Q3574435 (zaafrane) containment, image Zaafrane%20%D8%A8%D9%84%D8%AF%D9%8A%D8%A9%20%D8%A7%D9%84%D8%B2%D8%B9%D9%81%D8%B1%D8%A7%D9%86%20-%20panoramio.jpg
+  Bibliothèque de lecture publique – commune de Benhar | cultural | - | Wikidata Q2895844 (benhar) containment, image Commune%20de%20Benhar%20-%20panoramio.jpg
+  Bibliothèque de lecture publique – commune de Birine | cultural | - | Wikidata Q1649303 (birine) containment, image %D9%85%D8%B3%D8%AC%D8%AF%20%D8%B9%D8%A8%D8%AF%20%D8%A7%D9%84%D8%AD%D9%81%D9%8A%D8%B8%20%D8%A7%D9%84%D9%82%D8%A7%D8%B3%D9%85%D9%8A%20%D9%88%D8%B3%D8%A7%D8%AD%D8%A9%20%D8%A3%D9%88%D9%84%20%D9%86%D9%88%D9%81%D9%85%D8%A8%D8%B1%20%D8%A7%D9%84%D8%A8%D9%8A%D8%B1%D9%8A%D9%86.jpg
+  Bibliothèque de lecture publique – commune de Bordj Menaïel | cultural | - | Wikidata Q2910781 (bordj menaiel) containment, image Bordj%20M%C3%A9naiel.jpg
+  Bibliothèque de lecture publique – commune de Chellal | cultural | - | Wikidata Q2962198 (chellal) containment, image Chellal%20-%20M%27sila%20%D8%A7%D9%84%D8%B4%D9%84%D8%A7%D9%84%20-%20%D8%A7%D9%84%D9%85%D8%B3%D9%8A%D9%84%D8%A9%2001.jpg
+  Bibliothèque de lecture publique – commune de Dar Chioukh | cultural | - | Wikidata Q3015935 (dar chioukh) containment, image Dar%20Chioukh%20%D8%AF%D8%A7%D8%B1%20%D8%A7%D9%84%D8%B4%D9%8A%D9%88%D8%AE%20%2824338880538%29.jpg
+  Bibliothèque de lecture publique – commune de Dehahna | cultural | - | Wikidata Q3021289 (dehahna) containment, image La%20mosqu%C3%A9e%20de%20Dehahna%20-%20panoramio.jpg
+  Bibliothèque de lecture publique – commune de Deldoul | cultural | - | Wikidata Q3021530 (deldoul) containment, image Deldoul%20%D8%AF%D9%84%D8%AF%D9%88%D9%84%20-%20panoramio.jpg
+  Bibliothèque de lecture publique – commune de Doucen | cultural | - | Wikidata Q3037852 (doucen) containment, image Doucen%20%D8%A7%D9%84%D8%AF%D9%88%D8%B3%D9%86.jpg
+  Bibliothèque de lecture publique – commune de Guettara | cultural | - | Wikidata Q3119232 (guettara) containment, image Guettara%20%D9%82%D8%B7%D8%A7%D8%B1%D8%A9.jpg
+  Bibliothèque de lecture publique – commune de Hassi Bahbah | cultural | - | Wikidata Q649908 (hassi bahbah) containment, image Hassi%20Bahbah%2C%20Djelfa%20Province%20%28Algeria%29.jpg
+  Bibliothèque de lecture publique – commune de Hassi Fedoul | cultural | Y | Wikidata Q1649459 (hassi fedoul) containment, image Souk%20de%20Hassi%20Fedoul%20%D8%AD%D8%A7%D8%B3%D9%8A%20%D9%81%D8%AF%D9%88%D9%84.jpg
+  Bibliothèque de lecture publique – commune de Messaad | cultural | - | Wikidata Q609487 (messaad) containment, image Nouvelle%20Zaouia%20de%20Sidi%20Nael%20%D8%B2%D8%A7%D9%88%D9%8A%D8%A9%20%D8%B3%D9%8A%D8%AF%D9%8A%20%D9%86%D8%A7%D8%A6%D9%84%20%D8%A7%D9%84%D8%AC%D8%AF%D9%8A%D8%AF%D8%A9.jpg
+  Bibliothèque de lecture publique – commune de Sed Rahal | cultural | Y | Wikidata Q619091 (sed rahal) containment, image Guemamer%20%D9%82%D9%85%D8%A7%D9%85%D8%B1.jpg
+  Bibliothèque de lecture publique – commune de Si Mustapha – martyr Benzerga Boualem | cultural | - | Wikidata Q311886 (si mustapha) containment, image Vue%20%C3%A0%20Si%20Mustapha.jpg
+  Bibliothèque de lecture publique – commune de Thénia – Imam Brahim Boushaki | cultural | - | Wikidata Q2225013 (thenia) containment, image Thenia%2011092012.jpg
+  Bibliothèque de lecture publique – commune de Tidjelabine – martyr Djaadi Mohamed | cultural | - | Wikidata Q1895428 (tidjelabine) containment, image Tidjelabine%20%D8%AA%D9%8A%D8%AC%D9%84%D8%A7%D8%A8%D9%8A%D9%86%20-%20panoramio.jpg
+  Bibliothèque du 3e Kilomètre – Jijel | cultural | - | Wikidata Q402726 (jijel) containment, image Jijel%2039%2C%20Wilaya%20de%20Jijel%20%28Alg%C3%A9rie%29.JPG
+  Bibliothèque martyr Brahimi Mohamed – commune de Djouab | cultural | - | Wikidata Q596382 (djouab) containment, image Djouab%20%D8%AC%D9%88%D8%A7%D8%A8%20-%20panoramio.jpg
+  Bibliothèque martyr El Aïd Bouabboub – commune de Chéniguel | cultural | - | Wikidata Q2962653 (cheniguel) containment, image Chniguel.JPG
+  Bibliothèque martyr Haouassine Kaci – commune de Chahbounia | cultural | - | Wikidata Q2947598 (chahbounia) containment, image Chahbounia%20%D8%A7%D9%84%D8%B4%D9%87%D8%A8%D9%88%D9%86%D9%8A%D8%A9.jpg
+  Bibliothèque martyr Tafift Ahmed Derrag | cultural | - | Wikidata Q3023970 (derrag) containment, image Derrag%20-%20ent%C3%A9e%20sud%20%D8%AF%D8%B1%D8%A7%D9%82.jpg
+  Bibliothèque nationale d'El Hamma | cultural | - | Wikidata Q3126479 (hamma) containment, image Photo%20el%20hamma%2021042018.jpg
+  Bibliothèque principale de la Lecture Publique, Relizane | cultural | - | Wikidata Q236758 (relizane) containment, image Alg%C3%A9rie%202006%20049.JPG
+  Bibliothèque principale de la lecture publique martyr Maamri Ali Ben Said Souk Ahras | cultural | - | Wikidata Q236772 (souk ahras) containment, image %D9%85%D9%86%D8%B8%D8%B1%20%D8%B9%D8%A7%D9%85%20%D9%84%D9%85%D8%AF%D9%8A%D9%86%D8%A9%20%D8%B3%D9%88%D9%82%20%D8%A3%D9%87%D8%B1%D8%A7%D8%B3.jpg
+  Bibliothèque principale de lecture publique Beradaï Ahmed – Tamanrasset | cultural | - | Wikidata Q205792 (tamanrasset) containment, image Rue%20de%20tamanrasset%2001.jpg
+  Bibliothèque principale de lecture publique Boussam Mohamed – wilaya de Bordj Bou Arreridj | cultural | - | Wikidata Q266411 (bordj bou arreridj) containment, image Bibanar.jpg
+  Bibliothèque principale de lecture publique Docteur Boubekeur Benali – wilaya de Béchar | cultural | - | Wikidata Q638704 (bechar) containment, image Gourai.jpg
+  Bibliothèque principale de lecture publique Moudjahid Rabah Saïdani – wilaya de Bouira | cultural | - | Wikidata Q722522 (bouira) containment, image BOUIRA.jpg
+  Bibliothèque principale de lecture publique de Constantine | cultural | - | Wikidata Q187346 (constantine) containment, image Magnia.jpg
+  Bibliothèque principale de lecture publique de Skikda | cultural | - | Wikidata Q2292517 (skikda) containment, image Centre%20ville%20Skikda.jpg
+  Bibliothèque principale de lecture publique de Tizi-Ouzou | cultural | - | Wikidata Q277201 (tiziouzou) containment, image Tizi%20Ouzou.JPG
+  Bibliothèque principale de lecture publique de Tébessa (annexe d'El Aouinet) | cultural | - | Wikidata Q984575 (tebessa) containment, image T%C3%A9bessa%20Province.jpg
+  Bibliothèque principale de lecture publique de Tébessa – annexe d'El Hammamet | cultural | - | Wikidata Q984575 (tebessa) containment, image T%C3%A9bessa%20Province.jpg
+  Bibliothèque principale de lecture publique de Tébessa – annexe de Ras El Aïoun | cultural | - | Wikidata Q984575 (tebessa) containment, image T%C3%A9bessa%20Province.jpg
+  Bibliothèque principale de lecture publique de la wilaya d'El Bayadh | cultural | - | Wikidata Q235703 (wilaya del bayadh) containment, image El%20bayadh%2C%20centre%20ville%20%2C%20moment%20de%20la%20neige.jpg
+  Bibliothèque principale de lecture publique de la wilaya de Batna | cultural | - | Wikidata Q215452 (batna) containment, image The%20headquarters%20of%20the%20wilaya%20of%20Batna.jpg
+  Bibliothèque principale de lecture publique de la wilaya de Ghardaïa | cultural | - | Wikidata Q622841 (ghardaia) containment, image Ksar%20Ghardaia%20place%20march%C3%A9%201.jpg
+  Bibliothèque principale de lecture publique de la wilaya de Ouargla | cultural | - | Wikidata Q235709 (wilaya de ouargla) containment, image Benaceur.JPG
+  Bibliothèque principale de lecture publique de la wilaya de Tébessa | cultural | - | Wikidata Q984575 (tebessa) containment, image T%C3%A9bessa%20Province.jpg
+  Bibliothèque principale de lecture publique – annexe de Tébessa | cultural | - | Wikidata Q984575 (tebessa) containment, image T%C3%A9bessa%20Province.jpg
+  Bibliothèque rurale de Sidi Ziane – Tadjena – martyr Fouka Seddik | cultural | - | Wikidata Q1650025 (tadjena) containment, image Tadjena%20%28le%2011-05-2007%29.jpg
+  Bibliothèque rurale de lecture publique Moudjahid Gouigah Mostefa – Ben Merzouga, Boudouaou | cultural | - | Wikidata Q311984 (boudouaou) containment, image Photo%20marche%20boudouaou%2003062016.jpg
+  Bibliothèque rurale de lecture publique Zahra Khattab – village Omar, Bordj Menaïel | cultural | - | Wikidata Q2910781 (bordj menaiel) containment, image Bordj%20M%C3%A9naiel.jpg
+  Bibliothèque semi-urbaine Mouloud Kacem Naït Belkacem – Corso | cultural | - | Wikidata Q2998044 (corso) containment, image Tidjellabine%20-%20panoramio.jpg
+  Bibliothèque semi-urbaine de Zahana – martyr Brahimi Mohamed | cultural | - | Wikidata Q1650864 (zahana) containment, image Mairie%20de%20Zahana.jpg
+  Bibliothèque semi-urbaine de la daïra de Naciria – wilaya de Boumerdès | cultural | - | Wikidata Q6957278 (naciria) containment, image Iraf%C6%90en%20-%20A%C3%AFt%20Bourouba%20-%20Ie%C9%A3mracen.jpg
+  Bibliothèque urbaine de Guelma | cultural | - | Wikidata Q609871 (guelma) containment, image GM%20Guelma%20Center01.jpg
+  Bibliothèque urbaine de Mascara – Moudjahid feu Dahou Meziane | cultural | - | Wikidata Q236776 (mascara) containment, image Les%20Monts%20Beni-Chougrane.jpg
+  Bibliothéque principale de la lecture publique de la wiulaya de Bejaia | cultural | - | Wikidata Q59975 (bejaia) containment, image B%C3%A9jaia%20%D8%A8%D8%AC%D8%A7%D9%8A%D8%A9%2011.jpg
+  Bordj El Mokrani | historical | - | Wikidata Q109017607 (bordj el mokrani) exact, image Bordj%20El%20Mokrani%20%D8%A8%D8%B1%D8%AC%20%D8%A7%D9%84%D9%85%D9%82%D8%B1%D8%A7%D9%86%D9%8A%20-%20%D8%A8%D8%B1%D8%AC%20%D8%A8%D9%88%D8%B9%D8%B1%D9%8A%D8%B1%D9%8A%D8%AC.jpg
+  Bordj El Mokrani | historical | - | Wikidata Q109017607 (bordj el mokrani) exact, image Bordj%20El%20Mokrani%20%D8%A8%D8%B1%D8%AC%20%D8%A7%D9%84%D9%85%D9%82%D8%B1%D8%A7%D9%86%D9%8A%20-%20%D8%A8%D8%B1%D8%AC%20%D8%A8%D9%88%D8%B9%D8%B1%D9%8A%D8%B1%D9%8A%D8%AC.jpg
+  Bordj El Mokrani | historical | - | Wikidata Q109017607 (bordj el mokrani) exact, image Bordj%20El%20Mokrani%20%D8%A8%D8%B1%D8%AC%20%D8%A7%D9%84%D9%85%D9%82%D8%B1%D8%A7%D9%86%D9%8A%20-%20%D8%A8%D8%B1%D8%AC%20%D8%A8%D9%88%D8%B9%D8%B1%D9%8A%D8%B1%D9%8A%D8%AC.jpg
+  Bordj Moussa | museum | - | Wikidata Q124425851 (bordj moussa museum) containment, image Bordj%20Moussa.jpeg
+  Bordj de Tamentfoust | historical | - | Wikidata Q3514786 (tamentfoust) containment, image Tamentfoust-vue-port.jpg
+  Bordj de Tarat | historical | - | Wikidata Q13365972 (bordj de tarat) exact, image Fort%20Tarat.jpg
+  Bordj el Hamraïa | historical | - | Wikidata Q3126588 (hamraia) containment, image Hamra%C3%AFa.JPG
+  Bordj turc de Tizi-Ouzou | historical | - | Wikidata Q277201 (tiziouzou) containment, image Tizi%20Ouzou.JPG
+  Bosquet | natural | - | Wikidata Q3125557 (bosquet) exact, image Hadjadj.JPG
+  Bosquet plage Hadjadj | beach | - | Wikidata Q3125557 (bosquet) containment, image Hadjadj.JPG
+  Bou Haroun Fish | restaurant | - | Wikidata Q2921597 (bou haroun) containment, image Bou%20Haroun.jpg
+  Bougie Grillades | restaurant | - | Wikidata Q59975 (bougie) containment, image B%C3%A9jaia%20%D8%A8%D8%AC%D8%A7%D9%8A%D8%A9%2011.jpg
+  Bougie de Tizi Ouzou | historical | - | Wikidata Q60851448 (bougie de tizi ouzou) exact, image Le%20monument%20de%20la%20bougie%20a%20tizi%20ouzou.jpg
+  Bourouba | restaurant | - | Wikidata Q2215522 (bourouba) exact, image Photo%20cite%20el%20istiqlal%20bourouba%2028052016.jpg
+  Bouzegza | mountain | - | Wikidata Q28716895 (bouzegza) exact, image Mont%20Bouzegza%20vue%20du%20village%20zouggara.JPG
+  Burj Boghni (Turc) | historical | - | Wikidata Q1649016 (boghni) containment, image Boghni%20devant%20le%20Djurdjua.jpeg
+  Burj Boghni (Turc) | historical | - | Wikidata Q1649016 (boghni) containment, image Boghni%20devant%20le%20Djurdjua.jpeg
+  CAFE ARRET REDJAOUNA | cafe | - | Wikidata Q21656807 (redjaouna) containment, image Redjaouna%20vue%20techt.jpg
+
+Total enriched: 1283 (all 69 wilayas; 65 featured)
