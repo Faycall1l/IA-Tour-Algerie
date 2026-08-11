@@ -105,7 +105,7 @@ def last_user_turn(message_history: str | None) -> str:
         return ""
     for line in reversed(message_history.splitlines()):
         if line.startswith("[User]:"):
-            return line[len("[User]:"):].strip()
+            return line[len("[User]:") :].strip()
     return ""
 
 
@@ -127,15 +127,26 @@ def south_briefing(query: str) -> str:
         parts.append(f"Air Algérie: {notes['air_algerie']}")
     if notes.get("taxis"):
         parts.append(f"Taxis: {notes['taxis']}")
-    parts.append("Per-wilaya (flights / taxis / stays / restaurants / featured):")
 
-    for wid in sorted(kb["wilayas"], key=lambda k: kb["wilayas"][k]["name"]):
+    q = _normalize(query)
+    matched = [wid for wid, w in kb["wilayas"].items() if _normalize(w.get("name", "")) in q]
+    if matched:
+        parts.append(
+            "Per-wilaya (flights / taxis / stays / restaurants / featured) "
+            f"for the {len(matched)} wilaya(s) in your query:"
+        )
+        wilayas = {wid: kb["wilayas"][wid] for wid in matched}
+    else:
+        parts.append("Per-wilaya (flights / taxis / stays / restaurants / featured):")
+        wilayas = kb["wilayas"]
+
+    for wid in sorted(wilayas, key=lambda k: wilayas[k]["name"]):
         w = kb["wilayas"][wid]
         flights = ", ".join(w["flights"]) if w["flights"] else "none in DB"
         taxis = ", ".join(w["taxis"]) if w["taxis"] else "none in DB"
-        stays = "; ".join(
-            f"{s['name']} ({s['price_dzd']:.0f} DZD)" for s in w["stays"]
-        ) or "none in DB"
+        stays = (
+            "; ".join(f"{s['name']} ({s['price_dzd']:.0f} DZD)" for s in w["stays"]) or "none in DB"
+        )
         rests = ", ".join(w["restaurants"]) or "none in DB"
         feats = ", ".join(w["featured"]) or "none in DB"
         parts.append(

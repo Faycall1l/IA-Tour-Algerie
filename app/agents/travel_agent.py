@@ -127,6 +127,10 @@ def _resilient_settings(**extra) -> dict:
     """
     return {
         "temperature": 0.3,
+        # The tool layer shares one asyncpg-backed AsyncSession (via deps.db).
+        # Parallel tool calls execute concurrently on the same connection and
+        # raise InvalidRequestError; serialize them instead.
+        "parallel_tool_calls": False,
         **extra,
     }
 

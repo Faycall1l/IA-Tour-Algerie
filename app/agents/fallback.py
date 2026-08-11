@@ -259,6 +259,55 @@ def _has_operator_intent(folded: str) -> bool:
     )
 
 
+_TRANSPORT_WORDS = (
+    "bus|train|flight|fly|flying|plane|airplane|taxi|tram|ferry|coach|"
+    "drive|driving|metro|commute|transport|route|connection|transfer|"
+    "vol|navette|avion|transfert|bateau"
+)
+
+_TRANSPORT_PHRASES = (
+    "how do i get to",
+    "how to get to",
+    "how do i reach",
+    "how to reach",
+    "best way to reach",
+    "way to reach",
+    "get to",
+    "get from",
+    "go from",
+    "go to",
+    "travel to",
+    "journey to",
+)
+
+
+def _has_transport_intent(folded: str) -> bool:
+    """True when the query is primarily about getting somewhere."""
+    if _has_keywords(folded, _TRANSPORT_WORDS):
+        return True
+    return any(p in folded for p in _TRANSPORT_PHRASES)
+
+
+async def _ordered_route_wilayas(
+    deps, folded: str, from_wilaya: int | None, to_wilaya: int | None
+) -> tuple[int, int] | None:
+    """Resolve (origin, destination) honoring 'to X from Y' phrasing."""
+    if from_wilaya and to_wilaya:
+        return from_wilaya, to_wilaya
+    resolved = await _resolve_wilayas_in_order(deps, folded)
+    if len(resolved) < 2:
+        return None
+    fw, tw = resolved[0][0], resolved[1][0]
+    from_pos = folded.find(" from ")
+    if from_pos >= 0:
+        origin = next((w for w, alias in resolved if folded.find(alias) > from_pos), None)
+        if origin is not None and origin != fw:
+            fw, tw = origin, fw
+    if fw == tw:
+        return None
+    return fw, tw
+
+
 # ── Category/field detection (for precise tool filters) ──
 
 _POI_CATEGORY_WORDS: dict[str, tuple[str, ...]] = {
@@ -596,6 +645,12 @@ async def _handle_events(folded: str, deps, wilaya: tuple[int, str] | None) -> s
 
 async def _travel_fallback(folded: str, deps) -> str | None:
     # Most specific intents first.
+    if _has_transport_intent(folded):
+        route = await _ordered_route_wilayas(deps, folded, None, None)
+        if route:
+            out = await _handle_transport_route(deps, route[0], route[1])
+            if out:
+                return out
     if _has_operator_intent(folded):
         out = await _handle_operators(folded, deps)
         if out:
@@ -659,13 +714,9 @@ async def _transport_fallback(
     from_wilaya: int | None,
     to_wilaya: int | None,
 ) -> str | None:
-    fw, tw = from_wilaya, to_wilaya
-    if not (fw and tw):
-        resolved = await _resolve_wilayas_in_order(deps, folded)
-        if len(resolved) >= 2:
-            fw, tw = resolved[0][0], resolved[1][0]
-    if fw and tw and fw != tw:
-        out = await _handle_transport_route(deps, fw, tw)
+    route = await _ordered_route_wilayas(deps, folded, from_wilaya, to_wilaya)
+    if route:
+        out = await _handle_transport_route(deps, route[0], route[1])
         if out:
             return out
     if _has_operator_intent(folded):

@@ -46,9 +46,12 @@ logger = logging.getLogger(__name__)
 
 # ── Tuning constants ──
 
-#: Total wall-clock budget for one agent run. vLLM streams slowly; 45s is
-#: generous for a 2-3 tool-call turn while still bounding tail latency.
-AGENT_TIMEOUT_SECONDS = 45.0
+#: Total wall-clock budget for one agent run. vLLM streams slowly and every
+#: model request re-sends the accumulated prompt (a real tool-using turn
+#: measures 35k+ input tokens over 5-8 requests, which takes 60-120s on a
+#: local backend). The rule-based fallback still answers fast when a run
+#: genuinely hangs; this bound just gives legitimate work time to finish.
+AGENT_TIMEOUT_SECONDS = 120.0
 
 #: Per-agent Pydantic AI retry budgets. `tools` is the per-tool retry
 #: counter (the model gets feedback and corrects its arguments), `output`
@@ -60,14 +63,17 @@ AGENT_RETRIES = {"tools": 2, "output": 1}
 #: Per-tool execution timeout (seconds). A stuck DB query must not stall a run.
 AGENT_TOOL_TIMEOUT_SECONDS = 20.0
 
-#: Token ceilings per agent (approx. chars/4). Kept generous for the itinerary
-#: planner (structured plan) and tighter for the chat/search agents.
+#: Token ceilings per agent. These are run budgets: every model request
+#: re-sends the accumulated prompt + prior tool results, so a real tool-using
+#: run (5-8 requests, 5-20-result tools) legitimately consumes 35k+ tokens.
+#: `request_limit` is the real loop guard; the token ceiling just catches
+#: pathological output bloat on a local (free) VLLM backend.
 AGENT_USAGE_LIMITS: dict[str, UsageLimits] = {
-    "travel_agent": UsageLimits(request_limit=8, total_tokens_limit=12000),
-    "itinerary_agent": UsageLimits(request_limit=12, total_tokens_limit=20000),
-    "search_agent": UsageLimits(request_limit=8, total_tokens_limit=12000),
-    "transport_agent": UsageLimits(request_limit=10, total_tokens_limit=16000),
-    "events_agent": UsageLimits(request_limit=8, total_tokens_limit=12000),
+    "travel_agent": UsageLimits(request_limit=8, total_tokens_limit=64000),
+    "itinerary_agent": UsageLimits(request_limit=12, total_tokens_limit=96000),
+    "search_agent": UsageLimits(request_limit=8, total_tokens_limit=64000),
+    "transport_agent": UsageLimits(request_limit=10, total_tokens_limit=64000),
+    "events_agent": UsageLimits(request_limit=8, total_tokens_limit=48000),
 }
 
 #: HTTP retry policy for the model provider client. Transient infra failures

@@ -37,9 +37,7 @@ class TestRendererIntegration:
             def __init__(self, deps):
                 self.deps = deps
 
-        deps = TravelAgentDeps(
-            user=FakeUser(), db=None, message_history=history
-        )
+        deps = TravelAgentDeps(user=FakeUser(), db=None, message_history=history)
         return _dynamic_instructions(prompt_name)(FakeCtx(deps))
 
     def test_all_five_agents_inject_south_briefing(self):

@@ -22,6 +22,8 @@ from app.agents.fallback import (
     _fold,
     _has_keywords,
     _has_operator_intent,
+    _has_transport_intent,
+    _ordered_route_wilayas,
     _remove_alias,
     attempt_fallback,
 )
@@ -129,8 +131,64 @@ class TestHelpers:
         assert _has_operator_intent("where can i call") is True
         assert _has_operator_intent("hello") is False
 
+    def test_transport_intent(self):
+        for q in (
+            "how do i get to djanet from algiers",
+            "bus from oran to tlemcen",
+            "flight to tammanrasset",
+            "what is the best way to reach timimoun",
+        ):
+            assert _has_transport_intent(q), q
+        for q in (
+            "best hotel in djanet",
+            "restaurants in algiers",
+            "what to see in oran",
+        ):
+            assert not _has_transport_intent(q), q
+
 
 # ── attempt_fallback (real test DB) ──
+
+
+class TestTransportFallback:
+    pytestmark = pytest.mark.asyncio
+
+    async def test_ordered_route_wilayas_honors_from_to(self, db, test_user):
+        from sqlalchemy import text
+
+        djanet = (
+            await db.execute(text("SELECT id FROM wilayas WHERE name_en = 'Djanet'"))
+        ).scalar()
+        deps = _deps(db, test_user)
+        origin, dest = await _ordered_route_wilayas(
+            deps, "how do i get to djanet from algiers", None, None
+        )
+        assert origin == 16  # Algiers
+        assert dest == djanet
+        origin, dest = await _ordered_route_wilayas(
+            deps, "travel from algiers to djanet", None, None
+        )
+        assert origin == 16
+        assert dest == djanet
+        assert await _ordered_route_wilayas(deps, "djanet only", None, None) is None
+
+    async def test_travel_fallback_routes_transport_queries(self, db, test_user, monkeypatch):
+        """A 'get to X from Y' query must hit transport, not the wilaya guide."""
+        from app.agents import fallback
+        from sqlalchemy import text
+
+        djanet = (
+            await db.execute(text("SELECT id FROM wilayas WHERE name_en = 'Djanet'"))
+        ).scalar()
+
+        async def fake_route(_deps, fw, tw):
+            return f"FAKE ROUTE {fw}->{tw}"
+
+        monkeypatch.setattr(fallback, "_handle_transport_route", fake_route)
+        reply = await attempt_fallback(
+            "travel_agent", "How do I get to Djanet from Algiers?", _deps(db, test_user)
+        )
+        assert reply == f"FAKE ROUTE 16->{djanet}"
 
 
 class TestAttemptFallback:
