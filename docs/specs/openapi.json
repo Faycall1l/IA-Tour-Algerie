@@ -5150,6 +5150,76 @@
         }
       }
     },
+    "/api/v1/transport/route-to-artisan/{artisan_id}": {
+      "get": {
+        "tags": [
+          "transport"
+        ],
+        "summary": "Directions to an artisan workshop",
+        "description": "Turn-by-turn transit directions from a GPS point to a specific artisan workshop. Returns the plan plus the nearest-transit walking edges. Falls back to an error object when no route exists or the artisan has no coordinates.",
+        "operationId": "get_transport_route_to_artisan_artisan_id",
+        "parameters": [
+          {
+            "name": "artisan_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "title": "Artisan Id"
+            }
+          },
+          {
+            "name": "from_lat",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "From Lat"
+            }
+          },
+          {
+            "name": "from_lng",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "number",
+              "title": "From Lng"
+            }
+          },
+          {
+            "name": "from_name",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "default": "Your location",
+              "title": "From Name"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Route plan + nearest transit access",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "title": "Response Get Transport Route To Artisan Artisan Id"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Artisan not found"
+          },
+          "422": {
+            "description": "Invalid UUID or coordinates"
+          }
+        }
+      }
+    },
     "/api/v1/transport/operators": {
       "get": {
         "tags": [
@@ -7638,6 +7708,13 @@
               }
             ],
             "title": "Created At"
+          },
+          "nearest_transit": {
+            "items": {
+              "$ref": "#/components/schemas/ArtisanTransitAccessRead"
+            },
+            "type": "array",
+            "title": "Nearest Transit"
           }
         },
         "type": "object",
@@ -7648,6 +7725,51 @@
           "wilaya_id"
         ],
         "title": "ArtisanRead"
+      },
+      "ArtisanTransitAccessRead": {
+        "properties": {
+          "station_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "Station Id"
+          },
+          "station_name": {
+            "type": "string",
+            "title": "Station Name"
+          },
+          "station_type": {
+            "type": "string",
+            "title": "Station Type"
+          },
+          "operator": {
+            "type": "string",
+            "title": "Operator"
+          },
+          "distance_m": {
+            "type": "number",
+            "title": "Distance M"
+          },
+          "walking_time_min": {
+            "type": "number",
+            "title": "Walking Time Min"
+          },
+          "rank": {
+            "type": "integer",
+            "title": "Rank"
+          }
+        },
+        "type": "object",
+        "required": [
+          "station_id",
+          "station_name",
+          "station_type",
+          "operator",
+          "distance_m",
+          "walking_time_min",
+          "rank"
+        ],
+        "title": "ArtisanTransitAccessRead",
+        "description": "A walking edge from an artisan to one nearby transit station."
       },
       "ArtisanUpdate": {
         "properties": {
