@@ -10,12 +10,12 @@ import uuid
 
 from qdrant_client import QdrantClient
 from qdrant_client.http.models import Batch, PointStruct
-from sentence_transformers import SentenceTransformer
 from sqlalchemy import select
 
 from app.db.session import async_session
 from app.models.experience import Experience
 from app.models.poi import POI
+from app.services.embeddings import EMBEDDING_DIM, EmbeddingService
 from app.services.vector_search import has_real_name
 
 logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -24,23 +24,18 @@ logger = logging.getLogger(__name__)
 POIS_COLLECTION = "pois"
 EXPERIENCES_COLLECTION = "experiences"
 BATCH_SIZE = 256
-EMBEDDING_DIM = 384
 
 
-def make_embedder():
-    logger.info("Loading embedding model all-MiniLM-L6-v2 ...")
-    try:
-        m = SentenceTransformer("all-MiniLM-L6-v2", local_files_only=True)
-    except Exception:
-        logger.warning("Model not cached — attempting download")
-        m = SentenceTransformer("all-MiniLM-L6-v2")
+def make_embedder() -> EmbeddingService:
+    logger.info("Loading embedding model %s ...", "paraphrase-multilingual-MiniLM-L12-v2")
+    m = EmbeddingService()
+    m.warm()
     logger.info("Embedding model loaded")
     return m
 
 
-def encode_batch(embedder, texts: list[str]) -> list[list[float]]:
-    vecs = embedder.encode(texts, normalize_embeddings=True, show_progress_bar=False)
-    return [v.tolist() for v in vecs]
+def encode_batch(embedder: EmbeddingService, texts: list[str]) -> list[list[float]]:
+    return embedder.encode_batch(texts)
 
 
 async def fetch_all_pois(db):
@@ -56,7 +51,7 @@ async def fetch_all_experiences(db):
 def index_collection(
     qc: QdrantClient,
     collection: str,
-    embedder: SentenceTransformer,
+    embedder: EmbeddingService,
     items: list,
     text_fields: list[str],
     payload_map: dict[str, str],  # payload_key -> model_attr
@@ -121,7 +116,7 @@ async def main():
         POIS_COLLECTION,
         embedder,
         pois,
-        text_fields=["name", "description", "category", "subtype"],
+        text_fields=["name", "description", "category", "subtype", "fun_fact", "commune"],
         payload_map={
             "poi_id": "id",
             "name": "name",
