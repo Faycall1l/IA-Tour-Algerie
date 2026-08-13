@@ -55,6 +55,7 @@ class DiscoverPOI(BaseModel):
     latitude: float | None
     longitude: float | None
     photo_url: str | None
+    is_featured: bool = False
     entry_fee_dzd: float | None
 
 
@@ -284,7 +285,7 @@ async def list_wilayas(
     "/wilayas/{wilaya_id}",
     response_model=DiscoverResponse,
     summary="Consolidated wilaya view",
-    description="All content for a wilaya in one payload: POIs (alphabetical), active experiences (with provider info), active stays (by price), and artisans.",  # noqa: E501
+    description="All content for a wilaya in one payload: POIs (featured first, then alphabetical), active experiences (with provider info), active stays (by price), and artisans.",  # noqa: E501
     responses={
         404: {"description": "Wilaya not found"},
         422: {"description": "Invalid wilaya_id"},
@@ -300,7 +301,13 @@ async def discover_wilaya(
 
     # POIs
     pois_rows = (
-        (await db.execute(select(POI).where(POI.wilaya_id == wilaya_id).order_by(POI.name)))
+        (
+            await db.execute(
+                select(POI)
+                .where(POI.wilaya_id == wilaya_id)
+                .order_by(POI.is_featured.desc().nullslast(), POI.name)
+            )
+        )
         .scalars()
         .all()
     )
@@ -314,6 +321,7 @@ async def discover_wilaya(
             latitude=p.latitude,
             longitude=p.longitude,
             photo_url=p.photo_url,
+            is_featured=bool(p.is_featured),
             entry_fee_dzd=p.entry_fee_dzd,
         )
         for p in pois_rows

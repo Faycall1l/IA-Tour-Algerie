@@ -10,6 +10,11 @@ Keeps:
 
 Drops:
   - placeholder/unnamed names (points that map to nothing)
+  - junk-ID names: pure digits ('937606') or source ID strings
+    ('112PA123456,87,IN,INV', '116pa466551') that carry no real name
+  - non-tourism names: housing blocks ('435 logts', 'Cité 96 logts'),
+    power substations ('Poste 450 logts'), 'ma maison', municipal admin
+    buildings ('APC el harrach', 'Mairie Douis'), brand HQs / companies
   - bad coordinates (0,0 or NULL)
   - everything else not matching the above
 
@@ -50,7 +55,7 @@ NOTABLE_RELIGIOUS = re.compile(
 )
 
 PLACEHOLDER = re.compile(
-    r"non nomm[ée]|non name|unnamed|unknown|inconnu|^\d+$|^$",
+    r"^(non nomm[ée]|non nomme|non name|unnamed|unknown|inconnu|)$",
     re.IGNORECASE,
 )
 
@@ -69,14 +74,20 @@ OR (category IN ('restaurant', 'cafe') AND photo_url IS NOT NULL)
 """
 
 _CLEAN = """
-AND name IS NOT NULL AND name != ''
-AND NOT (name ~* 'non nomm[ée]|non nomme|non name|unnamed|unknown|inconnu')
+name IS NOT NULL AND name != ''
+AND NOT (name ~* '^(non nomm[ée]|non nomme|non name|unnamed|unknown|inconnu)$')
+AND NOT (name ~ '^[0-9]+$')
+AND NOT (name ~* '^[0-9]+[a-z]{1,3}[0-9]')
+AND NOT (name ~* 'logts?|logements')                             -- housing blocks / power substations ('Poste 450 logts')
+AND NOT (name ~* '^ma (maison|mosqu[ée]e|villa)$')               -- 'ma maison'
+AND NOT (name ~* '^(apc|mairie|da[iï]ra) ')                      -- municipal admin buildings
+AND NOT (name ~* 'm[uü]kam|soci[ée]t[ée]|entreprise|showroom')   -- brand HQs / companies
 AND latitude IS NOT NULL AND longitude IS NOT NULL
 AND NOT (latitude = 0 AND longitude = 0)
 """
 
-KEEP_PRED = f"({_KEEP} {_CLEAN})"
-DROP_PRED = f"NOT ({_KEEP} {_CLEAN})"
+KEEP_PRED = f"(({_KEEP}) AND ({_CLEAN}))"
+DROP_PRED = f"NOT (({_KEEP}) AND ({_CLEAN}))"
 
 _PARAMS: dict = {}
 

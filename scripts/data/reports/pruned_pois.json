@@ -83626,5 +83626,576 @@
   "source": "osm",
   "latitude": 35.3789618,
   "longitude": 5.89552
+ },
+ {
+  "id": "06759f61-0818-41f5-9179-5d05e29effd8",
+  "name": "Poste 450 logts",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1932062,
+  "longitude": 5.4429716
+ },
+ {
+  "id": "0f442cf7-7850-4376-81eb-641cefe069a1",
+  "name": "Poste 200 logts",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1940479,
+  "longitude": 5.444458
+ },
+ {
+  "id": "0f6fb238-c486-4003-b5ef-a213f8a32246",
+  "name": "Poste 49 logts raisemch",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1867142,
+  "longitude": 5.4231576
+ },
+ {
+  "id": "1e3fdb11-30d1-4ddc-9226-ab8260126fde",
+  "name": "Poste 1000 logts (3)",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1772116,
+  "longitude": 5.4021965
+ },
+ {
+  "id": "1ece49c4-73a2-4c40-ae12-4ddc3df009d5",
+  "name": "Poste 450 logts (2)",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.191937,
+  "longitude": 5.4424182
+ },
+ {
+  "id": "367455ce-c1e9-4468-958c-5a1cff2691d6",
+  "name": "Poste 243 logts (1)",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1971967,
+  "longitude": 5.4469286
+ },
+ {
+  "id": "3ddf2459-8ba5-49be-8ccd-2746c1c745cc",
+  "name": "ma maison",
+  "category": "cultural",
+  "wilaya_id": 16,
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.6881581,
+  "longitude": 2.9807048
+ },
+ {
+  "id": "44da9bf4-b00b-4cb4-9331-ff742d24c408",
+  "name": "Cité 96 logts",
+  "category": "cultural",
+  "wilaya_id": 16,
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.805375,
+  "longitude": 3.2408845
+ },
+ {
+  "id": "4871b843-3552-4aa7-a908-26321b2df2ad",
+  "name": "Poste 108 logts univer",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1931974,
+  "longitude": 5.44798
+ },
+ {
+  "id": "5122ec7f-0b00-44de-8cbb-95e8290ebeef",
+  "name": "Poste 74 logts",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1932091,
+  "longitude": 5.4357805
+ },
+ {
+  "id": "53f38e16-33d7-4e17-a474-3e428e19de3b",
+  "name": "Poste 250 logts",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1927781,
+  "longitude": 5.4440442
+ },
+ {
+  "id": "5f093fa1-62d5-41e1-87e4-7970bb173fb0",
+  "name": "Camp d'entreprise Reg",
+  "category": "natural",
+  "wilaya_id": 53,
+  "source": "geoalgeria-tourisme",
+  "latitude": 28.0682985,
+  "longitude": 2.1509332
+ },
+ {
+  "id": "7271e742-c53d-48ce-9ee4-84f8f7240a77",
+  "name": "435 logts",
+  "category": "cultural",
+  "wilaya_id": 16,
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7678592,
+  "longitude": 3.3289103
+ },
+ {
+  "id": "7430edcb-e273-4440-bcbe-cb99864372d6",
+  "name": "Poste 243 logts (2)",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1986131,
+  "longitude": 5.4463679
+ },
+ {
+  "id": "74f8c397-20ac-4e85-b75e-bb6b4b5cbaaa",
+  "name": "Mairie Douis",
+  "category": "cultural",
+  "wilaya_id": 17,
+  "source": "geoalgeria-tourisme",
+  "latitude": 34.3719468,
+  "longitude": 2.7025514
+ },
+ {
+  "id": "8aae4de2-6021-4415-8b19-4e70cad9699b",
+  "name": "AL MÜKAM NUTS",
+  "category": "natural",
+  "wilaya_id": 16,
+  "source": "osm",
+  "latitude": 36.6988183,
+  "longitude": 3.0916589
+ },
+ {
+  "id": "93489de5-04e2-4e51-9cc4-d43742c36fdf",
+  "name": "435 logts",
+  "category": "cultural",
+  "wilaya_id": 35,
+  "source": "osm",
+  "latitude": 36.7678592,
+  "longitude": 3.3289103
+ },
+ {
+  "id": "9bdf59bb-0921-470b-b220-f3c280efadb3",
+  "name": "APC el harrach",
+  "category": "historical",
+  "wilaya_id": 16,
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7207973,
+  "longitude": 3.13716
+ },
+ {
+  "id": "ff9e2e7e-a691-476f-a72d-35491a4ec89a",
+  "name": "Poste 360 logts (1)",
+  "category": "natural",
+  "wilaya_id": 19,
+  "source": "osm",
+  "latitude": 36.1762574,
+  "longitude": 5.4031597
+ },
+ {
+  "id": null,
+  "name": "1020",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "1030",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "1050",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "1070",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "1090",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "1122",
+  "category": "nature",
+  "wilaya_id": 19,
+  "source": null,
+  "latitude": 36.3741349,
+  "longitude": 5.7052337,
+  "recovered_from": "poi_nodes_enriched.json"
+ },
+ {
+  "id": null,
+  "name": "112PA123456,87,IN,INV",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7494751,
+  "longitude": 3.1920098,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "112pa341234,654",
+  "category": "cultural",
+  "wilaya_id": "35",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.644485,
+  "longitude": 3.4646944,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "114pa876544,7777",
+  "category": "cultural",
+  "wilaya_id": "35",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.6459813,
+  "longitude": 3.4658237,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "116pa466551",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.732642,
+  "longitude": 3.2691765,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "118PA611425",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7450875,
+  "longitude": 3.1941958,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "1233",
+  "category": "nature",
+  "wilaya_id": 28,
+  "source": null,
+  "latitude": 36.1382126,
+  "longitude": 4.4512439,
+  "recovered_from": "poi_nodes_enriched.json"
+ },
+ {
+  "id": null,
+  "name": "1708",
+  "category": "nature",
+  "wilaya_id": 19,
+  "source": null,
+  "latitude": 35.7226498,
+  "longitude": 5.2187633,
+  "recovered_from": "poi_nodes_enriched.json"
+ },
+ {
+  "id": null,
+  "name": "1842",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "213406",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7361313,
+  "longitude": 3.2810327,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "214145",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7377179,
+  "longitude": 3.2828165,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "216484",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7201946,
+  "longitude": 3.2844147,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "225618",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7450313,
+  "longitude": 3.3453712,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "231660",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7228212,
+  "longitude": 3.3363597,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "237",
+  "category": "nature",
+  "wilaya_id": 23,
+  "source": null,
+  "latitude": 36.624466,
+  "longitude": 7.731682,
+  "recovered_from": "poi_nodes_enriched.json"
+ },
+ {
+  "id": null,
+  "name": "255",
+  "category": "nature",
+  "wilaya_id": 23,
+  "source": null,
+  "latitude": 36.6198505,
+  "longitude": 7.7148914,
+  "recovered_from": "poi_nodes_enriched.json"
+ },
+ {
+  "id": null,
+  "name": "261",
+  "category": "nature",
+  "wilaya_id": 23,
+  "source": null,
+  "latitude": 36.6311474,
+  "longitude": 7.7323794,
+  "recovered_from": "poi_nodes_enriched.json"
+ },
+ {
+  "id": null,
+  "name": "3",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.6105979,
+  "longitude": 3.1124141,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "575",
+  "category": "nature",
+  "wilaya_id": 41,
+  "source": null,
+  "latitude": 36.0355571,
+  "longitude": 8.12307,
+  "recovered_from": "poi_nodes_enriched.json"
+ },
+ {
+  "id": null,
+  "name": "619553",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7354996,
+  "longitude": 3.3502666,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "666666",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7871433,
+  "longitude": 3.3080122,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "772864",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7299898,
+  "longitude": 3.3448988,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "854469",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7573431,
+  "longitude": 3.3529427,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "861710",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7460635,
+  "longitude": 3.3390814,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "881",
+  "category": "nature",
+  "wilaya_id": 10,
+  "source": null,
+  "latitude": 36.2168216,
+  "longitude": 4.0855407,
+  "recovered_from": "poi_nodes_enriched.json"
+ },
+ {
+  "id": null,
+  "name": "890",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "900",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "910",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "922383",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.736377,
+  "longitude": 3.2807953,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "930",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "934532",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7117036,
+  "longitude": 3.2854469,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "937605",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7324526,
+  "longitude": 3.2689424,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "937606",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7326742,
+  "longitude": 3.2693212,
+  "recovered_from": "pois_v2.json"
+ },
+ {
+  "id": null,
+  "name": "970",
+  "category": null,
+  "wilaya_id": null,
+  "source": "osm",
+  "latitude": null,
+  "longitude": null,
+  "recovered_from": "osmid-not-in-json (coords unrecoverable)"
+ },
+ {
+  "id": null,
+  "name": "971310",
+  "category": "cultural",
+  "wilaya_id": "16",
+  "source": "geoalgeria-tourisme",
+  "latitude": 36.7252076,
+  "longitude": 3.3336895,
+  "recovered_from": "pois_v2.json"
  }
 ]
