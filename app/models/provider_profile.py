@@ -2,7 +2,7 @@ import uuid
 
 from sqlalchemy import ARRAY, CheckConstraint, Float, ForeignKey, Integer, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, backref, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.mixins import UUIDPkMixin
@@ -31,7 +31,7 @@ class ProviderProfile(UUIDPkMixin, Base):
     )
     provider_type: Mapped[str] = mapped_column(String(20), nullable=False)
 
-    user = relationship("User", backref="profile", lazy="joined")
+    user = relationship("User", backref=backref("profile", uselist=False), lazy="joined")
 
     is_verified: Mapped[bool] = mapped_column(default=False)
 
