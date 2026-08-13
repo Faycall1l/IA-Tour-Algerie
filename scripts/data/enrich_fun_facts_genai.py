@@ -71,7 +71,7 @@ CATEGORY_CONTEXT = {
 
 TARGET_CATEGORIES = {
     "historical", "cultural", "museum", "natural", "mountain",
-    "park", "religious", "beach", "other",
+    "park", "religious", "beach", "market", "restaurant", "cafe", "other",
 }
 
 
@@ -288,16 +288,22 @@ async def enrich(batch_size: int = 10, dry_run: bool = False, max_total: int = 0
         if max_total > 0:
             total = min(total, max_total)
 
+        # Fetch ALL remaining targets up front. OFFSET pagination was buggy here:
+        # enriched rows leave the `fun_fact IS NULL` set, so the paginated window
+        # shrank mid-run and every batch silently skipped batch_size rows (~half
+        # of the set was never processed). Iterating an in-memory snapshot is
+        # idempotent and drift-free.
+        targets = await fetch_target_pois(db, total, 0)
+        total = len(targets)
+        log.info("Target POIs to process: %d", total)
+
         enriched = 0
         skipped = 0
         errors = 0
-        offset = 0
 
         async with httpx.AsyncClient() as client:
-            while offset < total:
-                pois = await fetch_target_pois(db, batch_size, offset)
-                if not pois:
-                    break
+            for start in range(0, total, batch_size):
+                pois = targets[start : start + batch_size]
 
                 prompts = [build_user_prompt(p) for p in pois]
 
@@ -320,7 +326,6 @@ async def enrich(batch_size: int = 10, dry_run: bool = False, max_total: int = 0
                         log.debug("  SKIP %s: raw=%r", poi["name"][:35], raw_fact[:80] if raw_fact else None)
 
                 await update_fun_facts(db, updates)
-                offset += batch_size
 
                 log.info(
                     "Progress: %d/%d enriched, %d skipped, %d errors",
