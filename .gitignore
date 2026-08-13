@@ -64,3 +64,6 @@ scripts/data/pois_v2_deduped.json
 scripts/data/stays_v2_deduped.json
 scripts/data/.cdx_cache.json
 scripts/data/raw/geonames/
+
+# GenAI fun-fact runtime logs (referenced from AGENTS.md, not committed)
+scripts/data/reports/funfacts_genai_run*.log
