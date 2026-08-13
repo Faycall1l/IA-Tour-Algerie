@@ -67,3 +67,5 @@ scripts/data/raw/geonames/
 
 # GenAI fun-fact runtime logs (referenced from AGENTS.md, not committed)
 scripts/data/reports/funfacts_genai_run*.log
+scripts/data/reports/photos_commons_featured.log
+scripts/data/reports/photos_commons_featured_state.json
