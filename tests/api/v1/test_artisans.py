@@ -66,16 +66,13 @@ async def test_get_artisan_includes_nearest_transit(client: AsyncClient, artisan
     assert nearest[0]["distance_m"] == 45.0
 
 
-async def test_list_artisans_includes_nearest_transit(
-    client: AsyncClient, artisan_with_transit
-):
+async def test_list_artisans_includes_nearest_transit(client: AsyncClient, artisan_with_transit):
     artisan_id, station_id = artisan_with_transit
     resp = await client.get("/api/v1/artisans?wilaya_id=16")
     assert resp.status_code == 200
     items = resp.json()["items"]
     assert any(
-        item["id"] == str(artisan_id) and item["nearest_transit"][0]["rank"] == 0
-        for item in items
+        item["id"] == str(artisan_id) and item["nearest_transit"][0]["rank"] == 0 for item in items
     )
 
 
@@ -94,9 +91,7 @@ async def test_artisan_without_transit_has_empty_list(db: AsyncSession, client: 
     assert resp.json()["nearest_transit"] == []
 
 
-async def test_route_to_artisan_returns_plan_and_transit(
-    client: AsyncClient, artisan_with_transit
-):
+async def test_route_to_artisan_returns_plan_and_transit(client: AsyncClient, artisan_with_transit):
     artisan_id, _station_id = artisan_with_transit
 
     def make_plan():
@@ -125,7 +120,7 @@ async def test_route_to_artisan_returns_plan_and_transit(
         )
 
     fake_router = AsyncMock()
-    fake_router.route_to = AsyncMock(side_effect=lambda **kw: make_plan())
+    fake_router.route_to = AsyncMock(side_effect=lambda **_kw: make_plan())
     app.dependency_overrides[get_poi_transit_router] = lambda: fake_router
     try:
         resp = await client.get(

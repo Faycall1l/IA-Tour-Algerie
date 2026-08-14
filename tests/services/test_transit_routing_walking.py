@@ -3,10 +3,9 @@
 import uuid
 
 import pytest
-from sqlalchemy.ext.asyncio import AsyncSession
-
 from app.models.station import LineStop, Station, StationTransfer, TransportLine
 from app.services.transit_routing import TransitRoutingService
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 async def _seed(db: AsyncSession) -> tuple[uuid.UUID, uuid.UUID, uuid.UUID]:

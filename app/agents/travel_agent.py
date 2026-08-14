@@ -15,8 +15,13 @@ in production, use build_prompt() to inject user context.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from pydantic import BaseModel, Field
 from pydantic_ai import Agent, RunContext
+
+if TYPE_CHECKING:
+    from pydantic_ai.models.openai import OpenAIChatModel
 
 from app.agents.deps import TravelAgentDeps
 from app.agents.memory_tools import recall, remember

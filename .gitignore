@@ -69,3 +69,8 @@ scripts/data/raw/geonames/
 scripts/data/reports/funfacts_genai_run*.log
 scripts/data/reports/photos_commons_featured.log
 scripts/data/reports/photos_commons_featured_state.json
+
+# Raw scraped corpus + geocode checkpoints (re-derivable via the scraper scripts)
+scripts/data/reports/ib_artisans.jsonl
+scripts/data/reports/pm_artisans.jsonl
+scripts/data/reports/pm_geocode.jsonl

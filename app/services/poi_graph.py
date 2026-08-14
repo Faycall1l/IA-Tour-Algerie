@@ -257,6 +257,7 @@ class POIGraphService:
         if start_poi_id and start_poi_id in candidates:
             start_node = self._pois[start_poi_id]
         else:
+
             def _local_pois(pid: str) -> list[str]:
                 node = self._pois[pid]
                 dists = sorted(
@@ -371,9 +372,7 @@ class POIGraphService:
             if prev_node:
                 graph = self._wilaya_graphs.get(prev_node.wilaya_id) or self._graph
                 try:
-                    walk_min = nx.shortest_path_length(
-                        graph, prev_node.id, pid, weight="weight"
-                    )
+                    walk_min = nx.shortest_path_length(graph, prev_node.id, pid, weight="weight")
                 except nx.NetworkXException:
                     walk_min = _walking_min(
                         _haversine_m(prev_node.lat, prev_node.lon, node.lat, node.lon)
@@ -456,9 +455,7 @@ class POIGraphService:
             return self._exact_tsp(list(range(n)), dist, poi_ids)
         return self._two_opt_tsp(list(range(n)), dist, poi_ids)
 
-    def _exact_tsp(
-        self, idx: list[int], dist: list[list[float]], poi_ids: list[str]
-    ) -> list[str]:
+    def _exact_tsp(self, idx: list[int], dist: list[list[float]], poi_ids: list[str]) -> list[str]:
         best_order = idx[:]
         best_cost = sum(dist[best_order[k]][best_order[k + 1]] for k in range(len(idx) - 1))
 

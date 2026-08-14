@@ -6,6 +6,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
 from app.db.mixins import TimestampMixin, UUIDPkMixin
+
+
 class Station(UUIDPkMixin, TimestampMixin, Base):
     __tablename__ = "stations"
     __allow_unmapped__ = True
