@@ -89,6 +89,9 @@ class Settings(BaseSettings):
     # Default-secure Host allowlist; set ATHAR_ALLOWED_HOSTS (JSON array) in
     # deployment. "*" is never a safe default (DNS rebinding / Host injection).
     allowed_hosts: list[str] = ["localhost", "127.0.0.1"]
+    # Frontend origin used to build deep links in agent replies (e.g.
+    # "https://athar.app"). Empty → relative URLs (/pois/{id}, ...).
+    app_url: str = ""
 
     database: DatabaseSettings = DatabaseSettings()
     qdrant: QdrantSettings = QdrantSettings()
