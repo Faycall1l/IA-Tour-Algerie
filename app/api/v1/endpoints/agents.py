@@ -98,7 +98,10 @@ class AgentChatResponse(BaseModel):
     )
     links: list[AgentLink] = Field(
         default_factory=list,
-        description="Deep links to in-app pages (POIs, stays, experiences, ...) referenced by the reply",
+        description=(
+            "Deep links to in-app pages (POIs, stays, experiences, ...) "
+            "referenced by the reply"
+        ),
     )
 
 
@@ -122,7 +125,10 @@ class AgentSearchResponse(BaseModel):
     )
     links: list[AgentLink] = Field(
         default_factory=list,
-        description="Deep links to in-app pages (POIs, stays, experiences, ...) referenced by the reply",
+        description=(
+            "Deep links to in-app pages (POIs, stays, experiences, ...) "
+            "referenced by the reply"
+        ),
     )
 
 
@@ -332,7 +338,9 @@ async def agent_chat(
         body.session_id,
         "travel_agent",
     )
-    reply, degraded, links = await _run_agent_traced(agent, body.message, agent_deps, "travel_agent")
+    reply, degraded, links = await _run_agent_traced(
+        agent, body.message, agent_deps, "travel_agent"
+    )
     if degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentChatResponse(

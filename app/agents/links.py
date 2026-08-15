@@ -156,7 +156,9 @@ def _artisan_links(d: dict) -> list[AgentLink]:
 
 
 def _event_links(d: dict, wilaya_id: int | None = None) -> list[AgentLink]:
-    return _entity_links(d.get("results", d.get("upcoming_events", [])), "event", "title", wilaya_id)
+    return _entity_links(
+        d.get("results", d.get("upcoming_events", [])), "event", "title", wilaya_id
+    )
 
 
 def _wilaya_guide_links(d: dict) -> list[AgentLink]:

@@ -93,6 +93,7 @@ class TestChatEndpoint:
         data = resp.json()
         assert "reply" in data
         assert "Great Mosque" in data["reply"]
+        assert data["links"] == []
 
     async def test_success_with_wilaya_filter(
         self, client: AsyncClient, auth_headers: dict[str, str]
@@ -168,6 +169,7 @@ class TestPlanTripEndpoint:
         assert isinstance(data["plan"], str)
         assert "Algiers" in data["plan"]
         assert "Kasbah" in data["plan"]
+        assert data["links"] == []
 
 
 # ── Search endpoint tests ──
@@ -215,6 +217,7 @@ class TestSearchEndpoint:
         data = resp.json()
         assert "reply" in data
         assert "Oran" in data["reply"]
+        assert data["links"] == []
 
     async def test_empty_results(self, client: AsyncClient, auth_headers: dict[str, str]):
         _inject_mock(
