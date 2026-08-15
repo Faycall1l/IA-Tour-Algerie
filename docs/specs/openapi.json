@@ -7037,6 +7037,14 @@
             "title": "Degraded",
             "description": "True when the reply came from the offline rule-based fallback",
             "default": false
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/AgentLink"
+            },
+            "type": "array",
+            "title": "Links",
+            "description": "Deep links to in-app pages (POIs, stays, experiences, ...) referenced by the reply"
           }
         },
         "type": "object",
@@ -7044,6 +7052,56 @@
           "reply"
         ],
         "title": "AgentChatResponse"
+      },
+      "AgentLink": {
+        "properties": {
+          "type": {
+            "type": "string",
+            "enum": [
+              "poi",
+              "stay",
+              "experience",
+              "event",
+              "artisan",
+              "wilaya",
+              "transport"
+            ],
+            "title": "Type"
+          },
+          "id": {
+            "type": "string",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "url": {
+            "type": "string",
+            "title": "Url"
+          },
+          "wilaya_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Wilaya Id",
+            "description": "Related wilaya (entity location / transport origin)"
+          }
+        },
+        "type": "object",
+        "required": [
+          "type",
+          "id",
+          "name",
+          "url"
+        ],
+        "title": "AgentLink",
+        "description": "A single deep link surfaced to the client alongside an agent reply."
       },
       "AgentObservabilityStats": {
         "properties": {
@@ -7162,6 +7220,14 @@
             "title": "Degraded",
             "description": "True when the reply came from the offline rule-based fallback",
             "default": false
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/AgentLink"
+            },
+            "type": "array",
+            "title": "Links",
+            "description": "Deep links to in-app pages (POIs, stays, experiences, ...) referenced by the reply"
           }
         },
         "type": "object",
@@ -8870,6 +8936,25 @@
           "wilaya_name": {
             "type": "string",
             "title": "Wilaya Name"
+          },
+          "description": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Description"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags",
+            "description": "TripAdvisor-style 'things to do' labels for the wilaya's dominant categories"
           },
           "pois": {
             "items": {
@@ -10616,6 +10701,13 @@
               }
             ],
             "title": "Description"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
           },
           "total_pois": {
             "type": "integer",
@@ -14695,6 +14787,14 @@
               }
             ],
             "title": "Session Id"
+          },
+          "links": {
+            "items": {
+              "$ref": "#/components/schemas/AgentLink"
+            },
+            "type": "array",
+            "title": "Links",
+            "description": "Deep links to in-app pages referenced by the plan"
           }
         },
         "type": "object",
@@ -15360,6 +15460,13 @@
               }
             ],
             "title": "Description"
+          },
+          "tags": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Tags"
           },
           "total_pois": {
             "type": "integer",

@@ -1,7 +1,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy import func, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +28,48 @@ CATEGORY_ORDER = {
     "cafe": 11,
     "other": 12,
 }
+
+# TripAdvisor-style "things to do" labels for the dominant categories.
+CATEGORY_LABELS = {
+    "museum": "Musées",
+    "cultural": "Culture & patrimoine",
+    "historical": "Sites historiques",
+    "natural": "Sites naturels",
+    "beach": "Plages",
+    "park": "Parcs & jardins",
+    "mountain": "Randonnée & montagne",
+    "market": "Souks & marchés",
+    "religious": "Lieux de culte",
+    "restaurant": "Gastronomie",
+    "cafe": "Cafés",
+    "other": "Curiosités",
+}
+
+
+def _wilaya_tags(cat_counts: dict[str, int], max_tags: int = 6) -> list[str]:
+    """Rank a wilaya's categories by count → human labels for its highlights."""
+    ranked = sorted(
+        cat_counts.items(),
+        key=lambda kv: (-kv[1], CATEGORY_ORDER.get(kv[0], 99)),
+    )
+    labels: list[str] = []
+    for cat, _count in ranked:
+        label = CATEGORY_LABELS.get(cat)
+        if label and label not in labels:
+            labels.append(label)
+        if len(labels) >= max_tags:
+            break
+    return labels
+
+
+def _category_counts(rows) -> dict[str, int]:
+    """Count POI categories across rows/objects exposing a `.category` attr."""
+    counts: dict[str, int] = {}
+    for r in rows:
+        cat = getattr(r, "category", None)
+        if cat:
+            counts[cat] = counts.get(cat, 0) + 1
+    return counts
 
 
 def _display_name(user_map: dict, user_id: uuid.UUID) -> str | None:
@@ -107,6 +149,11 @@ class DiscoverArtisan(BaseModel):
 class DiscoverResponse(BaseModel):
     wilaya_id: int
     wilaya_name: str
+    description: str | None = None
+    tags: list[str] = Field(
+        default_factory=list,
+        description="TripAdvisor-style 'things to do' labels for the wilaya's dominant categories",
+    )
     pois: list[DiscoverPOI]
     experiences: list[DiscoverExperience]
     stays: list[DiscoverStay]
@@ -117,6 +164,7 @@ class WilayaSummary(BaseModel):
     id: int
     name: str
     description: str | None = None
+    tags: list[str] = Field(default_factory=list)
     total_pois: int = 0
     total_featured: int = 0
     total_experiences: int = 0
@@ -161,6 +209,7 @@ class GuideResponse(BaseModel):
     wilaya_id: int
     wilaya_name: str
     description: str | None = None
+    tags: list[str] = Field(default_factory=list)
     total_pois: int
     total_featured: int
     featured_pois: list[GuidePOI]
@@ -264,6 +313,7 @@ async def list_wilayas(
                 id=w.id,
                 name=_wilaya_name(w),
                 description=w.description,
+                tags=_wilaya_tags(cat_counts),
                 total_pois=total_pois,
                 total_featured=featured_count,
                 total_experiences=exp_count or 0,
@@ -445,6 +495,8 @@ async def discover_wilaya(
     return DiscoverResponse(
         wilaya_id=wilaya_id,
         wilaya_name=wilaya.name_en,
+        description=wilaya.description or wilaya.description_en,
+        tags=_wilaya_tags(_category_counts(pois_rows)),
         pois=pois,
         experiences=experiences,
         stays=stays,
@@ -498,7 +550,6 @@ async def wilaya_guide(
             experiences=[],
             stays=[],
         )
-
     def build_guide_poi(p: POI) -> GuidePOI:
         gt = p.getting_there or {}
         return GuidePOI(
@@ -621,6 +672,7 @@ async def wilaya_guide(
         wilaya_id=wilaya_id,
         wilaya_name=_wilaya_name(wilaya),
         description=wilaya.description,
+        tags=_wilaya_tags(_category_counts(all_pois)),
         total_pois=len(all_pois),
         total_featured=len(featured),
         featured_pois=featured,
