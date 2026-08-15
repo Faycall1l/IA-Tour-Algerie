@@ -2,7 +2,7 @@ import asyncio
 import os
 import uuid
 from collections.abc import AsyncIterator
-from unittest.mock import AsyncMock
+from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 import pytest_asyncio
@@ -164,6 +164,10 @@ async def client() -> AsyncIterator[AsyncClient]:
     app.state.storage = storage_mock
     app.state.embedder = AsyncMock()
     app.state.vector_search = AsyncMock()
+    # Empty semantic hits: the agent/POI endpoints fall through to their SQL
+    # full-text fallback deterministically (no leaked coroutines).
+    app.state.vector_search.search = MagicMock(return_value=[])
+    app.state.vector_search.search_experiences = MagicMock(return_value=[])
     app.state.trip_optimizer = TripOptimizer()
     app.state.trip_brief_generator = TripBriefGenerator()
     app.state.transit_routing = AsyncMock()

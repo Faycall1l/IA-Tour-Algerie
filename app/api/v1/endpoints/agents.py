@@ -156,6 +156,7 @@ async def _run_agent_traced(
     allow_fallback: bool = True,
     from_wilaya: int | None = None,
     to_wilaya: int | None = None,
+    request: Request | None = None,
 ) -> tuple[str, bool, list[AgentLink]]:
     """Run an agent with full observability tracing, input validation, PII redaction,
     and multi-turn memory (load history before, store after).
@@ -187,6 +188,24 @@ async def _run_agent_traced(
     sanitized = sanitize_input(message)
     degraded = False
     links: list[AgentLink] = []
+
+    # RAG grounding: retrieve real records matching the user query and inject
+    # them into the system prompt so the model answers from verifiable data.
+    from app.agents.retrieval import (
+        render_grounding_context,
+        retrieve_grounding_context,
+        should_ground,
+    )
+
+    if should_ground(message):
+        try:
+            vector_search = getattr(request.app.state, "vector_search", None) if request else None
+            hits = await retrieve_grounding_context(
+                agent_deps.db, message, vector_search=vector_search
+            )
+            agent_deps.grounding_context = render_grounding_context(message, hits)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("RAG grounding skipped for %s: %s", agent_name, exc)
 
     if agent is not None:
         try:
@@ -339,7 +358,7 @@ async def agent_chat(
         "travel_agent",
     )
     reply, degraded, links = await _run_agent_traced(
-        agent, body.message, agent_deps, "travel_agent"
+        agent, body.message, agent_deps, "travel_agent", request=request
     )
     if degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
@@ -387,7 +406,9 @@ async def agent_plan_trip(
     )
     if body.interests.strip():
         prompt += f"\nInterests: {body.interests}"
-    reply, _degraded, links = await _run_agent_traced(agent, prompt, agent_deps, "itinerary_agent")
+    reply, _degraded, links = await _run_agent_traced(
+        agent, prompt, agent_deps, "itinerary_agent", request=request
+    )
     return TripPlanResponse(
         plan=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
@@ -424,7 +445,9 @@ async def agent_search(
         body.session_id,
         "search_agent",
     )
-    reply, degraded, links = await _run_agent_traced(agent, body.query, agent_deps, "search_agent")
+    reply, degraded, links = await _run_agent_traced(
+        agent, body.query, agent_deps, "search_agent", request=request
+    )
     if degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentSearchResponse(
@@ -471,6 +494,7 @@ async def agent_transport(
         "transport_agent",
         from_wilaya=body.from_wilaya,
         to_wilaya=body.to_wilaya,
+        request=request,
     )
     if degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
@@ -511,7 +535,9 @@ async def agent_events(
         body.session_id,
         "events_agent",
     )
-    reply, degraded, links = await _run_agent_traced(agent, body.query, agent_deps, "events_agent")
+    reply, degraded, links = await _run_agent_traced(
+        agent, body.query, agent_deps, "events_agent", request=request
+    )
     if degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentChatResponse(

@@ -162,6 +162,8 @@ def _dynamic_instructions(prompt_name: str):
         base = prompt.render(context=agent_ctx.render())
         if ctx.deps.message_history:
             base += "\n" + ctx.deps.message_history
+        if ctx.deps.grounding_context:
+            base += "\n" + ctx.deps.grounding_context
         briefing = south_briefing(last_user_turn(ctx.deps.message_history))
         if briefing:
             base += "\n\n" + briefing
