@@ -26,8 +26,9 @@ from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.deps import TravelAgentDeps
-from app.agents.fallback import attempt_fallback
+from app.agents.fallback import attempt_fallback_with_links
 from app.agents.harness import sanitize_input, validate_input
+from app.agents.links import AgentLink, render_links_section
 from app.agents.memory_service import (
     build_message_history,
     delete_session,
@@ -95,11 +96,19 @@ class AgentChatResponse(BaseModel):
         False,
         description="True when the reply came from the offline rule-based fallback",
     )
+    links: list[AgentLink] = Field(
+        default_factory=list,
+        description="Deep links to in-app pages (POIs, stays, experiences, ...) referenced by the reply",
+    )
 
 
 class TripPlanResponse(BaseModel):
     plan: str
     session_id: str | None = None
+    links: list[AgentLink] = Field(
+        default_factory=list,
+        description="Deep links to in-app pages referenced by the plan",
+    )
 
 
 class AgentSearchResponse(BaseModel):
@@ -110,6 +119,10 @@ class AgentSearchResponse(BaseModel):
     degraded: bool = Field(
         False,
         description="True when the reply came from the offline rule-based fallback",
+    )
+    links: list[AgentLink] = Field(
+        default_factory=list,
+        description="Deep links to in-app pages (POIs, stays, experiences, ...) referenced by the reply",
     )
 
 
@@ -137,7 +150,7 @@ async def _run_agent_traced(
     allow_fallback: bool = True,
     from_wilaya: int | None = None,
     to_wilaya: int | None = None,
-) -> tuple[str, bool]:
+) -> tuple[str, bool, list[AgentLink]]:
     """Run an agent with full observability tracing, input validation, PII redaction,
     and multi-turn memory (load history before, store after).
 
@@ -148,7 +161,8 @@ async def _run_agent_traced(
     timeout, or not configured) and ``allow_fallback`` is set, the rule-based
     responder answers the most common query shapes directly; the reply is then
     marked as degraded so clients can tell offline answers apart. Returns
-    ``(reply, degraded)``.
+    ``(reply, degraded, links)`` where the reply already carries a plain-text
+    quick-links footer and ``links`` is the structured array for the frontend.
     """
     # Input validation
     is_valid, error = validate_input(message)
@@ -166,14 +180,16 @@ async def _run_agent_traced(
     # PII redaction
     sanitized = sanitize_input(message)
     degraded = False
+    links: list[AgentLink] = []
 
     if agent is not None:
         try:
             output, _trace = await run_agent_safely(agent, sanitized, agent_deps, agent_name)
+            links = [AgentLink(**link) for link in _trace.metadata.get("links", [])]
         except AgentUnavailable as exc:
             if not allow_fallback:
                 raise HTTPException(status_code=503, detail=str(exc))
-            output = await attempt_fallback(
+            output, links = await attempt_fallback_with_links(
                 agent_name,
                 sanitized,
                 agent_deps,
@@ -191,7 +207,7 @@ async def _run_agent_traced(
     else:
         if not allow_fallback:
             raise HTTPException(status_code=503, detail="Agents are not configured")
-        output = await attempt_fallback(
+        output, links = await attempt_fallback_with_links(
             agent_name,
             sanitized,
             agent_deps,
@@ -205,7 +221,8 @@ async def _run_agent_traced(
             )
         degraded = True
 
-    # Store this turn in memory (if session available)
+    # Store this turn in memory (if session available) — the raw reply, without
+    # the quick-links footer so replayed history stays clean.
     if agent_deps.session_id and agent_deps.db:
         try:
             await store_agent_run(
@@ -218,7 +235,8 @@ async def _run_agent_traced(
         except Exception as e:
             logger.warning("Failed to store agent memory turn: %s", e)
 
-    return output, degraded
+    reply = output + render_links_section(links)
+    return reply, degraded, links
 
 
 # ── Dependency: extract agent from app.state ──
@@ -314,13 +332,14 @@ async def agent_chat(
         body.session_id,
         "travel_agent",
     )
-    reply, degraded = await _run_agent_traced(agent, body.message, agent_deps, "travel_agent")
+    reply, degraded, links = await _run_agent_traced(agent, body.message, agent_deps, "travel_agent")
     if degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentChatResponse(
         reply=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
         degraded=degraded,
+        links=links,
     )
 
 
@@ -360,10 +379,11 @@ async def agent_plan_trip(
     )
     if body.interests.strip():
         prompt += f"\nInterests: {body.interests}"
-    reply, _degraded = await _run_agent_traced(agent, prompt, agent_deps, "itinerary_agent")
+    reply, _degraded, links = await _run_agent_traced(agent, prompt, agent_deps, "itinerary_agent")
     return TripPlanResponse(
         plan=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
+        links=links,
     )
 
 
@@ -396,13 +416,14 @@ async def agent_search(
         body.session_id,
         "search_agent",
     )
-    reply, degraded = await _run_agent_traced(agent, body.query, agent_deps, "search_agent")
+    reply, degraded, links = await _run_agent_traced(agent, body.query, agent_deps, "search_agent")
     if degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentSearchResponse(
         reply=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
         degraded=degraded,
+        links=links,
     )
 
 
@@ -435,7 +456,7 @@ async def agent_transport(
         body.session_id,
         "transport_agent",
     )
-    reply, degraded = await _run_agent_traced(
+    reply, degraded, links = await _run_agent_traced(
         agent,
         body.query,
         agent_deps,
@@ -449,6 +470,7 @@ async def agent_transport(
         reply=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
         degraded=degraded,
+        links=links,
     )
 
 
@@ -481,13 +503,14 @@ async def agent_events(
         body.session_id,
         "events_agent",
     )
-    reply, degraded = await _run_agent_traced(agent, body.query, agent_deps, "events_agent")
+    reply, degraded, links = await _run_agent_traced(agent, body.query, agent_deps, "events_agent")
     if degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentChatResponse(
         reply=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
         degraded=degraded,
+        links=links,
     )
 
 

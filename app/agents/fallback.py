@@ -19,6 +19,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import text
 
+from app.agents.links import AgentLink, links_from_tool_output
 from app.agents.resilience import RunContextProvider
 from app.agents.tools import (
     EventSearchParams,
@@ -43,6 +44,16 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _MAX_RESULTS = 5
+
+# ── Handler result unpacking ──
+# Handlers return ``(text | None, links)``. Some tests monkeypatch a handler
+# with a plain-string stub (older shape), so callers must unpack defensively.
+
+
+def _unpack_handler(out) -> tuple[str | None, list[AgentLink]]:
+    if isinstance(out, tuple):
+        return out
+    return out, []
 
 # ── Text folding ──
 # Normalize the user message so keyword/name matching is accent- and
@@ -422,7 +433,7 @@ def _detect_month(text: str) -> int | None:
 # ── Handlers (call the same tools the agents use) ──
 
 
-async def _handle_wilaya_guide(deps, wilaya_id: int) -> str | None:
+async def _handle_wilaya_guide(deps, wilaya_id: int) -> tuple[str | None, list[AgentLink]]:
     ctx = RunContextProvider.for_tool(deps)
     try:
         out = await get_wilaya_guide(
@@ -430,7 +441,7 @@ async def _handle_wilaya_guide(deps, wilaya_id: int) -> str | None:
         )
     except Exception as e:  # pragma: no cover
         logger.warning("Fallback wilaya guide failed: %s", e)
-        return None
+        return None, []
     if not (
         out.featured_pois
         or out.categories
@@ -438,8 +449,9 @@ async def _handle_wilaya_guide(deps, wilaya_id: int) -> str | None:
         or out.top_experiences
         or out.upcoming_events
     ):
-        return None
+        return None, []
 
+    links = links_from_tool_output("get_wilaya_guide", out)
     lines = [f"{out.wilaya_name} — travel guide"]
     if out.description:
         lines.append(out.description)
@@ -470,10 +482,12 @@ async def _handle_wilaya_guide(deps, wilaya_id: int) -> str | None:
         for ev in out.upcoming_events[:3]:
             lines.append(f"• {ev.title} — month {ev.month}")
     lines.append("\n(Offline guide — the AI assistant is temporarily unavailable)")
-    return "\n".join(lines)
+    return "\n".join(lines), links
 
 
-async def _handle_poi_search(folded: str, deps, wilaya: tuple[int, str] | None) -> str | None:
+async def _handle_poi_search(
+    folded: str, deps, wilaya: tuple[int, str] | None
+) -> tuple[str | None, list[AgentLink]]:
     query = _content_query(folded, wilaya[1] if wilaya else None)[:200] or folded[:200]
     params = POISearchParams(
         query=query,
@@ -486,10 +500,11 @@ async def _handle_poi_search(folded: str, deps, wilaya: tuple[int, str] | None) 
         out = await search_pois(ctx, params)
     except Exception as e:  # pragma: no cover
         logger.warning("Fallback POI search failed: %s", e)
-        return None
+        return None, []
     if not out.results:
-        return None
+        return None, []
 
+    links = links_from_tool_output("search_pois", out)
     lines = [f'Points of interest matching "{query}":']
     for r in out.results[:_MAX_RESULTS]:
         price = r.price_level or (f"{r.entry_fee_dzd:.0f} DZD" if r.entry_fee_dzd else "Free")
@@ -497,10 +512,12 @@ async def _handle_poi_search(folded: str, deps, wilaya: tuple[int, str] | None) 
         snippet = f" — {r.description}" if r.description else ""
         lines.append(f"• {r.name} ({r.category}) — {price}{duration}{snippet}")
     lines.append("\n(Offline search — the AI assistant is temporarily unavailable)")
-    return "\n".join(lines)
+    return "\n".join(lines), links
 
 
-async def _handle_stays(folded: str, deps, wilaya: tuple[int, str] | None) -> str | None:
+async def _handle_stays(
+    folded: str, deps, wilaya: tuple[int, str] | None
+) -> tuple[str | None, list[AgentLink]]:
     query = _content_query(folded, wilaya[1] if wilaya else None)[:200] or folded[:200]
     params = StaySearchParams(
         query=query,
@@ -512,19 +529,22 @@ async def _handle_stays(folded: str, deps, wilaya: tuple[int, str] | None) -> st
         out = await search_stays(ctx, params)
     except Exception as e:  # pragma: no cover
         logger.warning("Fallback stay search failed: %s", e)
-        return None
+        return None, []
     if not out.results:
-        return None
+        return None, []
 
+    links = links_from_tool_output("search_stays", out)
     where = f" in wilaya {wilaya[0]}" if wilaya else ""
     lines = [f'Accommodation{where} matching "{query}":']
     for r in out.results[:_MAX_RESULTS]:
         lines.append(f"• {r.name} ({r.property_type}) — {r.price_per_night_dzd:.0f} DZD/night")
     lines.append("\n(Offline search — the AI assistant is temporarily unavailable)")
-    return "\n".join(lines)
+    return "\n".join(lines), links
 
 
-async def _handle_experiences(folded: str, deps, wilaya: tuple[int, str] | None) -> str | None:
+async def _handle_experiences(
+    folded: str, deps, wilaya: tuple[int, str] | None
+) -> tuple[str | None, list[AgentLink]]:
     query = _content_query(folded, wilaya[1] if wilaya else None)[:200] or folded[:200]
     params = ExperienceSearchParams(
         query=query,
@@ -536,20 +556,23 @@ async def _handle_experiences(folded: str, deps, wilaya: tuple[int, str] | None)
         out = await search_experiences(ctx, params)
     except Exception as e:  # pragma: no cover
         logger.warning("Fallback experience search failed: %s", e)
-        return None
+        return None, []
     if not out.results:
-        return None
+        return None, []
 
+    links = links_from_tool_output("search_experiences", out)
     lines = [f'Experiences matching "{query}":']
     for r in out.results[:_MAX_RESULTS]:
         price = f", {r.price_dzd:.0f} DZD" if r.price_dzd else ""
         duration = f", ~{r.duration_hours:.0f}h" if r.duration_hours else ""
         lines.append(f"• {r.title} ({r.category}){price}{duration}")
     lines.append("\n(Offline search — the AI assistant is temporarily unavailable)")
-    return "\n".join(lines)
+    return "\n".join(lines), links
 
 
-async def _handle_transport_route(deps, from_wilaya: int, to_wilaya: int) -> str | None:
+async def _handle_transport_route(
+    deps, from_wilaya: int, to_wilaya: int
+) -> tuple[str | None, list[AgentLink]]:
     ctx = RunContextProvider.for_tool(deps)
     try:
         out = await get_transport_route(
@@ -557,10 +580,11 @@ async def _handle_transport_route(deps, from_wilaya: int, to_wilaya: int) -> str
         )
     except Exception as e:  # pragma: no cover
         logger.warning("Fallback transport route failed: %s", e)
-        return None
+        return None, []
     if not out.options:
-        return None
+        return None, []
 
+    links = links_from_tool_output("get_transport_route", out)
     lines = [f"How to get from {out.origin_wilaya} to {out.dest_wilaya}:"]
     for o in out.options[:_MAX_RESULTS]:
         cost = f", {o.cost_dzd:.0f} DZD" if o.cost_dzd else ""
@@ -578,10 +602,10 @@ async def _handle_transport_route(deps, from_wilaya: int, to_wilaya: int) -> str
     if out.best_recommendation:
         lines.append(f"\nBest: {out.best_recommendation}")
     lines.append("\n(Offline schedule — the AI assistant is temporarily unavailable)")
-    return "\n".join(lines)
+    return "\n".join(lines), links
 
 
-async def _handle_operators(folded: str, deps) -> str | None:
+async def _handle_operators(folded: str, deps) -> tuple[str | None, list[AgentLink]]:
     mode = None
     for m in ("train", "flight", "bus", "taxi", "tram", "cablecar"):
         if re.search(rf"\b{m}\w*\b", folded):
@@ -597,9 +621,9 @@ async def _handle_operators(folded: str, deps) -> str | None:
         out = await get_operator_contacts(ctx, params)
     except Exception as e:  # pragma: no cover
         logger.warning("Fallback operator contacts failed: %s", e)
-        return None
+        return None, []
     if not out.results:
-        return None
+        return None, []
 
     title = f"Transport operator contacts ({mode})" if mode else "Transport operator contacts"
     lines = [title]
@@ -613,10 +637,12 @@ async def _handle_operators(folded: str, deps) -> str | None:
             parts.append(f"[{r.mode}]")
         lines.append("• " + " — ".join(parts))
     lines.append("\n(Offline directory — the AI assistant is temporarily unavailable)")
-    return "\n".join(lines)
+    return "\n".join(lines), []
 
 
-async def _handle_events(folded: str, deps, wilaya: tuple[int, str] | None) -> str | None:
+async def _handle_events(
+    folded: str, deps, wilaya: tuple[int, str] | None
+) -> tuple[str | None, list[AgentLink]]:
     params = EventSearchParams(
         wilaya_id=wilaya[0] if wilaya else None,
         category=_detect_event_category(folded),
@@ -628,84 +654,96 @@ async def _handle_events(folded: str, deps, wilaya: tuple[int, str] | None) -> s
         out = await find_events(ctx, params)
     except Exception as e:  # pragma: no cover
         logger.warning("Fallback events search failed: %s", e)
-        return None
+        return None, []
     if not out.results:
-        return None
+        return None, []
 
+    links = links_from_tool_output("find_events", out)
     lines = ["Events & festivals:"]
     for r in out.results[:_MAX_RESULTS]:
         desc = f" — {r.description}" if r.description else ""
         lines.append(f"• {r.title} ({r.category}, month {r.month}){desc}")
     lines.append("\n(Offline calendar — the AI assistant is temporarily unavailable)")
-    return "\n".join(lines)
+    return "\n".join(lines), links
 
 
 # ── Per-agent fallback routing ──
 
 
-async def _travel_fallback(folded: str, deps) -> str | None:
+async def _travel_fallback(folded: str, deps) -> tuple[str | None, list[AgentLink]]:
     # Most specific intents first.
     if _has_transport_intent(folded):
         route = await _ordered_route_wilayas(deps, folded, None, None)
         if route:
             out = await _handle_transport_route(deps, route[0], route[1])
-            if out:
-                return out
+            text, links = _unpack_handler(out)
+            if text:
+                return text, links
     if _has_operator_intent(folded):
         out = await _handle_operators(folded, deps)
-        if out:
-            return out
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
     if _has_keywords(folded, _STAY_WORDS):
         wilaya = await _resolve_wilaya(deps, folded)
         out = await _handle_stays(folded, deps, wilaya)
-        if out:
-            return out
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
     if _has_keywords(folded, _EVENT_WORDS):
         wilaya = await _resolve_wilaya(deps, folded)
         out = await _handle_events(folded, deps, wilaya)
-        if out:
-            return out
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
     if _has_keywords(folded, _POI_WORDS):
         wilaya = await _resolve_wilaya(deps, folded)
         out = await _handle_poi_search(folded, deps, wilaya)
-        if out:
-            return out
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
     if _has_keywords(folded, _GUIDE_WORDS):
         wilaya = await _resolve_wilaya(deps, folded)
         if wilaya:
             out = await _handle_wilaya_guide(deps, wilaya[0])
-            if out:
-                return out
-    return None
+            text, links = _unpack_handler(out)
+            if text:
+                return text, links
+    return None, []
 
 
-async def _search_fallback(folded: str, deps) -> str | None:
+async def _search_fallback(folded: str, deps) -> tuple[str | None, list[AgentLink]]:
     if _has_keywords(folded, _STAY_WORDS):
         wilaya = await _resolve_wilaya(deps, folded)
         out = await _handle_stays(folded, deps, wilaya)
-        if out:
-            return out
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
     if _has_keywords(folded, _POI_WORDS):
         wilaya = await _resolve_wilaya(deps, folded)
         out = await _handle_poi_search(folded, deps, wilaya)
-        if out:
-            return out
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
     if _has_keywords(folded, _EXPERIENCE_WORDS):
         wilaya = await _resolve_wilaya(deps, folded)
         out = await _handle_experiences(folded, deps, wilaya)
-        if out:
-            return out
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
     if _has_operator_intent(folded):
         out = await _handle_operators(folded, deps)
-        if out:
-            return out
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
     # Anything about a specific wilaya → its curated guide.
     wilaya = await _resolve_wilaya(deps, folded)
     if wilaya:
         out = await _handle_wilaya_guide(deps, wilaya[0])
-        if out:
-            return out
-    return None
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
+    return None, []
 
 
 async def _transport_fallback(
@@ -713,36 +751,40 @@ async def _transport_fallback(
     deps,
     from_wilaya: int | None,
     to_wilaya: int | None,
-) -> str | None:
+) -> tuple[str | None, list[AgentLink]]:
     route = await _ordered_route_wilayas(deps, folded, from_wilaya, to_wilaya)
     if route:
         out = await _handle_transport_route(deps, route[0], route[1])
-        if out:
-            return out
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
     if _has_operator_intent(folded):
         out = await _handle_operators(folded, deps)
-        if out:
-            return out
-    return None
+        text, links = _unpack_handler(out)
+        if text:
+            return text, links
+    return None, []
 
 
-async def _events_fallback(folded: str, deps) -> str | None:
+async def _events_fallback(folded: str, deps) -> tuple[str | None, list[AgentLink]]:
     wilaya = await _resolve_wilaya(deps, folded)
-    return await _handle_events(folded, deps, wilaya)
+    out = await _handle_events(folded, deps, wilaya)
+    text, links = _unpack_handler(out)
+    return text, links
 
 
-async def attempt_fallback(
+async def attempt_fallback_with_links(
     agent_name: str,
     message: str,
     deps,
     *,
     from_wilaya: int | None = None,
     to_wilaya: int | None = None,
-) -> str | None:
-    """Try to answer ``message`` without the LLM. Returns text or ``None`` (no match)."""
+) -> tuple[str | None, list[AgentLink]]:
+    """Try to answer ``message`` without the LLM. Returns ``(text, links)`` or ``(None, [])``."""
     folded = _fold(message)
     if not folded:
-        return None
+        return None, []
     try:
         if agent_name == "transport_agent":
             return await _transport_fallback(folded, deps, from_wilaya, to_wilaya)
@@ -754,6 +796,21 @@ async def attempt_fallback(
             return await _travel_fallback(folded, deps)
     except Exception as e:  # pragma: no cover — degraded path must never throw
         logger.warning("Fallback responder failed for %s: %s", agent_name, e)
-        return None
+        return None, []
     # itinerary_agent: planning requires real reasoning — always fall through.
-    return None
+    return None, []
+
+
+async def attempt_fallback(
+    agent_name: str,
+    message: str,
+    deps,
+    *,
+    from_wilaya: int | None = None,
+    to_wilaya: int | None = None,
+) -> str | None:
+    """Text-only fallback (backwards compatible). Returns text or ``None`` (no match)."""
+    text, _links = await attempt_fallback_with_links(
+        agent_name, message, deps, from_wilaya=from_wilaya, to_wilaya=to_wilaya
+    )
+    return text

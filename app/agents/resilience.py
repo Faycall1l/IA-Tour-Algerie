@@ -40,6 +40,7 @@ from tenacity import (
 
 from app.agents.deps import TravelAgentDeps
 from app.agents.harness import get_circuit_breaker
+from app.agents.links import collect_links_from_result
 from app.agents.observability import Trace, trace_store
 
 logger = logging.getLogger(__name__)
@@ -230,6 +231,11 @@ async def run_agent_safely(
         output = result.output
         trace.output_tokens = len(str(output)) // 4
         trace.tool_calls = len(tool_call_names(result))
+        # Structured deep links for the frontend, as plain dicts (the trace is
+        # JSON-logged via trace.log()).
+        links = collect_links_from_result(result)
+        if links:
+            trace.metadata["links"] = [link.model_dump() for link in links]
         trace.finish(success=True)
         trace_store.record(trace)
         return output, trace

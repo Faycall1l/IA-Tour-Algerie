@@ -435,6 +435,7 @@ class TestEndpointFallback:
         cb = get_circuit_breaker("travel_agent")
         orig_threshold = cb.failure_threshold
         orig_count = cb.failure_count
+        orig_state = cb.state
         cb.failure_threshold = 1
         cb.record_failure()
         assert not cb.allow_request()
@@ -452,6 +453,7 @@ class TestEndpointFallback:
         finally:
             cb.failure_threshold = orig_threshold
             cb.failure_count = orig_count
+            cb.state = orig_state  # restore state too — OPEN must not leak across tests
             app.state.travel_agent = original
 
         assert resp.status_code == 200
