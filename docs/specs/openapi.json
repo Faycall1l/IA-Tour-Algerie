@@ -7138,6 +7138,20 @@
             "type": "array",
             "title": "Links",
             "description": "Deep links to in-app pages (POIs, stays, experiences, ...) referenced by the reply"
+          },
+          "orchestrated": {
+            "type": "boolean",
+            "title": "Orchestrated",
+            "description": "True when the reply was composed from multiple specialist agents via the orchestrator",
+            "default": false
+          },
+          "intents": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Intents",
+            "description": "Detected intent domains routed by the orchestrator"
           }
         },
         "type": "object",

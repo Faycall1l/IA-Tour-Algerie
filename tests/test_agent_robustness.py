@@ -339,9 +339,10 @@ class TestEndpointCircuitBreaker:
         app.state.travel_agent = agent
 
         try:
+            # Travel-only message → routed to the (breaker-open) travel agent.
             resp = await client.post(
                 self.ENDPOINT,
-                json={"message": "show me hotels"},
+                json={"message": "tell me a joke"},
                 headers=auth_headers,
             )
         finally:
@@ -362,7 +363,7 @@ class TestEndpointCircuitBreaker:
         try:
             resp = await client.post(
                 self.ENDPOINT,
-                json={"message": "tell me about Algiers mosques"},
+                json={"message": "Tell me about Algiers"},
                 headers=auth_headers,
             )
         finally:

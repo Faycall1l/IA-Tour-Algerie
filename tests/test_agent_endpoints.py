@@ -80,31 +80,41 @@ class TestChatEndpoint:
         assert resp.status_code == 422
 
     async def test_success(self, client: AsyncClient, auth_headers: dict[str, str]):
-        _inject_mock(
+        original = _inject_mock(
             client, "travel_agent", _make_mock_agent("Algiers has the Great Mosque, built in 2019.")
         )
+        try:
+            resp = await client.post(
+                self.ENDPOINT,
+                json={"message": "Tell me about Algiers"},
+                headers=auth_headers,
+            )
+        finally:
+            _inject_mock(client, "travel_agent", original)
 
-        resp = await client.post(
-            self.ENDPOINT,
-            json={"message": "tell me about mosques in Algiers"},
-            headers=auth_headers,
-        )
         assert resp.status_code == 200
         data = resp.json()
         assert "reply" in data
         assert "Great Mosque" in data["reply"]
         assert data["links"] == []
+        assert data["orchestrated"] is False
+        assert data["intents"] == ["travel"]
 
     async def test_success_with_wilaya_filter(
         self, client: AsyncClient, auth_headers: dict[str, str]
     ):
-        _inject_mock(client, "travel_agent", _make_mock_agent("Oran has a beautiful coastline."))
-
-        resp = await client.post(
-            self.ENDPOINT,
-            json={"message": "what to do in Oran?", "wilaya_id": 31},
-            headers=auth_headers,
+        original = _inject_mock(
+            client, "travel_agent", _make_mock_agent("Oran has a beautiful coastline.")
         )
+        try:
+            resp = await client.post(
+                self.ENDPOINT,
+                json={"message": "Tell me about Oran", "wilaya_id": 31},
+                headers=auth_headers,
+            )
+        finally:
+            _inject_mock(client, "travel_agent", original)
+
         assert resp.status_code == 200
         assert "Oran" in resp.json()["reply"]
 
@@ -147,7 +157,7 @@ class TestPlanTripEndpoint:
         assert resp.status_code == 422
 
     async def test_success(self, client: AsyncClient, auth_headers: dict[str, str]):
-        _inject_mock(
+        original = _inject_mock(
             client,
             "itinerary_agent",
             _make_mock_agent(
@@ -157,12 +167,15 @@ class TestPlanTripEndpoint:
                 "Day 3: Sidi Fredj, Seafood dinner."
             ),
         )
+        try:
+            resp = await client.post(
+                self.ENDPOINT,
+                json={"destination": "Algiers", "duration_days": 3, "interests": "history, food"},
+                headers=auth_headers,
+            )
+        finally:
+            _inject_mock(client, "itinerary_agent", original)
 
-        resp = await client.post(
-            self.ENDPOINT,
-            json={"destination": "Algiers", "duration_days": 3, "interests": "history, food"},
-            headers=auth_headers,
-        )
         assert resp.status_code == 200
         data = resp.json()
         assert "plan" in data
@@ -202,17 +215,20 @@ class TestSearchEndpoint:
         assert resp.status_code == 422
 
     async def test_success(self, client: AsyncClient, auth_headers: dict[str, str]):
-        _inject_mock(
+        original = _inject_mock(
             client,
             "search_agent",
             _make_mock_agent("Found Sablettes Beach and Hotel Oran in Oran."),
         )
+        try:
+            resp = await client.post(
+                self.ENDPOINT,
+                json={"query": "beaches and hotels in Oran"},
+                headers=auth_headers,
+            )
+        finally:
+            _inject_mock(client, "search_agent", original)
 
-        resp = await client.post(
-            self.ENDPOINT,
-            json={"query": "beaches and hotels in Oran"},
-            headers=auth_headers,
-        )
         assert resp.status_code == 200
         data = resp.json()
         assert "reply" in data
@@ -220,14 +236,17 @@ class TestSearchEndpoint:
         assert data["links"] == []
 
     async def test_empty_results(self, client: AsyncClient, auth_headers: dict[str, str]):
-        _inject_mock(
+        original = _inject_mock(
             client, "search_agent", _make_mock_agent("No results found for 'zzzzzxyznonexistent'.")
         )
+        try:
+            resp = await client.post(
+                self.ENDPOINT,
+                json={"query": "zzzzzxyznonexistent"},
+                headers=auth_headers,
+            )
+        finally:
+            _inject_mock(client, "search_agent", original)
 
-        resp = await client.post(
-            self.ENDPOINT,
-            json={"query": "zzzzzxyznonexistent"},
-            headers=auth_headers,
-        )
         assert resp.status_code == 200
         assert "reply" in resp.json()

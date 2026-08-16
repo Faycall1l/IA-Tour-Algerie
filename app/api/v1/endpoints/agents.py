@@ -16,7 +16,6 @@ Every call is traced via the observability system for P1 monitoring.
 """
 
 import logging
-import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
@@ -26,8 +25,6 @@ from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.agents.deps import TravelAgentDeps
-from app.agents.fallback import attempt_fallback_with_links
-from app.agents.harness import sanitize_input, validate_input
 from app.agents.links import AgentLink, render_links_section
 from app.agents.memory_service import (
     build_message_history,
@@ -36,10 +33,9 @@ from app.agents.memory_service import (
     get_or_create_session,
     get_user_sessions,
     load_message_history,
-    store_agent_run,
 )
-from app.agents.observability import Trace, trace_store
-from app.agents.resilience import AgentUnavailable, run_agent_safely
+from app.agents.orchestrator import run_orchestrated
+from app.agents.runner import finalize_turn, run_single_agent
 from app.api import deps
 from app.db.session import get_db
 from app.models.user import User
@@ -100,9 +96,18 @@ class AgentChatResponse(BaseModel):
     links: list[AgentLink] = Field(
         default_factory=list,
         description=(
-            "Deep links to in-app pages (POIs, stays, experiences, ...) "
-            "referenced by the reply"
+            "Deep links to in-app pages (POIs, stays, experiences, ...) referenced by the reply"
         ),
+    )
+    orchestrated: bool = Field(
+        False,
+        description=(
+            "True when the reply was composed from multiple specialist agents via the orchestrator"
+        ),
+    )
+    intents: list[str] = Field(
+        default_factory=list,
+        description="Detected intent domains routed by the orchestrator",
     )
 
 
@@ -127,8 +132,7 @@ class AgentSearchResponse(BaseModel):
     links: list[AgentLink] = Field(
         default_factory=list,
         description=(
-            "Deep links to in-app pages (POIs, stays, experiences, ...) "
-            "referenced by the reply"
+            "Deep links to in-app pages (POIs, stays, experiences, ...) referenced by the reply"
         ),
     )
 
@@ -162,121 +166,26 @@ async def _run_agent_traced(
     """Run an agent with full observability tracing, input validation, PII redaction,
     and multi-turn memory (load history before, store after).
 
-    The actual LLM run goes through ``run_agent_safely`` which owns the run
-    trace: it applies per-agent usage limits, a hard wall-clock timeout, tool
-    retry budgets, and a circuit breaker that short-circuits to 503 while the
-    LLM backend is recovering. When the backend is unavailable (breaker open,
-    timeout, or not configured) and ``allow_fallback`` is set, the rule-based
-    responder answers the most common query shapes directly; the reply is then
-    marked as degraded so clients can tell offline answers apart. Returns
-    ``(reply, degraded, links)`` where the reply already carries a plain-text
-    quick-links footer and ``links`` is the structured array for the frontend.
+    The actual LLM run lives in ``run_single_agent`` (``app.agents.runner``),
+    shared with the orchestrator, so every agent run has identical semantics:
+    per-agent usage limits, a hard wall-clock timeout, tool retry budgets, a
+    circuit breaker, and the rule-based offline fallback. This helper owns the
+    turn lifecycle: persist memory + mine the traveler profile exactly once,
+    then append the quick-links footer. Returns ``(reply, degraded, links)``.
     """
-    # Input validation
-    is_valid, error = validate_input(message)
-    if not is_valid:
-        trace = Trace(
-            trace_id=uuid.uuid4().hex,
-            agent_name=agent_name,
-            user_id=str(agent_deps.user.id),
-            start_time=time.time(),
-        )
-        trace.finish(success=False, error=error)
-        trace_store.record(trace)
-        raise HTTPException(status_code=400, detail=error)
-
-    # PII redaction
-    sanitized = sanitize_input(message)
-    degraded = False
-    links: list[AgentLink] = []
-
-    # RAG grounding: retrieve real records matching the user query and inject
-    # them into the system prompt so the model answers from verifiable data.
-    from app.agents.retrieval import (
-        render_grounding_context,
-        retrieve_grounding_context,
-        should_ground,
+    result = await run_single_agent(
+        agent,
+        message,
+        agent_deps,
+        agent_name,
+        allow_fallback=allow_fallback,
+        from_wilaya=from_wilaya,
+        to_wilaya=to_wilaya,
+        request=request,
     )
-
-    if should_ground(message):
-        try:
-            vector_search = getattr(request.app.state, "vector_search", None) if request else None
-            hits = await retrieve_grounding_context(
-                agent_deps.db, message, vector_search=vector_search
-            )
-            agent_deps.grounding_context = render_grounding_context(message, hits)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("RAG grounding skipped for %s: %s", agent_name, exc)
-
-    if agent is not None:
-        try:
-            output, _trace = await run_agent_safely(agent, sanitized, agent_deps, agent_name)
-            links = [AgentLink(**link) for link in _trace.metadata.get("links", [])]
-        except AgentUnavailable as exc:
-            if not allow_fallback:
-                raise HTTPException(status_code=503, detail=str(exc))
-            output, links = await attempt_fallback_with_links(
-                agent_name,
-                sanitized,
-                agent_deps,
-                from_wilaya=from_wilaya,
-                to_wilaya=to_wilaya,
-            )
-            if output is None:
-                raise HTTPException(status_code=503, detail=str(exc))
-            degraded = True
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error("Agent %s failed: %s", agent_name, e)
-            raise HTTPException(status_code=500, detail=f"Agent error: {e}")
-    else:
-        if not allow_fallback:
-            raise HTTPException(status_code=503, detail="Agents are not configured")
-        output, links = await attempt_fallback_with_links(
-            agent_name,
-            sanitized,
-            agent_deps,
-            from_wilaya=from_wilaya,
-            to_wilaya=to_wilaya,
-        )
-        if output is None:
-            raise HTTPException(
-                status_code=503,
-                detail="Agents are not available — configure ATHAR_AGENT__VLLM settings in .env",
-            )
-        degraded = True
-
-    # Store this turn in memory (if session available) — the raw reply, without
-    # the quick-links footer so replayed history stays clean.
-    if agent_deps.session_id and agent_deps.db:
-        try:
-            await store_agent_run(
-                agent_deps.db,
-                agent_deps.session_id,
-                user_message=message,
-                assistant_reply=output,
-                turn_index=agent_deps.turn_index,
-            )
-        except Exception as e:
-            logger.warning("Failed to store agent memory turn: %s", e)
-
-    # Mine durable preferences from this turn and merge them into the user's
-    # persistent traveler profile (best-effort; never blocks the reply).
-    try:
-        from app.agents.profile import load_or_create_profile, merge, mine_profile
-
-        mined = await mine_profile(agent_deps.db, message)
-        if not mined.is_empty:
-            profile = await load_or_create_profile(agent_deps.db, agent_deps.user.id)
-            changed = merge(profile, mined)
-            if changed:
-                await agent_deps.db.commit()
-    except Exception as exc:  # noqa: BLE001
-        logger.warning("Failed to mine traveler profile: %s", exc)
-
-    reply = output + render_links_section(links)
-    return reply, degraded, links
+    await finalize_turn(agent_deps, message, result.output)
+    reply = result.output + render_links_section(result.links)
+    return reply, result.degraded, result.links
 
 
 # ── Dependency: extract agent from app.state ──
@@ -379,8 +288,12 @@ async def agent_chat(
     current_user: User = Depends(deps.get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Ask the travel assistant any Algeria travel question."""
-    agent = _get_agent(request, "travel_agent")
+    """Ask the travel assistant any Algeria travel question.
+
+    Routed by the multi-agent orchestrator: single-domain questions use the
+    matching specialist agent; multi-domain questions are composed from the
+    generalist plus every matched specialist.
+    """
     agent_deps = await _make_memory_deps(
         current_user,
         db,
@@ -388,16 +301,16 @@ async def agent_chat(
         body.session_id,
         "travel_agent",
     )
-    reply, degraded, links = await _run_agent_traced(
-        agent, body.message, agent_deps, "travel_agent", request=request
-    )
-    if degraded:
+    result = await run_orchestrated(request, agent_deps, body.message)
+    if result.degraded:
         response.headers["X-Agent-Degraded"] = "rule-based-fallback"
     return AgentChatResponse(
-        reply=reply,
+        reply=result.reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
-        degraded=degraded,
-        links=links,
+        degraded=result.degraded,
+        links=result.links,
+        orchestrated=result.orchestrated,
+        intents=result.intents,
     )
 
 
