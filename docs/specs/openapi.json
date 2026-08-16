@@ -14902,6 +14902,16 @@
             "type": "array",
             "title": "Links",
             "description": "Deep links to in-app pages referenced by the plan"
+          },
+          "verification": {
+            "anyOf": [
+              {},
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verification",
+            "description": "Structured verification of the plan against real ATHAR data"
           }
         },
         "type": "object",

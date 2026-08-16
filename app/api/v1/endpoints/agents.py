@@ -118,6 +118,10 @@ class TripPlanResponse(BaseModel):
         default_factory=list,
         description="Deep links to in-app pages referenced by the plan",
     )
+    verification: object | None = Field(
+        default=None,
+        description="Structured verification of the plan against real ATHAR data",
+    )
 
 
 class AgentSearchResponse(BaseModel):
@@ -162,7 +166,8 @@ async def _run_agent_traced(
     from_wilaya: int | None = None,
     to_wilaya: int | None = None,
     request: Request | None = None,
-) -> tuple[str, bool, list[AgentLink]]:
+    renderer=None,
+) -> tuple[str, bool, list[AgentLink], object]:
     """Run an agent with full observability tracing, input validation, PII redaction,
     and multi-turn memory (load history before, store after).
 
@@ -171,7 +176,9 @@ async def _run_agent_traced(
     per-agent usage limits, a hard wall-clock timeout, tool retry budgets, a
     circuit breaker, and the rule-based offline fallback. This helper owns the
     turn lifecycle: persist memory + mine the traveler profile exactly once,
-    then append the quick-links footer. Returns ``(reply, degraded, links)``.
+    then append the quick-links footer. Returns
+    ``(reply, degraded, links, data)`` where ``data`` is the structured agent
+    output (e.g. a ``TripPlan``) when the agent declared an ``output_type``.
     """
     result = await run_single_agent(
         agent,
@@ -182,10 +189,11 @@ async def _run_agent_traced(
         from_wilaya=from_wilaya,
         to_wilaya=to_wilaya,
         request=request,
+        renderer=renderer,
     )
     await finalize_turn(agent_deps, message, result.output)
     reply = result.output + render_links_section(result.links)
-    return reply, result.degraded, result.links
+    return reply, result.degraded, result.links, result.data
 
 
 # ── Dependency: extract agent from app.state ──
@@ -337,6 +345,13 @@ async def agent_plan_trip(
     db: AsyncSession = Depends(get_db),
 ):
     """Create a detailed itinerary for an Algeria trip."""
+    from app.agents.planning import (
+        PlanVerification,
+        render_trip_plan,
+        render_verification,
+        verify_trip_plan,
+    )
+
     agent = _get_agent(request, "itinerary_agent")
     agent_deps = await _make_memory_deps(
         current_user,
@@ -350,13 +365,21 @@ async def agent_plan_trip(
     )
     if body.interests.strip():
         prompt += f"\nInterests: {body.interests}"
-    reply, _degraded, links = await _run_agent_traced(
-        agent, prompt, agent_deps, "itinerary_agent", request=request
+    reply, _degraded, links, plan_data = await _run_agent_traced(
+        agent, prompt, agent_deps, "itinerary_agent", request=request, renderer=render_trip_plan
     )
+    verification: PlanVerification | None = None
+    if plan_data is not None and hasattr(plan_data, "model_dump"):
+        try:
+            verification = await verify_trip_plan(db, plan_data)
+            reply += "\n\n" + render_verification(verification)
+        except Exception as exc:  # noqa: BLE001
+            logger.warning("Plan verification failed: %s", exc)
     return TripPlanResponse(
         plan=reply,
         session_id=str(agent_deps.session_id) if agent_deps.session_id else None,
         links=links,
+        verification=verification,
     )
 
 
@@ -389,7 +412,7 @@ async def agent_search(
         body.session_id,
         "search_agent",
     )
-    reply, degraded, links = await _run_agent_traced(
+    reply, degraded, links, _ = await _run_agent_traced(
         agent, body.query, agent_deps, "search_agent", request=request
     )
     if degraded:
@@ -431,7 +454,7 @@ async def agent_transport(
         body.session_id,
         "transport_agent",
     )
-    reply, degraded, links = await _run_agent_traced(
+    reply, degraded, links, _ = await _run_agent_traced(
         agent,
         body.query,
         agent_deps,
@@ -479,7 +502,7 @@ async def agent_events(
         body.session_id,
         "events_agent",
     )
-    reply, degraded, links = await _run_agent_traced(
+    reply, degraded, links, _ = await _run_agent_traced(
         agent, body.query, agent_deps, "events_agent", request=request
     )
     if degraded:

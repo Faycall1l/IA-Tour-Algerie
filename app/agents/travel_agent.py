@@ -200,6 +200,7 @@ def create_itinerary_agent(
     agent = Agent[TravelAgentDeps](
         model=_make_model(base_url, api_key, model_name),
         instructions=_dynamic_instructions("travel_agent.itinerary"),
+        output_type=TripPlan,
         model_settings=_resilient_settings(temperature=0.5, max_tokens=4096),
         retries=AGENT_RETRIES,
         tool_timeout=AGENT_TOOL_TIMEOUT_SECONDS,

@@ -16,7 +16,9 @@ from __future__ import annotations
 import logging
 import time
 import uuid
-from dataclasses import dataclass
+from collections.abc import Callable
+from dataclasses import dataclass, field
+from typing import Any
 
 from fastapi import HTTPException, Request
 
@@ -35,6 +37,13 @@ class SingleAgentResult:
     degraded: bool
     links: list[AgentLink]
     sanitized: str
+    data: Any = field(default=None)
+    """Structured agent output when the agent declared an ``output_type``.
+
+    The rendered ``output`` string is what gets persisted to memory and shown
+    to text clients; ``data`` carries the raw model (e.g. a ``TripPlan``) for
+    the plan→verify loop.
+    """
 
 
 async def run_single_agent(
@@ -49,6 +58,7 @@ async def run_single_agent(
     request: Request | None = None,
     skip_validation: bool = False,
     sanitized_message: str | None = None,
+    renderer: Callable[[Any], str] | None = None,
 ) -> SingleAgentResult:
     """Run one agent with input validation, PII redaction, RAG grounding,
     resilience (retries/timeout/circuit breaker) and rule-based fallback.
@@ -57,6 +67,10 @@ async def run_single_agent(
     neither the agent nor the offline responder can answer. ``grounding_context``
     is computed only once per run — the orchestrator lets the first specialist
     populate it and later agents reuse the same verifiable context.
+
+    ``renderer`` converts non-string agent output (``output_type`` models like
+    ``TripPlan``) into the chat-facing string stored in ``result.output``; the
+    raw model is preserved on ``result.data``.
     """
     if not skip_validation:
         is_valid, error = validate_input(message)
@@ -121,11 +135,17 @@ async def run_single_agent(
             )
         degraded = True
 
+    data: Any = None
+    if not isinstance(output, str):
+        data = output
+        output = renderer(output) if renderer else str(output)
+
     return SingleAgentResult(
         output=output,
         degraded=degraded,
         links=links,
         sanitized=sanitized,
+        data=data,
     )
 
 
