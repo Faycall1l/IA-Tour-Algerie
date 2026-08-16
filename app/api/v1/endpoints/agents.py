@@ -19,6 +19,7 @@ import logging
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -319,6 +320,58 @@ async def agent_chat(
         links=result.links,
         orchestrated=result.orchestrated,
         intents=result.intents,
+    )
+
+
+@router.post(
+    "/chat/stream",
+    summary="Stream travel assistant chat (SSE)",
+    description=(
+        "Server-sent events streaming version of /chat. Yields incremental text tokens "
+        "as the agent generates them. Returns a `done` event with links on completion, "
+        "or an `error` event on failure. Rate limited to 20/hour."
+    ),
+    responses={
+        401: {"description": "Authentication required"},
+        429: {"description": "Rate limit exceeded (20/hour)"},
+    },
+)
+@limiter.limit("20/hour")
+async def agent_chat_stream(
+    body: AgentChatRequest,
+    request: Request,  # noqa: ARG001 — required by slowapi
+    current_user: User = Depends(deps.get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Stream the travel assistant response as server-sent events.
+
+    Routes directly to the generalist travel agent (not the orchestrator) so
+    tokens arrive as they are generated. The fallback path sends the full
+    offline reply in a single ``done`` event.
+    """
+    from app.agents.streaming import stream_agent_chat
+
+    agent_deps = await _make_memory_deps(
+        current_user,
+        db,
+        request,
+        body.session_id,
+        "travel_agent",
+    )
+    agent = getattr(request.app.state, "travel_agent", None)
+    return StreamingResponse(
+        stream_agent_chat(
+            agent,
+            body.message,
+            agent_deps,
+            request=request,
+        ),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
     )
 
 

@@ -768,6 +768,63 @@
         }
       }
     },
+    "/api/v1/agent/chat/stream": {
+      "post": {
+        "tags": [
+          "agents"
+        ],
+        "summary": "Stream travel assistant chat (SSE)",
+        "description": "Server-sent events streaming version of /chat. Yields incremental text tokens as the agent generates them. Returns a `done` event with links on completion, or an `error` event on failure. Rate limited to 20/hour.",
+        "operationId": "post_agent_chat_stream",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentChatRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "429": {
+            "description": "Rate limit exceeded (20/hour)"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/agent/plan-trip": {
       "post": {
         "tags": [
