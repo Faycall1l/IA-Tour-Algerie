@@ -3556,6 +3556,99 @@
         }
       }
     },
+    "/api/v1/users/me/traveler-profile": {
+      "get": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Get traveler profile",
+        "description": "Return the authenticated user's persistent traveler profile (budget, interests, home wilaya, style). This is what the agent pipeline mines from conversations and injects into prompts across sessions. Created empty on first access.",
+        "operationId": "get_users_me_traveler_profile",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Users"
+        ],
+        "summary": "Update traveler profile",
+        "description": "Update the authenticated user's persistent traveler profile. Values set explicitly replace the mined values; omitted fields are left unchanged.",
+        "operationId": "put_users_me_traveler_profile",
+        "parameters": [
+          {
+            "name": "authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "title": "Authorization"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UserProfileUpdate"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserProfileRead"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "422": {
+            "description": "Validation error"
+          }
+        }
+      }
+    },
     "/api/v1/users/providers": {
       "get": {
         "tags": [
@@ -15143,6 +15236,206 @@
           "created_at"
         ],
         "title": "UserAdminRead"
+      },
+      "UserProfileRead": {
+        "properties": {
+          "user_id": {
+            "type": "string",
+            "format": "uuid",
+            "title": "User Id"
+          },
+          "budget_level": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Level"
+          },
+          "interests": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interests"
+          },
+          "home_wilaya_id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Wilaya Id"
+          },
+          "home_wilaya_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Wilaya Name"
+          },
+          "travel_style": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Travel Style"
+          },
+          "preferred_language": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Language"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          },
+          "updated_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Updated At"
+          }
+        },
+        "type": "object",
+        "required": [
+          "user_id",
+          "budget_level",
+          "interests",
+          "home_wilaya_id",
+          "travel_style",
+          "preferred_language",
+          "notes",
+          "updated_at"
+        ],
+        "title": "UserProfileRead",
+        "description": "Persistent traveler profile (cross-session agent context)."
+      },
+      "UserProfileUpdate": {
+        "properties": {
+          "budget_level": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(budget|mid-range|luxury)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Budget Level",
+            "description": "Per-trip budget level"
+          },
+          "interests": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array",
+                "maxItems": 6
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Interests",
+            "description": "Travel interests (beach, history, nature, food, culture, adventure, relax, family)"
+          },
+          "home_wilaya_id": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 69.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Home Wilaya Id"
+          },
+          "travel_style": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^(adventure|cultural|relax|family|food|nature|solo|business)$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Travel Style",
+            "description": "Dominant travel style"
+          },
+          "preferred_language": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 5,
+                "minLength": 2
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Preferred Language"
+          },
+          "notes": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 2000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Notes"
+          }
+        },
+        "type": "object",
+        "title": "UserProfileUpdate"
       },
       "UserRead": {
         "properties": {

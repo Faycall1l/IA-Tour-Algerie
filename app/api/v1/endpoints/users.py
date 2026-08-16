@@ -12,6 +12,8 @@ from app.models.experience import Experience
 from app.models.provider_profile import PROVIDER_TYPES, ProviderProfile
 from app.models.stay import Stay
 from app.models.user import User
+from app.models.user_profile import UserProfile
+from app.models.wilaya import Wilaya
 from app.schemas.provider_dashboard import (
     DashboardExperienceSummary,
     DashboardStaySummary,
@@ -25,6 +27,8 @@ from app.schemas.provider_profile import (
 from app.schemas.user import (
     SELF_ASSIGNABLE_ROLES,
     RoleUpdate,
+    UserProfileRead,
+    UserProfileUpdate,
     UserRead,
     UserUpdate,
 )
@@ -150,6 +154,85 @@ async def update_profile(
         **UserRead.model_validate(current_user).model_dump(),
         profile=ProviderProfileRead.model_validate(profile),
     )
+
+
+async def _read_traveler_profile(
+    db: AsyncSession, current_user: User
+) -> tuple[UserProfile, str | None]:
+    """Load the traveler profile (create-on-first-use) + resolved home wilaya name."""
+    from app.agents.profile import load_or_create_profile
+
+    profile = await load_or_create_profile(db, current_user.id)
+    wilaya_name = None
+    if profile.home_wilaya_id:
+        wilaya = await db.get(Wilaya, profile.home_wilaya_id)
+        wilaya_name = wilaya.name_fr if wilaya else None
+    return profile, wilaya_name
+
+
+def _profile_read(profile: UserProfile, wilaya_name: str | None) -> UserProfileRead:
+    return UserProfileRead(
+        user_id=profile.user_id,
+        budget_level=profile.budget_level,
+        interests=profile.interests,
+        home_wilaya_id=profile.home_wilaya_id,
+        home_wilaya_name=wilaya_name,
+        travel_style=profile.travel_style,
+        preferred_language=profile.preferred_language,
+        notes=profile.notes,
+        updated_at=profile.updated_at,
+    )
+
+
+@router.get(
+    "/me/traveler-profile",
+    response_model=UserProfileRead,
+    summary="Get traveler profile",
+    description=(
+        "Return the authenticated user's persistent traveler profile (budget, interests, home "
+        "wilaya, style). This is what the agent pipeline mines from conversations and injects "
+        "into prompts across sessions. Created empty on first access."
+    ),
+    responses={401: {"description": "Authentication required"}},
+)
+async def get_traveler_profile(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the current user's persistent traveler profile."""
+    profile, wilaya_name = await _read_traveler_profile(db, current_user)
+    await db.commit()
+    return _profile_read(profile, wilaya_name)
+
+
+@router.put(
+    "/me/traveler-profile",
+    response_model=UserProfileRead,
+    summary="Update traveler profile",
+    description=(
+        "Update the authenticated user's persistent traveler profile. Values set explicitly "
+        "replace the mined values; omitted fields are left unchanged."
+    ),
+    responses={
+        401: {"description": "Authentication required"},
+        422: {"description": "Validation error"},
+    },
+)
+async def update_traveler_profile(
+    body: UserProfileUpdate,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update the current user's persistent traveler profile."""
+    profile, wilaya_name = await _read_traveler_profile(db, current_user)
+    for field, value in body.model_dump(exclude_unset=True).items():
+        setattr(profile, field, value)
+    if body.home_wilaya_id is not None:
+        wilaya = await db.get(Wilaya, body.home_wilaya_id)
+        wilaya_name = wilaya.name_fr if wilaya else None
+    await db.commit()
+    await db.refresh(profile)
+    return _profile_read(profile, wilaya_name)
 
 
 @router.get(

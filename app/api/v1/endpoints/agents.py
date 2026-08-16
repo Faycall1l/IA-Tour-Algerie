@@ -43,6 +43,7 @@ from app.agents.resilience import AgentUnavailable, run_agent_safely
 from app.api import deps
 from app.db.session import get_db
 from app.models.user import User
+from app.models.wilaya import Wilaya
 
 logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/agent", tags=["agents"])
@@ -260,6 +261,20 @@ async def _run_agent_traced(
         except Exception as e:
             logger.warning("Failed to store agent memory turn: %s", e)
 
+    # Mine durable preferences from this turn and merge them into the user's
+    # persistent traveler profile (best-effort; never blocks the reply).
+    try:
+        from app.agents.profile import load_or_create_profile, merge, mine_profile
+
+        mined = await mine_profile(agent_deps.db, message)
+        if not mined.is_empty:
+            profile = await load_or_create_profile(agent_deps.db, agent_deps.user.id)
+            changed = merge(profile, mined)
+            if changed:
+                await agent_deps.db.commit()
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to mine traveler profile: %s", exc)
+
     reply = output + render_links_section(links)
     return reply, degraded, links
 
@@ -311,6 +326,21 @@ async def _make_memory_deps(
     history_text = build_message_history(history)
     next_turn = await get_next_turn_index(db, session.id)
 
+    # Persistent traveler profile: load (create-on-first-use) and render it as
+    # prompt context so every agent run knows the user's durable preferences.
+    from app.agents.profile import load_or_create_profile, render
+
+    profile_context = ""
+    try:
+        profile = await load_or_create_profile(db, current_user.id)
+        wilaya_name = None
+        if profile.home_wilaya_id:
+            wilaya = await db.get(Wilaya, profile.home_wilaya_id)
+            wilaya_name = wilaya.name_fr if wilaya else None
+        profile_context = render(profile, wilaya_name)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Failed to load traveler profile: %s", exc)
+
     return TravelAgentDeps(
         user=current_user,
         db=db,
@@ -318,6 +348,7 @@ async def _make_memory_deps(
         session_id=session.id,
         message_history=history_text,
         turn_index=next_turn,
+        profile_context=profile_context,
     )
 
 

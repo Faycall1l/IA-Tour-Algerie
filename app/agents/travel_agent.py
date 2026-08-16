@@ -164,6 +164,8 @@ def _dynamic_instructions(prompt_name: str):
             base += "\n" + ctx.deps.message_history
         if ctx.deps.grounding_context:
             base += "\n" + ctx.deps.grounding_context
+        if ctx.deps.profile_context:
+            base += "\n" + ctx.deps.profile_context
         briefing = south_briefing(last_user_turn(ctx.deps.message_history))
         if briefing:
             base += "\n\n" + briefing

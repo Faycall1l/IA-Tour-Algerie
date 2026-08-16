@@ -12,6 +12,7 @@ from app.models.stay import Stay
 from app.models.transport_operator import TransportOperator
 from app.models.trip import Trip, TripItem
 from app.models.user import User
+from app.models.user_profile import UserProfile
 from app.models.wilaya import Wilaya
 from app.models.wilaya_distance import WilayaDistance
 
@@ -20,6 +21,7 @@ __all__ = [
     "AgentSession",
     "Artisan",
     "User",
+    "UserProfile",
     "Wilaya",
     "Collection",
     "CollectionItem",
