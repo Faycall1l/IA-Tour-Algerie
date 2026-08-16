@@ -345,11 +345,12 @@ async def agent_chat_stream(
 ):
     """Stream the travel assistant response as server-sent events.
 
-    Routes directly to the generalist travel agent (not the orchestrator) so
-    tokens arrive as they are generated. The fallback path sends the full
-    offline reply in a single ``done`` event.
+    Routes through the multi-agent orchestrator: intent detection determines
+    which specialists to run, and each section's tokens are streamed as they
+    arrive.  Falls back to the rule-based offline responder when the LLM
+    backend is unavailable.
     """
-    from app.agents.streaming import stream_agent_chat
+    from app.agents.streaming import stream_orchestrated
 
     agent_deps = await _make_memory_deps(
         current_user,
@@ -358,13 +359,11 @@ async def agent_chat_stream(
         body.session_id,
         "travel_agent",
     )
-    agent = getattr(request.app.state, "travel_agent", None)
     return StreamingResponse(
-        stream_agent_chat(
-            agent,
-            body.message,
+        stream_orchestrated(
+            request,
             agent_deps,
-            request=request,
+            body.message,
         ),
         media_type="text/event-stream",
         headers={

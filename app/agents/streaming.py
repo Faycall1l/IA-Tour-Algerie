@@ -1,38 +1,45 @@
 """SSE streaming runner for agent chat.
 
-Provides a thin wrapper around pydantic-ai's ``run_stream()`` that yields
-server-sent events in a standard ``data: <json>\\n\\n`` format. Handles
-circuit-breaker checks, RAG grounding, input sanitisation, memory persistence,
-and the rule-based offline fallback (non-streaming, sent in one chunk).
-
-Only the generalist ``travel_agent`` is streamed — the orchestrator composes
-multiple agents sequentially, so streaming individual specialist sections is
-deferred to a future iteration.
+Provides server-sent event streaming for both single-agent and orchestrated
+multi-agent chat.  The orchestrator detects intents, streams each specialist
+section's tokens as they arrive, and yields section-header events so the
+client can render per-agent blocks in real time.
 
 SSE event protocol
 ------------------
 ::
 
+    data: {"type":"section","agent":"travel","label":"Overview"}
+
     data: {"type":"token","text":"Here"}
 
     data: {"type":"token","text":" is"}
 
-    data: {"type":"done","links":[...],"degraded":false}
+    data: {"type":"section_done","agent":"travel","links":[...],"degraded":false}
 
-    data: {"type":"error","detail":"Agent timed out"}
+    data: {"type":"section","agent":"search","label":"Places to visit"}
 
-``token`` events carry incremental text deltas.  ``done`` fires once when the
-run completes (or when the fallback reply is sent in full).  ``error`` fires
-on breaker-open, timeout, or unexpected failure.
+    data: {"type":"token","text":"Found 5"}
+
+    data: {"type":"section_done","agent":"search","links":[...],"degraded":false}
+
+    data: {"type":"done","orchestrated":true,"session_id":"..."}
+
+``section`` fires before each agent starts.  ``token`` carries incremental text
+deltas within a section.  ``section_done`` fires after each agent completes
+(carries that agent's links and degraded flag).  ``done`` fires once at the very
+end.  ``error`` fires on breaker-open, timeout, or unexpected failure.
 """
 
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import time
 import uuid
 from collections.abc import AsyncGenerator
+from dataclasses import dataclass, field
 
 from fastapi import Request
 
@@ -40,56 +47,203 @@ from app.agents.deps import TravelAgentDeps
 from app.agents.harness import sanitize_input, validate_input
 from app.agents.links import AgentLink, collect_links_from_result
 from app.agents.observability import Trace, trace_store
-from app.agents.resilience import get_circuit_breaker
+from app.agents.resilience import AGENT_USAGE_LIMITS, get_circuit_breaker
 
 logger = logging.getLogger(__name__)
 
 _SSE_TIMEOUT_SECONDS = 120.0
 
 
+# ── SSE formatting ──
+
+
 def _sse(data: dict) -> str:
     return f"data: {json.dumps(data, default=str)}\n\n"
-
-
-def _done_event(
-    *,
-    text: str = "",
-    links: list[AgentLink] | None = None,
-    degraded: bool = False,
-    orchestrated: bool = False,
-    session_id: str | None = None,
-) -> str:
-    return _sse(
-        {
-            "type": "done",
-            "text": text,
-            "links": [link.model_dump() for link in (links or [])],
-            "degraded": degraded,
-            "orchestrated": orchestrated,
-            "session_id": session_id,
-        }
-    )
 
 
 def _error_event(detail: str) -> str:
     return _sse({"type": "error", "detail": detail})
 
 
-async def stream_agent_chat(
+# ── Per-agent result container (populated by _stream_one_agent) ──
+
+
+@dataclass
+class _StreamResult:
+    """Mutable container filled during a single-agent streaming run."""
+
+    links: list[AgentLink] = field(default_factory=list)
+    degraded: bool = False
+    output: str = ""
+
+
+# ── Core: stream a single agent's tokens ──
+
+
+async def _stream_one_agent(
     agent,
     message: str,
     agent_deps: TravelAgentDeps,
+    agent_name: str,
     *,
-    request: Request | None = None,
+    result: _StreamResult,
     from_wilaya: int | None = None,
     to_wilaya: int | None = None,
 ) -> AsyncGenerator[str]:
-    """Yield SSE events for a single travel-agent chat run.
+    """Yield SSE token events for one agent run.
 
-    Falls back to the rule-based offline responder (non-streaming) when the
-    LLM backend is unavailable.
+    On success the ``result`` container is populated with links, output text,
+    and degraded flag.  On fallback the full offline reply ships as a single
+    ``section_done`` event.
     """
-    agent_name = "travel_agent"
+    cb = get_circuit_breaker(agent_name)
+
+    # ── Agent None or breaker open → fallback ──
+    if agent is None or not cb.allow_request():
+        if agent is None:
+            reason = "Agent not configured"
+        else:
+            reason = f"Circuit breaker OPEN for {agent_name}"
+        from app.agents.fallback import attempt_fallback_with_links
+
+        output, links = await attempt_fallback_with_links(
+            agent_name,
+            message,
+            agent_deps,
+            from_wilaya=from_wilaya,
+            to_wilaya=to_wilaya,
+        )
+        if output is None:
+            yield _sse(
+                {
+                    "type": "section_done",
+                    "agent": agent_name,
+                    "links": [],
+                    "degraded": True,
+                    "error": reason,
+                }
+            )
+            result.degraded = True
+            return
+        result.output = output
+        result.links = links or []
+        result.degraded = True
+        yield _sse(
+            {
+                "type": "section_done",
+                "agent": agent_name,
+                "links": [link.model_dump() for link in links],
+                "degraded": True,
+            }
+        )
+        return
+
+    # ── Streaming run ──
+    trace = Trace(
+        trace_id=uuid.uuid4().hex,
+        agent_name=agent_name,
+        user_id=str(agent_deps.user.id) if getattr(agent_deps.user, "id", None) else None,
+        start_time=time.time(),
+    )
+
+    try:
+        async with asyncio.timeout(_SSE_TIMEOUT_SECONDS):
+            limits = AGENT_USAGE_LIMITS.get(agent_name)
+
+            async with agent.run_stream(
+                message,
+                deps=agent_deps,
+                usage_limits=limits,
+                retries={"tools": 2, "output": 1},
+            ) as stream:
+                async for chunk in stream.stream_text(delta=True):
+                    if chunk:
+                        yield _sse({"type": "token", "text": chunk})
+
+                result.output = str(await stream.get_output())
+                result.links = collect_links_from_result(stream)
+
+        cb.record_success()
+        trace.output_tokens = len(result.output) // 4
+        trace.finish(success=True)
+        trace_store.record(trace)
+
+    except TimeoutError:
+        cb.record_failure()
+        trace.finish(success=False, error=f"Agent {agent_name} timed out")
+        trace_store.record(trace)
+        result.degraded = True
+        yield _sse(
+            {
+                "type": "section_done",
+                "agent": agent_name,
+                "links": [],
+                "degraded": True,
+                "error": f"Agent {agent_name} timed out",
+            }
+        )
+        return
+    except Exception as exc:  # noqa: BLE001
+        cb.record_failure()
+        trace.finish(success=False, error=str(exc))
+        trace_store.record(trace)
+        logger.error("Streaming agent %s failed: %s", agent_name, exc)
+        result.degraded = True
+        yield _sse(
+            {
+                "type": "section_done",
+                "agent": agent_name,
+                "links": [],
+                "degraded": True,
+                "error": str(exc),
+            }
+        )
+        return
+
+    yield _sse(
+        {
+            "type": "section_done",
+            "agent": agent_name,
+            "links": [link.model_dump() for link in result.links],
+            "degraded": False,
+        }
+    )
+
+
+# ── RAG grounding (once per request) ──
+
+
+async def _maybe_ground(message: str, agent_deps: TravelAgentDeps, request: Request | None) -> None:
+    from app.agents.retrieval import (
+        render_grounding_context,
+        retrieve_grounding_context,
+        should_ground,
+    )
+
+    if agent_deps.grounding_context or not should_ground(message):
+        return
+    try:
+        vector_search = getattr(request.app.state, "vector_search", None) if request else None
+        hits = await retrieve_grounding_context(agent_deps.db, message, vector_search=vector_search)
+        agent_deps.grounding_context = render_grounding_context(message, hits)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("RAG grounding skipped: %s", exc)
+
+
+# ── Orchestrated streaming ──
+
+
+async def stream_orchestrated(
+    request: Request,
+    agent_deps: TravelAgentDeps,
+    message: str,
+) -> AsyncGenerator[str]:
+    """Stream an orchestrated multi-agent response as SSE events.
+
+    Detects intents, streams each matched specialist section's tokens as they
+    arrive, and yields a final ``done`` event.  Falls back to the rule-based
+    offline responder when the LLM backend is unavailable.
+    """
     session_id = str(agent_deps.session_id) if agent_deps.session_id else None
 
     # ── Input validation ──
@@ -100,124 +254,78 @@ async def stream_agent_chat(
 
     sanitized = sanitize_input(message)
 
-    # ── Circuit breaker ──
-    cb = get_circuit_breaker(agent_name)
-    if not cb.allow_request():
-        yield _error_event(f"Agent {agent_name} is temporarily unavailable (recovering).")
-        return
+    # ── Detect intents ──
+    from app.agents.orchestrator import _INTENT_LABELS, AGENT_BY_INTENT, detect_intents
 
-    # ── RAG grounding (once) ──
-    from app.agents.retrieval import (
-        render_grounding_context,
-        retrieve_grounding_context,
-        should_ground,
-    )
+    intents = detect_intents(message)
+    specialist_intents = [i for i in intents if i != "travel"]
 
-    if not agent_deps.grounding_context and should_ground(message):
-        try:
-            vector_search = getattr(request.app.state, "vector_search", None) if request else None
-            hits = await retrieve_grounding_context(
-                agent_deps.db, message, vector_search=vector_search
-            )
-            agent_deps.grounding_context = render_grounding_context(message, hits)
-        except Exception as exc:  # noqa: BLE001
-            logger.warning("RAG grounding skipped: %s", exc)
+    # ── RAG grounding (once, before any agent runs) ──
+    await _maybe_ground(message, agent_deps, request)
 
-    # ── Agent None → fallback ──
-    if agent is None:
-        yield await _stream_fallback(
-            agent_name, sanitized, agent_deps, from_wilaya, to_wilaya, session_id
-        )
-        return
+    # ── Run each section ──
+    all_links: list[AgentLink] = []
+    any_degraded = False
+    section_outputs: list[str] = []
 
-    # ── Streaming run ──
-    trace = Trace(
-        trace_id=uuid.uuid4().hex,
-        agent_name=agent_name,
-        user_id=str(agent_deps.user.id),
-        start_time=time.time(),
-    )
+    for intent in intents:
+        agent_name = AGENT_BY_INTENT.get(intent, "travel_agent")
+        label = _INTENT_LABELS.get(intent, intent)
+        agent = getattr(request.app.state, agent_name, None) if request else None
 
-    try:
-        import asyncio
+        yield _sse({"type": "section", "agent": agent_name, "label": label})
 
-        async with asyncio.timeout(_SSE_TIMEOUT_SECONDS):
-            from app.agents.resilience import AGENT_USAGE_LIMITS
+        result = _StreamResult()
+        # Transport specialist gets route wilayas; others don't
+        kw: dict = {}
+        if intent == "transport":
+            from app.agents.orchestrator import _ordered_route_wilayas
 
-            limits = AGENT_USAGE_LIMITS.get(agent_name)
+            pair = _ordered_route_wilayas(sanitized)
+            if pair:
+                kw["from_wilaya"] = pair[0]
+                kw["to_wilaya"] = pair[1]
 
-            async with agent.run_stream(
-                sanitized,
-                deps=agent_deps,
-                usage_limits=limits,
-                retries={"tools": 2, "output": 1},
-            ) as stream:
-                async for chunk in stream.stream_text(delta=True):
-                    if chunk:
-                        yield _sse({"type": "token", "text": chunk})
+        async for event in _stream_one_agent(
+            agent,
+            sanitized,
+            agent_deps,
+            agent_name,
+            result=result,
+            **kw,
+        ):
+            yield event
 
-                result_output = await stream.get_output()
-                links = collect_links_from_result(stream)
+        all_links.extend(result.links)
+        if result.output:
+            section_outputs.append(result.output)
+        if result.degraded:
+            any_degraded = True
 
-        cb.record_success()
-        trace.tool_calls = len(
-            [
-                p
-                for m in stream.all_messages()
-                for p in (m.parts if hasattr(m, "parts") else [])
-                if getattr(p, "part_kind", "") == "tool-call"
-            ]
-        )
-        trace.output_tokens = len(str(result_output)) // 4
-        trace.finish(success=True)
-        trace_store.record(trace)
-
-    except TimeoutError:
-        cb.record_failure()
-        trace.finish(success=False, error=f"Agent {agent_name} timed out")
-        trace_store.record(trace)
-        yield _error_event(f"Agent {agent_name} timed out.")
-        return
-    except Exception as exc:  # noqa: BLE001
-        cb.record_failure()
-        trace.finish(success=False, error=str(exc))
-        trace_store.record(trace)
-        logger.error("Streaming agent %s failed: %s", agent_name, exc)
-        yield _error_event(f"Agent error: {exc}")
-        return
-
-    # ── Persist memory + profile ──
+    # ── Persist memory + profile (once, after all sections) ──
+    composed_output = "\n\n".join(section_outputs) if section_outputs else message
     from app.agents.runner import finalize_turn
 
-    await finalize_turn(agent_deps, message, result_output)
+    await finalize_turn(agent_deps, message, composed_output)
 
-    yield _done_event(
-        links=links,
-        degraded=False,
-        session_id=session_id,
+    yield _sse(
+        {
+            "type": "done",
+            "orchestrated": len(specialist_intents) > 0,
+            "links": [link.model_dump() for link in _dedupe_links(all_links)],
+            "degraded": any_degraded,
+            "session_id": session_id,
+        }
     )
 
 
-async def _stream_fallback(
-    agent_name: str,
-    message: str,
-    agent_deps: TravelAgentDeps,
-    from_wilaya: int | None,
-    to_wilaya: int | None,
-    session_id: str | None,
-) -> str:
-    """Send the offline fallback reply in one done event."""
-    from app.agents.fallback import attempt_fallback_with_links
-
-    output, links = await attempt_fallback_with_links(
-        agent_name,
-        message,
-        agent_deps,
-        from_wilaya=from_wilaya,
-        to_wilaya=to_wilaya,
-    )
-    if output is None:
-        return _error_event(
-            "Agents are not available — configure ATHAR_AGENT__VLLM settings in .env"
-        )
-    return _done_event(text=output, links=links, degraded=True, session_id=session_id)
+def _dedupe_links(links: list[AgentLink]) -> list[AgentLink]:
+    seen: set[tuple[str, str]] = set()
+    out: list[AgentLink] = []
+    for link in links:
+        key = (link.type, str(link.id))
+        if key in seen:
+            continue
+        seen.add(key)
+        out.append(link)
+    return out[:8]
