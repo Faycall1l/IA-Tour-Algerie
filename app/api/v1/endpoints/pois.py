@@ -264,19 +264,41 @@ async def search_pois(
     db: AsyncSession = Depends(get_db),
     vector_search: VectorSearchService = Depends(get_vector_search),
 ):
-    ids = vector_search.search(q, limit=limit)
+    seen_ids: set[uuid.UUID] = set()
     pois: list[POI] = []
-    if ids:
-        seen = set()
+
+    # --- Pass 0: exact name match via SQL ILIKE (always first) ---
+    name_pat = f"%{q}%"
+    name_stmt = (
+        select(POI)
+        .where(POI.name.ilike(name_pat))
+        .order_by(
+            POI.is_featured.desc(),
+            POI.name.not_like("%(non nommé)%").desc(),
+        )
+        .limit(limit)
+    )
+    name_result = await db.execute(name_stmt)
+    for poi in name_result.scalars().all():
+        if poi.id not in seen_ids:
+            seen_ids.add(poi.id)
+            pois.append(poi)
+
+    # --- Pass 1: vector search (fill remaining slots) ---
+    remaining = limit - len(pois)
+    if remaining > 0:
+        ids = vector_search.search(q, limit=remaining + 10)
         for pid in ids:
-            if pid in seen:
+            if pid in seen_ids:
                 continue
-            seen.add(pid)
+            seen_ids.add(pid)
             poi = await db.get(POI, pid)
             if poi:
                 pois.append(poi)
+                if len(pois) >= limit:
+                    break
 
-    # SQL full-text search fallback when Qdrant returns nothing or is unavailable
+    # --- Pass 2: SQL full-text fallback when everything else is empty ---
     if not pois:
         tsq = func.plainto_tsquery("french", q)
         stmt = (
