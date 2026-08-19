@@ -88,7 +88,7 @@ class TripOptimizer:
                 base.latitude = p.latitude
                 base.longitude = p.longitude
                 base.estimated_duration_minutes = _DEFAULT_POI_DURATION
-                base.estimated_cost_dzd = p.entry_fee_dzd or 0
+                base.estimated_cost_dzd = 0
             elif item.item_type == "experience" and item.item_id in exps:
                 e = exps[item.item_id]
                 base.item_name = e.title

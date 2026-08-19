@@ -68,8 +68,6 @@ class POISearchParams(BaseModel):
     category: str | None = Field(
         None, description="Filter by category (historical, natural, cultural, museum, beach, etc.)"
     )
-    min_price: float | None = Field(None, ge=0, description="Min entry fee in DZD")
-    max_price: float | None = Field(None, ge=0, description="Max entry fee in DZD")
     limit: int = Field(
         5, ge=1, le=20, description="Max results to return (keep small to avoid context overflow)"
     )
@@ -88,7 +86,6 @@ class POISearchResult(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     photo_url: str | None = None
-    entry_fee_dzd: float | None = None
     price_level: str | None = None
     is_featured: bool = False
     featured_order: int | None = None
@@ -123,17 +120,11 @@ async def search_pois(ctx: RunContext[TravelAgentDeps], params: POISearchParams)
     if params.category is not None:
         base_conditions.append("category = :category")
         bind["category"] = params.category
-    if params.min_price is not None:
-        base_conditions.append("(entry_fee_dzd >= :min_price OR entry_fee_dzd IS NULL)")
-        bind["min_price"] = params.min_price
-    if params.max_price is not None:
-        base_conditions.append("entry_fee_dzd <= :max_price")
-        bind["max_price"] = params.max_price
 
     base_where = " AND ".join(base_conditions)
     columns = (
         "id, name, name_ar, name_en, category, subtype, wilaya_id, commune, "
-        "description, latitude, longitude, photo_url, entry_fee_dzd, price_level, "
+        "description, latitude, longitude, photo_url, price_level, "
         "is_featured, featured_order, ranking_position, ranking_total, "
         "suggested_duration_min, opening_hours, phone, website"
     )
@@ -191,16 +182,15 @@ async def search_pois(ctx: RunContext[TravelAgentDeps], params: POISearchParams)
                 latitude=float(r[9]) if r[9] else None,
                 longitude=float(r[10]) if r[10] else None,
                 photo_url=r[11],
-                entry_fee_dzd=float(r[12]) if r[12] else None,
-                price_level=r[13],
-                is_featured=r[14],
-                featured_order=r[15],
-                ranking_position=r[16],
-                ranking_total=r[17],
-                suggested_duration_min=r[18],
-                opening_hours=r[19],
-                phone=r[20],
-                website=r[21],
+                price_level=r[12],
+                is_featured=r[13],
+                featured_order=r[14],
+                ranking_position=r[15],
+                ranking_total=r[16],
+                suggested_duration_min=r[17],
+                opening_hours=r[18],
+                phone=r[19],
+                website=r[20],
             )
             for r in rows
         ],
@@ -715,7 +705,6 @@ class GuidePOIOutput(BaseModel):
     subtype: str | None = None
     description: str | None = None
     is_featured: bool = False
-    entry_fee_dzd: float | None = None
     price_level: str | None = None
     suggested_duration_min: int | None = None
     photo_url: str | None = None
@@ -844,7 +833,7 @@ async def get_wilaya_guide(
     featured = await ctx.deps.db.execute(
         text("""
             SELECT id, name, category, subtype, description, is_featured,
-                   entry_fee_dzd, price_level, suggested_duration_min,
+                   price_level, suggested_duration_min,
                    photo_url,
                    getting_there->>'nearest_station_name' as nearest_station
             FROM pois
@@ -862,11 +851,10 @@ async def get_wilaya_guide(
             subtype=r[3],
             description=_truncate(r[4]),
             is_featured=r[5],
-            entry_fee_dzd=float(r[6]) if r[6] else None,
-            price_level=r[7],
-            suggested_duration_min=r[8],
-            photo_url=r[9],
-            nearest_station=r[10],
+            price_level=r[6],
+            suggested_duration_min=r[7],
+            photo_url=r[8],
+            nearest_station=r[9],
         )
         for r in featured.all()
     ]
@@ -889,7 +877,7 @@ async def get_wilaya_guide(
         pois = await ctx.deps.db.execute(
             text("""
                 SELECT id, name, category, subtype, description, is_featured,
-                       entry_fee_dzd, price_level, suggested_duration_min,
+                       price_level, suggested_duration_min,
                        photo_url,
                        getting_there->>'nearest_station_name' as nearest_station
                 FROM pois
@@ -911,11 +899,10 @@ async def get_wilaya_guide(
                         subtype=r[3],
                         description=_truncate(r[4]),
                         is_featured=r[5],
-                        entry_fee_dzd=float(r[6]) if r[6] else None,
-                        price_level=r[7],
-                        suggested_duration_min=r[8],
-                        photo_url=r[9],
-                        nearest_station=r[10],
+                        price_level=r[6],
+                        suggested_duration_min=r[7],
+                        photo_url=r[8],
+                        nearest_station=r[9],
                     )
                     for r in pois.all()
                 ],

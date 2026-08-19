@@ -98,7 +98,6 @@ class DiscoverPOI(BaseModel):
     longitude: float | None
     photo_url: str | None
     is_featured: bool = False
-    entry_fee_dzd: float | None
 
 
 class DiscoverExperience(BaseModel):
@@ -189,7 +188,6 @@ class GuidePOI(BaseModel):
     longitude: float | None = None
     photo_urls: list[str] | None = None
     is_featured: bool = False
-    entry_fee_dzd: float | None = None
     price_level: str | None = None
     suggested_duration_min: int | None = None
     accessibility_score: int | None = None
@@ -372,7 +370,6 @@ async def discover_wilaya(
             longitude=p.longitude,
             photo_url=p.photo_url,
             is_featured=bool(p.is_featured),
-            entry_fee_dzd=p.entry_fee_dzd,
         )
         for p in pois_rows
     ]
@@ -565,7 +562,6 @@ async def wilaya_guide(
             if p.photo_urls
             else ([p.photo_url] if p.photo_url else None),
             is_featured=p.is_featured or False,
-            entry_fee_dzd=p.entry_fee_dzd,
             price_level=p.price_level,
             suggested_duration_min=p.suggested_duration_min,
             accessibility_score=gt.get("accessibility_score"),

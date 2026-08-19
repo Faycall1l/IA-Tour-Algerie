@@ -37,7 +37,6 @@ class RecommendationEngine:
         cat_scores: dict[str, float] = defaultdict(float)
         wilaya_scores: dict[int, float] = defaultdict(float)
         tag_scores: dict[str, float] = defaultdict(float)
-        entry_fees: list[float] = []
         durations: list[int] = []
 
         # Favorites (POI only for signal extraction)
@@ -91,8 +90,6 @@ class RecommendationEngine:
                 wilaya_scores[poi.wilaya_id] += 1.0
                 if poi.subtype:
                     tag_scores[poi.subtype] += 0.5
-                if poi.entry_fee_dzd and poi.entry_fee_dzd > 0:
-                    entry_fees.append(poi.entry_fee_dzd)
                 if poi.suggested_duration_min:
                     durations.append(poi.suggested_duration_min)
 
@@ -118,7 +115,6 @@ class RecommendationEngine:
             "favorite_count": len(fav_list),
             "trip_count": len(trip_items),
             "collection_count": len(col_items),
-            "avg_entry_fee": sum(entry_fees) / len(entry_fees) if entry_fees else None,
             "avg_duration_min": int(sum(durations) / len(durations)) if durations else None,
         }
 
@@ -195,25 +191,6 @@ class RecommendationEngine:
             if wilaya_id:
                 wil_boost = pref.interaction_score.get("wilaya_scores", {}).get(str(wilaya_id), 0)
                 score += min(wil_boost * 0.2, 2.0)
-
-        # --- Fee fit (POIs use entry_fee_dzd, stays use price_per_night_dzd) ---
-        fee = getattr(candidate, "entry_fee_dzd", None)
-        if entity_type == "stay":
-            fee = getattr(candidate, "price_per_night_dzd", None)
-
-        if fee is not None and pref.budget_tier:
-            if pref.budget_tier == "budget" and fee > 500:
-                score -= 1.0
-            elif pref.budget_tier == "luxury" and fee < 100:
-                score -= 0.5
-            elif pref.budget_tier in ("budget", "mid_range") and fee == 0:
-                score += 0.5
-                reasons.append("free entry")
-
-        if fee is not None and pref.min_entry_fee is not None and fee < pref.min_entry_fee:
-            score -= 2.0
-        if fee is not None and pref.max_entry_fee is not None and fee > pref.max_entry_fee:
-            score -= 2.0
 
         # --- Featured boost ---
         if getattr(candidate, "is_featured", False):

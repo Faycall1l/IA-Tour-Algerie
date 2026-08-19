@@ -31,7 +31,7 @@ SELECT * FROM (
     latitude,
     longitude,
     photo_url,
-    entry_fee_dzd AS price,
+    0 AS price,
     ts_rank(search_vector, plainto_tsquery('french', :q)) AS rank
   FROM pois
   WHERE search_vector @@ plainto_tsquery('french', :q)

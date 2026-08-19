@@ -29,7 +29,6 @@ async def test_create_and_list_pois(
             "latitude": 35.789,
             "longitude": -0.445,
             "description": "A beautiful basilica in Oran",
-            "entry_fee_dzd": 0,
         },
         headers=admin_headers,
     )
@@ -38,7 +37,6 @@ async def test_create_and_list_pois(
     assert data["name"] == "Basilique Notre-Dame d'Afrique"
     assert data["category"] == "religious"
     assert data["wilaya_id"] == 31
-    assert data["entry_fee_dzd"] == 0
 
     list_resp = await client.get("/api/v1/pois")
     assert list_resp.status_code == 200

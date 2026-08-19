@@ -13,8 +13,6 @@ class PreferenceUpdate(BaseModel):
     budget_tier: str | None = Field(None, pattern=f"^({'|'.join(BUDGET_TIERS)})$")
     interests: list[str] | None = None
     avoided_categories: list[str] | None = None
-    min_entry_fee: float | None = Field(None, ge=0)
-    max_entry_fee: float | None = Field(None, ge=0)
     preferred_duration_min: int | None = Field(None, ge=10, le=480)
 
 
@@ -29,8 +27,6 @@ class PreferenceRead(BaseModel):
     budget_tier: str | None = None
     interests: list[str] | None = None
     avoided_categories: list[str] | None = None
-    min_entry_fee: float | None = None
-    max_entry_fee: float | None = None
     preferred_duration_min: int | None = None
     profile_summary: str | None = None
     interaction_score: dict | None = None
@@ -76,5 +72,4 @@ class InteractionScore(BaseModel):
     favorite_count: int = 0
     trip_count: int = 0
     collection_count: int = 0
-    avg_entry_fee: float | None = None
     avg_duration_min: float | None = None

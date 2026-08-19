@@ -13,7 +13,6 @@ class POICreate(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     description: str | None = Field(None, max_length=2000)
-    entry_fee_dzd: float | None = Field(None, ge=0, le=10_000_000)
     photo_url: str | None = Field(None, max_length=500)
 
 
@@ -23,7 +22,6 @@ class POIUpdate(BaseModel):
     latitude: float | None = None
     longitude: float | None = None
     description: str | None = Field(None, max_length=2000)
-    entry_fee_dzd: float | None = Field(None, ge=0, le=10_000_000)
     photo_url: str | None = Field(None, max_length=500)
     name_ar: str | None = Field(None, max_length=200)
     name_en: str | None = Field(None, max_length=200)
@@ -53,7 +51,6 @@ class POIRead(BaseModel):
     description: str | None = None
     photo_url: str | None = None
     photo_urls: list[str] | None = None
-    entry_fee_dzd: float | None = None
     price_level: str | None = None
     website: str | None = None
     phone: str | None = None

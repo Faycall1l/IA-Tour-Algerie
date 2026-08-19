@@ -507,7 +507,7 @@ async def _handle_poi_search(
     links = links_from_tool_output("search_pois", out)
     lines = [f'Points of interest matching "{query}":']
     for r in out.results[:_MAX_RESULTS]:
-        price = r.price_level or (f"{r.entry_fee_dzd:.0f} DZD" if r.entry_fee_dzd else "Free")
+        price = r.price_level or "Free"
         duration = f", ~{r.suggested_duration_min} min" if r.suggested_duration_min else ""
         snippet = f" — {r.description}" if r.description else ""
         lines.append(f"• {r.name} ({r.category}) — {price}{duration}{snippet}")
